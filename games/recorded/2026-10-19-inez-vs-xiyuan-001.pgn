@@ -1,0 +1,24 @@
+[Event "Player vs Engine"]
+[Site "En Croissant"]
+[Date "2026.10.19"]
+[Round "?"]
+[White "Inez 0.1.0"]
+[Black "Xiyuan"]
+[Result "0-1"]
+[Orientation "black"]
+
+1. Nc3 d5 2. d4 Nf6 3. Nf3 g6 4. Bf4 a6 5. h3 Bg7 6. Bg5 h6
+7. Bxf6 Bxf6 8. e4 dxe4 9. Nxe4 Bf5 10. Nxf6+ exf6 11. g4 Be6
+12. Bg2 Nc6 13. a4 O-O 14. Qd2 Bd5 15. c4 Bxf3 16. Bxf3 Qxd4
+17. Bxc6 Qxd2+ 18. Kxd2 bxc6 19. c5 Rab8 20. Kc2 Rfe8
+21. Rhe1 Rxe1 22. Rxe1 Rb4 23. Re7 Rxa4 24. Rxc7 Rc4+
+25. Kb1 Rxc5 26. Ra7 a5 27. Ra8+ Kg7 28. Rc8 f5 29. gxf5 gxf5
+30. Re8 Kg6 31. Rb8 Kg5 32. Rb7 f6 33. Rg7+ Kh5 34. Rc7 Kh4
+35. Rf7 Kxh3 36. Rxf6 Kg2 37. Rxh6 Kxf2 38. Rh7 Ke2 39. Rg7 Kd2
+40. Rh7 Rc1+ 41. Ka2 f4 42. Rf7 Ke3 43. Ra7 f3 44. Re7+ Kf2
+45. Ra7 Rc5 46. Kb1 Kg2 47. Rg7+ Kf2 48. Rc7 Kf1 49. Rf7 f2
+50. b4 axb4 51. Rg7 Re5 52. Rg3 Ke2 53. Rg2 Rg5 54. Rxg5 f1=Q+
+55. Ka2 Qf7+ 56. Kb1 Qb3+ 57. Ka1 Qc3+ 58. Kb1 Qd3+
+59. Ka1 Qd4+ 60. Kb1 Qe4+ 61. Ka2 Qc2+ 62. Ka1 Qc1+
+63. Ka2 Qxg5 64. Kb1 b3 65. Kb2 Qd5 66. Kb1 Qd3+
+67. Ka1 Qc3+ 68. Kb1 Qc2+ 69. Ka1 Qa2# 0-1
