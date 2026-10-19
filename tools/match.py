@@ -83,8 +83,7 @@ class UciProcess:
             bufsize=1,
         )
         self.out_queue: "queue.Queue[Optional[str]]" = queue.Queue()
-        self.diag_samples: List[DiagSample] = []
-        self._diag_lock = threading.Lock()
+        self.diag_queue: "queue.Queue[DiagSample]" = queue.Queue()
         self._out_thread = threading.Thread(target=self._read_stdout, daemon=True)
         self._err_thread = threading.Thread(target=self._read_stderr, daemon=True)
         self._out_thread.start()
@@ -92,13 +91,19 @@ class UciProcess:
 
     def _read_stdout(self) -> None:
         assert self.process.stdout is not None
-        for line in self.process.stdout:
+        while True:
+            line = self.process.stdout.readline()
+            if not line:
+                break
             self.out_queue.put(line.rstrip("\r\n"))
         self.out_queue.put(None)
 
     def _read_stderr(self) -> None:
         assert self.process.stderr is not None
-        for line in self.process.stderr:
+        while True:
+            line = self.process.stderr.readline()
+            if not line:
+                break
             match = DIAG_REGEX.search(line)
             if match:
                 sample = DiagSample(
@@ -111,12 +116,20 @@ class UciProcess:
                     batch_util=float(match.group(7)),
                     eval_us=float(match.group(8)),
                 )
-                with self._diag_lock:
-                    self.diag_samples.append(sample)
+                self.diag_queue.put(sample)
 
-    def last_diag(self) -> Optional[DiagSample]:
-        with self._diag_lock:
-            return self.diag_samples[-1] if self.diag_samples else None
+    def clear_diags(self) -> None:
+        while True:
+            try:
+                self.diag_queue.get_nowait()
+            except queue.Empty:
+                break
+
+    def wait_for_diag(self, timeout: float = 5.0) -> Optional[DiagSample]:
+        try:
+            return self.diag_queue.get(timeout=timeout)
+        except queue.Empty:
+            return None
 
     def send(self, command: str) -> None:
         if self.process.poll() is not None:
@@ -393,13 +406,11 @@ def run_diagnostics_benchmark(executable: str, nodes: int, movetime_ms: int, bat
         try:
             proc.initialize()
             proc.new_game()
+            proc.clear_diags()
             proc.send("position startpos")
             proc.send(go_cmd)
             line, _, status = proc.read_until("bestmove ", 15.0)
-            # Synchronize on isready so stderr diag line has been flushed and read.
-            proc.send("isready")
-            proc.read_until("readyok", 5.0)
-            sample = proc.last_diag()
+            sample = proc.wait_for_diag(timeout=5.0)
             if status != "ok" or line is None or sample is None:
                 raise RuntimeError(f"benchmark {mode} failed ({status})")
             results[mode] = {
