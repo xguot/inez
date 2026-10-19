@@ -68,10 +68,11 @@ cleanup() {
 
     # Batch jobs can otherwise pick /usr/bin/c++ (GCC 8 on Rivanna), which
     # accepts -std=c++2a but lacks the C++20 features required by the engine.
-    # Respect an explicit CXX; allow other clusters to select their module.
+    # Use the site's default GCC rather than assuming a version is installed.
+    # Respect an explicit CXX; allow a specific module to be requested.
     COMPILER_MODULE="${INEZ_COMPILER_MODULE:-}"
     if [[ -z "${COMPILER_MODULE}" && -z "${CXX:-}" ]] && command -v module >/dev/null 2>&1; then
-        COMPILER_MODULE=gcc/13.3.0
+        COMPILER_MODULE=gcc
     fi
     if [[ -n "${COMPILER_MODULE}" ]]; then
         if ! command -v module >/dev/null 2>&1; then

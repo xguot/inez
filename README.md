@@ -69,9 +69,10 @@ cat inez_smoke_JOBID.out inez_smoke_JOBID.err
 `CG` means Slurm is completing cleanup; use `sacct` to check whether the job
 succeeded. The run log includes startup failures and a final exit status.
 
-When environment modules are available, the job loads `gcc/13.3.0` by default
-for Rivanna. Override it with `INEZ_COMPILER_MODULE=<module/version>` on other
-clusters, or set `CXX=/absolute/path/to/compiler` to use a prepared toolchain
+When environment modules are available, the job loads the site's default `gcc`
+module. Use `module spider gcc` to list installed versions and select one with
+`INEZ_COMPILER_MODULE=gcc/<installed-version>` if the default lacks C++20
+support. Set `CXX=/absolute/path/to/compiler` to use a prepared toolchain
 without loading a module. GCC 8.5, the Rivanna system compiler seen in the first
 smoke run, lacks the required C++20 features; CMake now checks these at configure
 time. Python selection can be overridden with `INEZ_PYTHON`; otherwise the job

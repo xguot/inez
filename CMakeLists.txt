@@ -26,7 +26,8 @@ if(NOT INEZ_HAS_REQUIRED_CXX20)
     "Inez requires a C++20 compiler and standard library with std::span and "
     "defaulted comparisons. Selected compiler: ${CMAKE_CXX_COMPILER} "
     "(${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}). "
-    "Load a modern compiler module (on Rivanna: module load gcc/13.3.0), "
+    "Load a modern compiler module (on Rivanna: module load gcc; "
+    "use module spider gcc to list available versions), "
     "then configure a fresh build directory with CXX set to that compiler.")
 endif()
 
