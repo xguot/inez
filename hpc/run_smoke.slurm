@@ -1,13 +1,12 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-only
-# Single-GPU smoke test and diagnostic overfit on UVA Rivanna.
+# Single-GPU smoke test and diagnostic overfit for Slurm clusters.
 # Builds the C++20 engine, runs CTest contract/model checks, verifies CUDA
 # overfit on a small diagnostic batch, and exports a verified v1 model artifact.
-# Run: mkdir -p hpc/logs && sbatch hpc/run_smoke.slurm
+# Run: mkdir -p hpc/logs && sbatch -A <account> hpc/run_smoke.slurm
 #SBATCH --job-name=inez_smoke
 #SBATCH --output=hpc/logs/inez_smoke_%j.out
 #SBATCH --error=hpc/logs/inez_smoke_%j.err
-#SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
@@ -24,8 +23,8 @@ mkdir -p "${OUT_DIR}"
 
 if [[ -n "${INEZ_PYTHON:-}" ]]; then
     PY="${INEZ_PYTHON}"
-elif [[ -x /home/mhn4xq/.conda/envs/inez/bin/python ]]; then
-    PY=/home/mhn4xq/.conda/envs/inez/bin/python
+elif [[ -x "${HOME}/.conda/envs/inez/bin/python" ]]; then
+    PY="${HOME}/.conda/envs/inez/bin/python"
 elif [[ -x "${ROOT_DIR}/.venv-model/bin/python" ]]; then
     PY="${ROOT_DIR}/.venv-model/bin/python"
 elif [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
@@ -47,8 +46,28 @@ mkdir -p "${XDG_CACHE_HOME}"
 
 BUILD_DIR="${JOB_TMP}/build"
 {
-    echo "Inez Rivanna GPU smoke test; job=${JOB_ID} host=$(hostname)"
+    echo "Inez Slurm GPU smoke test; job=${JOB_ID} host=$(hostname)"
     echo "Output: ${OUT_DIR}; Python: ${PY}"
+
+    # Batch jobs can otherwise pick /usr/bin/c++ (GCC 8 on Rivanna), which
+    # accepts -std=c++2a but lacks the C++20 features required by the engine.
+    # Respect an explicit CXX; allow other clusters to select their module.
+    COMPILER_MODULE="${INEZ_COMPILER_MODULE:-}"
+    if [[ -z "${COMPILER_MODULE}" && -z "${CXX:-}" ]] && command -v module >/dev/null 2>&1; then
+        COMPILER_MODULE=gcc/13.3.0
+    fi
+    if [[ -n "${COMPILER_MODULE}" ]]; then
+        if ! command -v module >/dev/null 2>&1; then
+            echo "Compiler module requested, but module is unavailable; initialize modules or set CXX instead." >&2
+            exit 1
+        fi
+        echo "Loading compiler module: ${COMPILER_MODULE}"
+        module load "${COMPILER_MODULE}"
+        export CXX="${CXX:-$(command -v g++)}"
+    fi
+    echo "C++ compiler: ${CXX:-c++}"
+    "${CXX:-c++}" --version
+
     if command -v nvidia-smi >/dev/null 2>&1; then
         nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv
     fi

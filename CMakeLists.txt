@@ -2,6 +2,34 @@
 cmake_minimum_required(VERSION 3.20)
 project(inez VERSION 0.1.0 LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Older compilers may accept a C++20 flag without implementing the features
+# used by the engine. Check the compiler and its standard library together.
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles([[
+  #include <span>
+  struct Value {
+    int value;
+    bool operator==(const Value &) const = default;
+  };
+  static_assert(Value{1} == Value{1});
+  int main() {
+    int values[] = {1, 2};
+    return std::span<const int>(values).size() == 2 ? 0 : 1;
+  }
+]] INEZ_HAS_REQUIRED_CXX20)
+if(NOT INEZ_HAS_REQUIRED_CXX20)
+  message(FATAL_ERROR
+    "Inez requires a C++20 compiler and standard library with std::span and "
+    "defaulted comparisons. Selected compiler: ${CMAKE_CXX_COMPILER} "
+    "(${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}). "
+    "Load a modern compiler module (on Rivanna: module load gcc/13.3.0), "
+    "then configure a fresh build directory with CXX set to that compiler.")
+endif()
+
 include(CTest)
 option(INEZ_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
 option(INEZ_DIFFERENTIAL_TESTS "Run tests against the Python chess oracle" OFF)
@@ -21,8 +49,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 elseif(INEZ_SANITIZERS)
   message(FATAL_ERROR "INEZ_SANITIZERS requires Clang or GCC")
 endif()
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 add_library(inez_chess
   src/chess.cpp
   src/encoding.cpp

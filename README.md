@@ -41,6 +41,28 @@ ctest --test-dir build-debug --output-on-failure
 Python is only needed for the differential and match tests. The engine has no
 runtime dependencies beyond the C++ standard library.
 
+### Slurm GPU smoke test
+
+Install `training/requirements.txt` in a Python environment with CUDA-enabled
+PyTorch, then submit from the repository root:
+
+```sh
+mkdir -p hpc/logs
+INEZ_PYTHON=/absolute/path/to/env/bin/python sbatch -A <account> hpc/run_smoke.slurm
+```
+
+The job builds the engine, runs CTest (including model checks), and performs a
+GPU diagnostic overfit and checkpoint round trip. Logs and artifacts are written
+to `results/smoke/<job-id>/`.
+
+When environment modules are available, the job loads `gcc/13.3.0` by default
+for Rivanna. Override it with `INEZ_COMPILER_MODULE=<module/version>` on other
+clusters, or set `CXX=/absolute/path/to/compiler` to use a prepared toolchain
+without loading a module. GCC 8.5, the Rivanna system compiler seen in the first
+smoke run, lacks the required C++20 features; CMake now checks these at configure
+time. Python selection can be overridden with `INEZ_PYTHON`; otherwise the job
+tries `~/.conda/envs/inez`, `.venv-model`, `.venv`, then `python3`.
+
 ### Run the UCI engine and match runner
 
 Run `build/inez` for standard UCI communication (`uci`, `isready`, `position`,
