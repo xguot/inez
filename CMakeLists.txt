@@ -5,6 +5,7 @@ project(inez VERSION 0.1.0 LANGUAGES CXX)
 include(CTest)
 option(INEZ_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
 option(INEZ_DIFFERENTIAL_TESTS "Run tests against the Python chess oracle" OFF)
+option(INEZ_MODEL_TESTS "Run optional PyTorch architecture/artifact tests" OFF)
 
 find_package(Threads REQUIRED)
 
@@ -24,6 +25,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(inez_chess
   src/chess.cpp
+  src/encoding.cpp
   src/search.cpp
   src/uci.cpp
 )
@@ -36,6 +38,9 @@ target_link_libraries(inez PRIVATE inez_chess)
 add_executable(inez-rules tools/rules.cpp)
 target_link_libraries(inez-rules PRIVATE inez_chess)
 
+add_executable(inez-encode tools/encode.cpp)
+target_link_libraries(inez-encode PRIVATE inez_chess)
+
 if(BUILD_TESTING)
   add_executable(inez-chess-tests tests/chess_tests.cpp)
   target_link_libraries(inez-chess-tests PRIVATE inez_chess)
@@ -46,6 +51,11 @@ if(BUILD_TESTING)
   target_link_libraries(inez-search-tests PRIVATE inez_chess)
   add_test(NAME search COMMAND inez-search-tests)
   set_tests_properties(search PROPERTIES TIMEOUT 120)
+
+  add_executable(inez-encoding-tests tests/encoding_tests.cpp)
+  target_link_libraries(inez-encoding-tests PRIVATE inez_chess)
+  add_test(NAME encoding COMMAND inez-encoding-tests)
+  set_tests_properties(encoding PROPERTIES TIMEOUT 120)
 
   if(INEZ_DIFFERENTIAL_TESTS)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -58,5 +68,19 @@ if(BUILD_TESTING)
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/match.py"
               "$<TARGET_FILE:inez>" --pairs 2 --nodes 48 --max-plies 100)
     set_tests_properties(match PROPERTIES TIMEOUT 180)
+
+    add_test(NAME contracts
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/contracts_tests.py"
+              "$<TARGET_FILE:inez-encode>")
+    add_test(NAME data
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/data_tests.py")
+    set_tests_properties(contracts data PROPERTIES TIMEOUT 180)
+  endif()
+
+  if(INEZ_MODEL_TESTS)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME model
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/model_tests.py")
+    set_tests_properties(model PROPERTIES TIMEOUT 180)
   endif()
 endif()

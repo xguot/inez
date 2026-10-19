@@ -1,5 +1,9 @@
 /build*/
 /.venv/
+/.venv-model/
+/data/raw/
+/data/processed/
+/artifacts/
 __pycache__/
 *.pyc
 .DS_Store

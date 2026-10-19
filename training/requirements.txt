@@ -1,0 +1,3 @@
+# Optional Python data/model tooling. The native engine does not require these.
+chess==1.11.2
+torch==2.14.1
