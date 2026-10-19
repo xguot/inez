@@ -6,9 +6,14 @@ Stealing the quiet hours of my twenties.
 
 See [TODO](TODO) for the development roadmap and next implementation milestone.
 
-The first implementation is a C++20 standard-chess rules library with legal
-move generation, FEN import/export, reversible moves, and draw-history handling.
-See [the rules guide](docs/rules.md) for API semantics and known limitations.
+The engine includes:
+
+- A C++20 standard-chess rules library with legal move generation, FEN
+  import/export, reversible moves, and draw-history handling
+  ([rules guide](docs/rules.md)).
+- A serial and batched PUCT search baseline with material/uniform evaluators,
+  UCI engine (`inez`), and automated match/benchmark runner
+  ([search guide](docs/search.md)).
 
 ### Build and test
 
@@ -20,7 +25,8 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-For the independent python-chess oracle and debug sanitizers:
+For the independent python-chess oracle, automated match suite, and debug
+sanitizers:
 
 ```sh
 python3 -m venv .venv
@@ -32,8 +38,17 @@ cmake --build build-debug --parallel
 ctest --test-dir build-debug --output-on-failure
 ```
 
-Python is only needed for the differential tests. The engine has no runtime
-dependencies beyond the C++ standard library.
+Python is only needed for the differential and match tests. The engine has no
+runtime dependencies beyond the C++ standard library.
+
+### Run the UCI engine and match runner
+
+Run `build/inez` for standard UCI communication (`uci`, `isready`, `position`,
+`go`, `stop`, `quit`), or run the paired-opening match and benchmark suite:
+
+```sh
+.venv/bin/python tools/match.py build/inez --pairs 4 --nodes 64 --batch-size 4
+```
 
 ### Inspect a position
 
