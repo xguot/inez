@@ -4,6 +4,8 @@
 /data/raw/
 /data/processed/
 /artifacts/
+/hpc/logs/
+/results/
 __pycache__/
 *.pyc
 .DS_Store
