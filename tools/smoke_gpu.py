@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Verify GPU execution, small-batch overfitting, and v1 artifact export."""
+"""Verify selected-device execution, small-batch overfitting, and v1 artifact export."""
 
 import argparse
 import json
+import os
 from pathlib import Path
+import socket
+import sys
 import time
 
 import chess
@@ -95,12 +98,22 @@ def main() -> None:
         torch.cuda.manual_seed_all(args.seed)
 
     device = torch.device(args.device)
+    run_context = {
+        "hostname": socket.gethostname(),
+        "slurm_job_id": os.environ.get("SLURM_JOB_ID"),
+        "python_executable": sys.executable,
+        "torch_version": str(torch.__version__),
+        "torch_cuda_version": torch.version.cuda,
+        "requested_device": args.device,
+    }
+    print(f"Smoke execution: {json.dumps(run_context, sort_keys=True)}", flush=True)
     root_dir = Path(__file__).resolve().parent.parent
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     config = ModelConfig()
     model = ChessTransformer(config).to(device=device, dtype=torch.float32)
+    device = next(model.parameters()).device
     param_count = sum(p.numel() for p in model.parameters())
 
     x, mask_t, moves_t, wdl_t = build_diagnostic_batch(root_dir)
@@ -163,6 +176,7 @@ def main() -> None:
         )
 
     summary = {
+        "run_context": run_context,
         "device": str(device),
         "gpu_name": torch.cuda.get_device_name(device) if device.type == "cuda" else None,
         "parameters": param_count,

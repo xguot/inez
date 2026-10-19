@@ -64,7 +64,9 @@ cleanup() {
     mkdir -p "${XDG_CACHE_HOME}"
 
     BUILD_DIR="${JOB_TMP}/build"
+    SMOKE_DEVICE="${DEVICE:-cuda}"
     echo "Python: ${PY}"
+    echo "Diagnostic device: ${SMOKE_DEVICE}"
 
     # Batch jobs can otherwise pick /usr/bin/c++ (GCC 8 on Rivanna), which
     # accepts -std=c++2a but lacks the C++20 features required by the engine.
@@ -100,11 +102,11 @@ cleanup() {
 
     if "${PY}" -u tools/smoke_gpu.py \
         --out-dir "${OUT_DIR}" \
-        --device "${DEVICE:-cuda}" \
+        --device "${SMOKE_DEVICE}" \
         --steps "${STEPS:-40}" \
         --lr "${LR:-1e-3}" \
         --seed "${SEED:-20261019}"; then
-        echo "C++ engine build, CTest contracts, and GPU diagnostic overfit passed."
+        echo "C++ engine build, CTest contracts, and ${SMOKE_DEVICE} diagnostic overfit passed."
     else
         exit "$?"
     fi

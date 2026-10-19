@@ -69,6 +69,24 @@ cat inez_smoke_JOBID.out inez_smoke_JOBID.err
 `CG` means Slurm is completing cleanup; use `sacct` to check whether the job
 succeeded. The run log includes startup failures and a final exit status.
 
+Interpret copied results using the recorded execution metadata. Copying an HPC
+result to this checkout does not make it a local run, and CPU execution does
+not imply a laptop run: HPC jobs can also run on CPU. Folder names and artifact
+paths alone do not establish where computation happened.
+
+New summaries record the execution hostname, Slurm job ID, Python executable,
+PyTorch/CUDA versions, and requested device in `run_context`. The top-level
+`device` records the model's actual device, and `gpu_name` identifies its CUDA
+GPU. A CPU smoke pass verifies learning and checkpoint export/reload; a CUDA
+smoke pass additionally verifies GPU execution. Older summaries without
+`run_context` should be read alongside their original job logs.
+
+The diagnostic weights come from overfitting a tiny batch; they are a pipeline
+check. The next development milestone is a bounded dataset training loop with
+held-out validation and resumable training checkpoints, followed by engine
+inference integration and controlled baseline matches. Confirm CUDA execution
+in the first HPC training pilot before scaling up.
+
 When environment modules are available, the job loads the site's default `gcc`
 module. Use `module spider gcc` to list installed versions and select one with
 `INEZ_COMPILER_MODULE=gcc/<installed-version>` if the default lacks C++20
