@@ -11,3 +11,5 @@ __pycache__/
 .DS_Store
 /logs.csv
 /games/raw/
+/inez_smoke_*.out
+/inez_smoke_*.err

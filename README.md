@@ -47,13 +47,25 @@ Install `training/requirements.txt` in a Python environment with CUDA-enabled
 PyTorch, then submit from the repository root:
 
 ```sh
-mkdir -p hpc/logs
 INEZ_PYTHON=/absolute/path/to/env/bin/python sbatch -A <account> hpc/run_smoke.slurm
 ```
 
 The job builds the engine, runs CTest (including model checks), and performs a
 GPU diagnostic overfit and checkpoint round trip. Logs and artifacts are written
-to `results/smoke/<job-id>/`.
+to `results/smoke/<job-id>/`. Slurm bootstrap output and errors go to
+`inez_smoke_<job-id>.out` and `inez_smoke_<job-id>.err` in the submission
+directory, so no log directory needs to exist before the job starts.
+
+If a job disappears quickly, inspect its final state and log paths:
+
+```sh
+sacct -j JOBID --format=JobID,State,ExitCode,Elapsed
+scontrol show job JOBID
+cat inez_smoke_JOBID.out inez_smoke_JOBID.err
+```
+
+`CG` means Slurm is completing cleanup; use `sacct` to check whether the job
+succeeded. The run log includes startup failures and a final exit status.
 
 When environment modules are available, the job loads `gcc/13.3.0` by default
 for Rivanna. Override it with `INEZ_COMPILER_MODULE=<module/version>` on other

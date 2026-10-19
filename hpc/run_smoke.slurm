@@ -3,17 +3,20 @@
 # Single-GPU smoke test and diagnostic overfit for Slurm clusters.
 # Builds the C++20 engine, runs CTest contract/model checks, verifies CUDA
 # overfit on a small diagnostic batch, and exports a verified v1 model artifact.
-# Run: mkdir -p hpc/logs && sbatch -A <account> hpc/run_smoke.slurm
+# Run from the repository root: sbatch -A <account> hpc/run_smoke.slurm
 #SBATCH --job-name=inez_smoke
-#SBATCH --output=hpc/logs/inez_smoke_%j.out
-#SBATCH --error=hpc/logs/inez_smoke_%j.err
+# Keep bootstrap logs in the existing submission directory: Slurm opens these
+# before the script runs, so a missing log subdirectory prevents startup.
+#SBATCH --output=inez_smoke_%j.out
+#SBATCH --error=inez_smoke_%j.err
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=00:30:00
 
-set -euo pipefail
+set -Eeuo pipefail
+trap 'status=$?; echo "ERROR: smoke test failed at line ${LINENO} (exit ${status})" >&2' ERR
 ROOT_DIR="${INEZ_ROOT:-${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}}"
 cd "${ROOT_DIR}"
 
@@ -21,33 +24,46 @@ JOB_ID="${SLURM_JOB_ID:-local}"
 OUT_DIR="${ROOT_DIR}/results/smoke/${JOB_ID}"
 mkdir -p "${OUT_DIR}"
 
-if [[ -n "${INEZ_PYTHON:-}" ]]; then
-    PY="${INEZ_PYTHON}"
-elif [[ -x "${HOME}/.conda/envs/inez/bin/python" ]]; then
-    PY="${HOME}/.conda/envs/inez/bin/python"
-elif [[ -x "${ROOT_DIR}/.venv-model/bin/python" ]]; then
-    PY="${ROOT_DIR}/.venv-model/bin/python"
-elif [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
-    PY="${ROOT_DIR}/.venv/bin/python"
-else
-    PY=python3
-fi
+cleanup() {
+    local status=$?
+    if [[ -n "${JOB_TMP:-}" ]]; then
+        rm -rf -- "${JOB_TMP}" || true
+    fi
+    echo "Smoke test finished; exit=${status}"
+    exit "${status}"
+}
 
-JOB_TMP="$(mktemp -d "${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/inez-smoke.XXXXXX")"
-trap 'rm -rf -- "${JOB_TMP}"' EXIT
-export TMPDIR="${JOB_TMP}"
-export XDG_CACHE_HOME="${JOB_TMP}/cache"
-export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPATH="${ROOT_DIR}/training:${ROOT_DIR}/tools:${PYTHONPATH:-}"
-export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
-export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
-export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
-mkdir -p "${XDG_CACHE_HOME}"
-
-BUILD_DIR="${JOB_TMP}/build"
-{
+(
+    # Start logging before Python selection, mktemp, or module initialization.
+    JOB_TMP=""
+    trap cleanup EXIT
     echo "Inez Slurm GPU smoke test; job=${JOB_ID} host=$(hostname)"
-    echo "Output: ${OUT_DIR}; Python: ${PY}"
+    echo "Output: ${OUT_DIR}"
+
+    if [[ -n "${INEZ_PYTHON:-}" ]]; then
+        PY="${INEZ_PYTHON}"
+    elif [[ -x "${HOME}/.conda/envs/inez/bin/python" ]]; then
+        PY="${HOME}/.conda/envs/inez/bin/python"
+    elif [[ -x "${ROOT_DIR}/.venv-model/bin/python" ]]; then
+        PY="${ROOT_DIR}/.venv-model/bin/python"
+    elif [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
+        PY="${ROOT_DIR}/.venv/bin/python"
+    else
+        PY=python3
+    fi
+
+    JOB_TMP="$(mktemp -d "${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/inez-smoke.XXXXXX")"
+    export TMPDIR="${JOB_TMP}"
+    export XDG_CACHE_HOME="${JOB_TMP}/cache"
+    export PYTHONDONTWRITEBYTECODE=1
+    export PYTHONPATH="${ROOT_DIR}/training:${ROOT_DIR}/tools:${PYTHONPATH:-}"
+    export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
+    export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
+    export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+    mkdir -p "${XDG_CACHE_HOME}"
+
+    BUILD_DIR="${JOB_TMP}/build"
+    echo "Python: ${PY}"
 
     # Batch jobs can otherwise pick /usr/bin/c++ (GCC 8 on Rivanna), which
     # accepts -std=c++2a but lacks the C++20 features required by the engine.
@@ -90,4 +106,4 @@ BUILD_DIR="${JOB_TMP}/build"
     else
         exit "$?"
     fi
-} 2>&1 | tee -a "${OUT_DIR}/run.log"
+) 2>&1 | tee -a "${OUT_DIR}/run.log"
