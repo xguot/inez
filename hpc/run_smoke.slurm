@@ -3,12 +3,13 @@
 # Single-GPU smoke test and diagnostic overfit for Slurm clusters.
 # Builds the C++20 engine, runs CTest contract/model checks, verifies CUDA
 # overfit on a small diagnostic batch, and exports a verified v1 model artifact.
-# Run from the repository root: sbatch -A <account> hpc/run_smoke.slurm
+# Run from the repository root: sbatch hpc/run_smoke.slurm
 #SBATCH --job-name=inez_smoke
 # Keep bootstrap logs in the existing submission directory: Slurm opens these
 # before the script runs, so a missing log subdirectory prevents startup.
 #SBATCH --output=inez_smoke_%j.out
 #SBATCH --error=inez_smoke_%j.err
+#SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8

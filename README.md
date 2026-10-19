@@ -47,11 +47,13 @@ Install `training/requirements.txt` in a Python environment with CUDA-enabled
 PyTorch, then submit from the repository root:
 
 ```sh
-INEZ_PYTHON=/absolute/path/to/env/bin/python sbatch -A <account> hpc/run_smoke.slurm
+INEZ_PYTHON=/absolute/path/to/env/bin/python sbatch hpc/run_smoke.slurm
 ```
 
 The job builds the engine, runs CTest (including model checks), and performs a
-GPU diagnostic overfit and checkpoint round trip. Logs and artifacts are written
+GPU diagnostic overfit and checkpoint round trip. The script submits to the
+`nssac_students` allocation (override it with `sbatch -A <account>`), the same
+account used by the lensless-recon jobs. Logs and artifacts are written
 to `results/smoke/<job-id>/`. Slurm bootstrap output and errors go to
 `inez_smoke_<job-id>.out` and `inez_smoke_<job-id>.err` in the submission
 directory, so no log directory needs to exist before the job starts.
