@@ -121,11 +121,15 @@ answer. Establish correctness and evaluation before large runs.
 
 Next implementation milestone
 -----------------------------
-- Write a brief design note locking in the language, trainer/inference stack,
-  RTX 4070 target time controls, and available HPC inventory.
-- Implement board/move types, FEN round-trip tests, legal move generation, and
-  the perft/draw correctness suite.
-- Follow with the UCI loop and minimal PUCT baseline match report.
+- Run the bounded 29M Elite -> Stockfish -> PUCT curriculum on Rivanna and
+  verify actual CUDA execution, throughput, resume recovery, and game gates.
+  The implementation and submit instructions are in docs/training.md.
+- Expand the independent tactical suite and retain an untouched final test set
+  before treating a checkpoint promotion as evidence of broad strength gains.
+- Integrate an accepted neural artifact with the native C++ evaluator, verify
+  numerical agreement, and measure paired matches at RTX 4070 time controls.
+- Scale data/model size only after the pilot establishes correctness and useful
+  validation/game results; the 4M diagnostic weights are not a trained player.
 
 References
 ----------

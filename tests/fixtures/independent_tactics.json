@@ -1,0 +1,8 @@
+[
+  {"name": "back_rank_mate", "fen": "6k1/5ppp/8/8/8/8/8/3R2K1 w - - 0 1", "best_moves": ["d1d8"]},
+  {"name": "queen_mate", "fen": "7k/5K2/8/6Q1/8/8/8/8 w - - 0 1", "best_moves": ["g5g7"]},
+  {"name": "smothered_mate", "fen": "6rk/6pp/7N/8/8/8/8/6K1 w - - 0 1", "best_moves": ["h6f7"]},
+  {"name": "queen_capture", "fen": "4k3/8/8/3q4/8/2N5/8/4K3 w - - 0 1", "best_moves": ["c3d5"]},
+  {"name": "promotion_mate", "fen": "7k/4P1pp/8/8/8/8/8/6K1 w - - 0 1", "best_moves": ["e7e8q", "e7e8r"]},
+  {"name": "avoid_stalemate", "fen": "7k/5K2/8/8/6Q1/8/8/8 w - - 0 1", "best_moves": ["g4g7"]}
+]

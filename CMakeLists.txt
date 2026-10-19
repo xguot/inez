@@ -108,6 +108,8 @@ if(BUILD_TESTING)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
     add_test(NAME model
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/model_tests.py")
-    set_tests_properties(model PROPERTIES TIMEOUT 180)
+    add_test(NAME training
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/training_tests.py")
+    set_tests_properties(model training PROPERTIES TIMEOUT 180)
   endif()
 endif()

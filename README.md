@@ -41,6 +41,34 @@ ctest --test-dir build-debug --output-on-failure
 Python is only needed for the differential and match tests. The engine has no
 runtime dependencies beyond the C++ standard library.
 
+### Model sizes and starter data
+
+The existing transformer supports larger models through configuration:
+
+| Configuration | Parameters | Width | Layers | Heads |
+| --- | ---: | ---: | ---: | ---: |
+| Default `ModelConfig()` | 4,056,299 | 256 | 6 | 8 |
+| `configs/models/inez-29m.json` | 29,228,779 | 512 | 15 | 8 |
+| `configs/models/inez-49m.json` | 49,760,891 | 768 | 11 | 24 |
+
+Load a JSON configuration with `ModelConfig.from_dict(json.loads(path.read_text()))`
+and pass it to `ChessTransformer`. The larger presets share the existing input,
+policy, value, and artifact contracts; their training and playing strength have
+not yet been evaluated. The smoke script still uses the default 4M model.
+
+See [staged training](docs/training.md) for the Elite importer, Stockfish
+correction, PUCT self-play, checkpoint match gates and resumable 29M Slurm pilot:
+
+```sh
+export INEZ_PYTHON="$HOME/.conda/envs/inez/bin/python"
+bash hpc/submit_29m.sh
+```
+
+The CPU preparation job downloads Elite games and generates teacher labels. The
+dependent GPU job runs human initialization, teacher correction and gated
+self-play updates. Later runs initialized from an accepted artifact skip human
+imitation. The [starter corpus](data/README.md) remains an importer fixture.
+
 ### Slurm GPU smoke test
 
 Install `training/requirements.txt` in a Python environment with CUDA-enabled
@@ -82,10 +110,10 @@ smoke pass additionally verifies GPU execution. Older summaries without
 `run_context` should be read alongside their original job logs.
 
 The diagnostic weights come from overfitting a tiny batch; they are a pipeline
-check. The next development milestone is a bounded dataset training loop with
-held-out validation and resumable training checkpoints, followed by engine
-inference integration and controlled baseline matches. Confirm CUDA execution
-in the first HPC training pilot before scaling up.
+check. The staged pilot adds held-out validation, resumable training checkpoints
+and neural checkpoint matches. Native engine inference integration remains
+future work. Confirm CUDA execution in the first HPC training pilot before
+scaling up.
 
 When environment modules are available, the job loads the site's default `gcc`
 module. Use `module spider gcc` to list installed versions and select one with

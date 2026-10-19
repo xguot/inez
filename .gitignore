@@ -13,3 +13,7 @@ __pycache__/
 /games/raw/
 /inez_smoke_*.out
 /inez_smoke_*.err
+/inez_prepare_*.out
+/inez_prepare_*.err
+/inez_train_*.out
+/inez_train_*.err
