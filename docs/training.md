@@ -66,6 +66,10 @@ weights have different tensor shapes and cannot initialize it.
    Teacher examples comprise 50% of replay samples; human imitation labels are
    never reintroduced. Root Dirichlet noise and early-game move sampling add
    exploration. Subsequent runs with `INIT_ARTIFACT` skip human initialization.
+   Each new self-play round initializes optimization from the accepted model
+   recorded in that round's frozen source metadata. A rejected tail checkpoint
+   from teacher training or a previous round cannot initialize a new round.
+   An interrupted round continues from its own optimizer checkpoint.
 
 Games are split 80/10/10 by trajectory. Duplicate trajectories stay together.
 Positions overlapping held-out tactical boards or another split are removed
@@ -167,6 +171,28 @@ checkpoint's `accepted.json` and select a new `RUN_DIR`. The new run performs
 teacher correction and new self-play, with no human imitation phase.
 Initialization is restricted to artifacts listed in an earlier run's accepted
 history; a rejected candidate cannot bypass promotion by starting a new run.
+
+For a continuation after the bounded pilot, `configs/train/inez-29m-continue.json`
+reuses the prepared data and keeps the same gate. It runs 500 teacher steps at
+3e-5, then 250 self-play steps at a separate 1e-5 learning rate, with 75% teacher
+replay and evaluation every 250 steps. Four games and 32 simulations per move
+keep generation at the pilot budget. These settings are a conservative next
+experiment; improved match results still need to be demonstrated.
+
+For the pilot whose accepted model is `teacher/candidate-0001000`:
+
+```sh
+export INIT_ARTIFACT="$PWD/results/training/inez-29m-pilot/teacher/candidate-0001000"
+export RUN_DIR="$PWD/results/training/inez-29m-continue"
+export TRAIN_CONFIG=configs/train/inez-29m-continue.json
+export RESUME_MODE=portable
+sbatch --export=ALL hpc/train_29m.slurm
+```
+
+Use the original data directory (`DATA_DIR`, if overridden) and retain the same
+environment variables when resubmitting this continuation. Existing pilot
+results remain valid; the corrected initialization takes effect for new rounds.
+Existing partial self-play checkpoints preserve their original progress.
 
 Logs: `inez_prepare_<job>.out/.err`, `inez_train_<job>.out/.err`, and
 `RUN_DIR/run.log`. Inspect `validation-*`, `gate-*`, `accepted.json`, and the

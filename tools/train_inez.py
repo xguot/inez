@@ -75,6 +75,8 @@ def read_config(path):
         raise ValueError('self-play requires both search targets and teacher replay')
     if config['selfplay']['rounds'] < 1 or config['gate']['historical_opponents'] < 1:
         raise ValueError('at least one self-play round and historical opponent required')
+    if config['training'].get('selfplay_lr', config['training']['teacher_lr']) <= 0:
+        raise ValueError('self-play learning rate must be positive')
     return config, model_config
 
 
@@ -394,7 +396,10 @@ def pipeline(args, config, model_config):
                                   'completed_steps': previous['step'], 'remaining_steps': 0}), flush=True)
                 return
             options = {key: settings[key] for key in ('batch_size', 'weight_decay', 'clip_grad', 'checkpoint_every', 'log_every')}
-            options.update(steps=steps, seed=config['seed'], lr=settings['lr'] if kind == 'human' else settings['teacher_lr'])
+            learning_rate = settings['lr'] if kind == 'human' else settings['teacher_lr']
+            if kind == 'selfplay':
+                learning_rate = settings.get('selfplay_lr', learning_rate)
+            options.update(steps=steps, seed=config['seed'], lr=learning_rate)
             if not train_stage(model, train, validation, root / name,
                                config=options, stage=kind, gate=gate, stop=stop,
                                resume_mode=args.resume_mode):
@@ -435,6 +440,16 @@ def pipeline(args, config, model_config):
             rng = random.Random(config['seed'] + number)
             replay_count = max(1, int(len(records) * fraction / (1 - fraction)))
             records += rng.choices(teacher_train, k=replay_count)
+            if name not in state['completed'] and not (root / name / 'last.pt').exists():
+                # Each round proposes an update to the model that generated its
+                # frozen targets. The preceding stage/round may have been rejected.
+                champion_path = Path(source['champion'])
+                if sha256(champion_path / 'weights.pt') != source['champion_weights_sha256']:
+                    raise ValueError('self-play source champion checksum mismatch')
+                model = load_checkpoint(champion_path, device=device, expected_config=model_config)
+                print(json.dumps({'selfplay_initialization': name,
+                                  'artifact': str(champion_path), 'learning_rate':
+                                  settings.get('selfplay_lr', settings['teacher_lr'])}), flush=True)
             stage(name, 'selfplay', records, teacher_validation, settings['selfplay_steps'])
     print(json.dumps(run_status(root), indent=2), flush=True)
 

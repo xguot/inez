@@ -261,16 +261,32 @@ class CurriculumTests(unittest.TestCase):
         model_config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4)
         config = json.loads((ROOT / 'configs/train/inez-29m.json').read_text())
         config['training'].update(human_steps=1, teacher_steps=1, selfplay_steps=2,
-                                  batch_size=1, checkpoint_every=2)
+                                  batch_size=1, checkpoint_every=2, selfplay_lr=0.00003)
+        config['selfplay']['rounds'] = 2
         teacher = stockfish_labels(example(), FakeStockfish(), nodes=10, multipv=2)
         search_record = {**example(), 'label_kind': 'search',
                          'teacher': {'name': 'fixture PUCT', 'version': '1', 'limits': {'nodes': 2}}}
         class Stop:
             requested = True
+        fresh_rounds = []
+        def check_initialization(*args, **kwargs):
+            output = Path(args[3])
+            if kwargs['stage'] == 'selfplay' and not (output / 'last.pt').exists():
+                # All gates in this fixture reject, so both rounds must start
+                # from initial rather than the rejected teacher/self-play tail.
+                baseline = torch.load(output.parent / 'initial/weights.pt', weights_only=True)
+                actual = args[0].state_dict()
+                for name, value in baseline.items():
+                    self.assertTrue(torch.equal(value, actual[name]), name)
+                previous = 'teacher' if output.name == 'selfplay-001' else 'selfplay-001'
+                rejected = torch.load(output.parent / previous / 'last.pt', weights_only=True)['model']
+                self.assertTrue(any(not torch.equal(value, rejected[name]) for name, value in baseline.items()))
+                fresh_rounds.append(output.name)
+            return train_stage(*args, **kwargs)
         def interrupt_selfplay(*args, **kwargs):
             if kwargs['stage'] == 'selfplay':
                 kwargs['stop'] = Stop()
-            return train_stage(*args, **kwargs)
+            return check_initialization(*args, **kwargs)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             data, run = root / 'data', root / 'run'
@@ -298,22 +314,24 @@ class CurriculumTests(unittest.TestCase):
                     state['context']['torch'] = 'old-build'
                     torch.save(state, path)
                 args.resume_mode = 'portable'
-                with patch('train_inez.train_stage', wraps=train_stage) as stages:
+                with patch('train_inez.train_stage', side_effect=check_initialization) as stages:
                     pipeline(args, config, model_config)
-                self.assertEqual(stages.call_count, 1)
+                self.assertEqual(stages.call_count, 2)
                 self.assertEqual(stages.call_args.kwargs['stage'], 'selfplay')
                 self.assertEqual(stages.call_args.kwargs['resume_mode'], 'portable')
-                generate.assert_called_once()
+                self.assertEqual(stages.call_args.kwargs['config']['lr'], 0.00003)
+                self.assertEqual(fresh_rounds, ['selfplay-001', 'selfplay-002'])
+                self.assertEqual(generate.call_count, 2)
                 self.assertEqual(sha256(run / 'selfplay-001.jsonl'), replay_hash)
                 self.assertEqual(json.loads((run / 'curriculum.json').read_text())['completed'],
-                                 ['human', 'teacher', 'selfplay-001'])
+                                 ['human', 'teacher', 'selfplay-001', 'selfplay-002'])
                 final = torch.load(run / 'selfplay-001/last.pt', weights_only=True)
                 self.assertEqual(final['step'], 2)
                 self.assertEqual(final['resume_history'][0]['step'], 1)
                 with patch('train_inez.train_stage') as stages:
                     pipeline(args, config, model_config)
                 stages.assert_not_called()
-                generate.assert_called_once()
+                self.assertEqual(generate.call_count, 2)
 
     def test_gate_summary_explains_rejection_from_existing_reports(self):
         sys.path.insert(0, str(ROOT / 'tools'))
