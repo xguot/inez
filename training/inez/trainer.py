@@ -122,7 +122,11 @@ class StopRequested:
 
     def __exit__(self, *args):
         for signum, previous in self.previous.items():
-            signal.signal(signum, previous)
+            handler = signal.SIG_DFL if previous is None else previous
+            try:
+                signal.signal(signum, handler)
+            except (TypeError, ValueError, OSError):
+                pass
 
 
 def fingerprint(records):

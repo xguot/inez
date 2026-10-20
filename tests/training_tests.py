@@ -25,7 +25,7 @@ from inez.curriculum import (atomic_json, import_games, position_key, promotion_
 from inez.model import ChessTransformer, ModelConfig, save_checkpoint
 from inez.puct import choose_move, search
 from inez.records import load_records, validate_record
-from inez.trainer import train_stage
+from inez.trainer import StopRequested, train_stage
 
 ROOT = Path(__file__).resolve().parents[1]
 MATE = '6k1/5ppp/8/8/8/8/8/3R2K1 w - - 0 1'
@@ -260,6 +260,15 @@ while True:
             atomic_json(root / 'accepted.json', {'artifact': initial, 'history': [initial]})
             gate(root / 'good', root / 'good-report.json')
             self.assertEqual(json.loads((root / 'accepted.json').read_text()), good)
+
+    def test_stop_requested_handles_c_level_signal_handlers(self):
+        with patch('signal.getsignal', return_value=None):
+            with self.assertRaises(InterruptedError):
+                with StopRequested() as stop:
+                    self.assertFalse(stop.requested)
+                    stop.handle(signal.SIGUSR1, None)
+                    self.assertTrue(stop.requested)
+                    raise InterruptedError('checkpoint saved')
 
 
 if __name__ == '__main__':
