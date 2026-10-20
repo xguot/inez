@@ -64,7 +64,9 @@ if command -v nvidia-smi >/dev/null 2>&1; then
 fi
 
 ARGS=(train --config "${CONFIG}" --data-dir "${DATA_DIR:-data/processed/elite-29m-pilot}"
-      --run-dir "${OUT_DIR}" --device cuda --threads "${OMP_NUM_THREADS}")
+      --run-dir "${OUT_DIR}" --device cuda --threads "${OMP_NUM_THREADS}"
+      --resume-mode "${RESUME_MODE:-exact}")
+echo "Checkpoint resume mode: ${RESUME_MODE:-exact}"
 if [[ -n "${INIT_ARTIFACT:-}" ]]; then
     ARGS+=(--init-artifact "${INIT_ARTIFACT}")
 fi
@@ -94,6 +96,6 @@ while true; do
 done
 echo "Training process finished; exit=${STATUS}"
 if [[ "${STATUS}" == 75 ]]; then
-    echo "Checkpoint saved. Resubmit with the same RUN_DIR, DATA_DIR, configuration and INIT_ARTIFACT."
+    echo "Checkpoint saved. Resubmit with the same RUN_DIR, DATA_DIR, configuration, INIT_ARTIFACT and RESUME_MODE."
 fi
 exit "${STATUS}"

@@ -14,6 +14,7 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'training'))
 import chess
@@ -21,11 +22,11 @@ import chess.engine
 import torch
 
 from inez.curriculum import (atomic_json, import_games, position_key, promotion_decision,
-                            selfplay_records, stockfish_labels)
+                            selfplay_records, sha256, stockfish_labels)
 from inez.model import ChessTransformer, ModelConfig, save_checkpoint
 from inez.puct import choose_move, search
 from inez.records import load_records, validate_record
-from inez.trainer import StopRequested, train_stage
+from inez.trainer import StopRequested, restore_checkpoint_rng, train_stage
 
 ROOT = Path(__file__).resolve().parents[1]
 MATE = '6k1/5ppp/8/8/8/8/8/3R2K1 w - - 0 1'
@@ -187,6 +188,129 @@ class CurriculumTests(unittest.TestCase):
                     train_stage(model, [example()], [example()], tmp, config=settings,
                                 stage=stage, gate=lambda *args: None)
 
+    def test_portable_resume_preserves_progress_optimizer_and_sampler(self):
+        config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4, dropout=0.2)
+        settings = dict(steps=3, batch_size=2, lr=0.001, weight_decay=0.0001,
+                        clip_grad=1.0, checkpoint_every=3, log_every=10, seed=7)
+        records = [example(0), example(1)]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            torch.manual_seed(11)
+            full = ChessTransformer(config)
+            train_stage(full, records, records, root / 'full', config=settings,
+                        stage='human', gate=lambda *args: None)
+            torch.manual_seed(11)
+            interrupted = ChessTransformer(config)
+            class Stop:
+                requested = True
+            train_stage(interrupted, records, records, root / 'resume', config=settings,
+                        stage='human', gate=lambda *args: None, stop=Stop())
+            path = root / 'resume/last.pt'
+            state = torch.load(path, weights_only=True)
+            state['context']['torch'] = 'old-build'
+            torch.save(state, path)
+            restored = ChessTransformer(config)
+            with self.assertRaisesRegex(ValueError, 'torch: checkpoint=.+old-build.+RESUME_MODE=portable'):
+                train_stage(restored, records, records, root / 'resume', config=settings,
+                            stage='human', gate=lambda *args: None)
+            # Failed exact resume must not replace the existing checkpoint.
+            self.assertEqual(torch.load(path, weights_only=True)['step'], 1)
+            self.assertTrue(train_stage(restored, records, records, root / 'resume', config=settings,
+                stage='human', gate=lambda *args: None, resume_mode='portable'))
+            for name, value in full.state_dict().items():
+                self.assertTrue(torch.equal(value, restored.state_dict()[name]), name)
+            saved = torch.load(path, weights_only=True)
+            baseline = torch.load(root / 'full/last.pt', weights_only=True)
+            self.assertEqual(saved['step'], settings['steps'])
+            self.assertTrue(torch.equal(saved['sampler_rng'], baseline['sampler_rng']))
+            self.assertEqual(saved['resume_history'][0]['differences']['torch']['checkpoint'], 'old-build')
+            self.assertEqual(saved['context']['torch'], str(torch.__version__))
+            with self.assertRaisesRegex(ValueError, 'configuration or dataset changed'):
+                train_stage(restored, records[:1], records, root / 'resume', config=settings,
+                            stage='human', gate=lambda *args: None, resume_mode='portable')
+
+    def test_cuda_migration_reseeds_instead_of_restoring_incompatible_rng(self):
+        state = {'context': {'device': 'cuda:0', 'gpu_name': 'Original GPU',
+                             'torch': str(torch.__version__)},
+                 'cuda_rng': [torch.zeros(1, dtype=torch.uint8)] * 2,
+                 'torch_rng': torch.get_rng_state(), 'python_rng': random.getstate(), 'step': 13}
+        with patch('torch.cuda.get_device_name', return_value='NVIDIA A100-SXM4-40GB'), \
+             patch('torch.cuda.device_count', return_value=1), \
+             patch('torch.cuda.set_rng_state_all') as restore, \
+             patch('torch.cuda.manual_seed_all') as reseed:
+            kwargs = dict(seed=7, checkpoint='selfplay-001/last.pt')
+            with self.assertRaisesRegex(ValueError, 'gpu_name:.*cuda_device_count:'):
+                restore_checkpoint_rng(state, torch.device('cuda:0'), resume_mode='exact', **kwargs)
+            event = restore_checkpoint_rng(state, torch.device('cuda:0'), resume_mode='portable', **kwargs)
+            reseed.assert_called_once_with(20)
+            restore.assert_not_called()
+            self.assertEqual(set(event['differences']), {'gpu_name', 'cuda_device_count'})
+            self.assertEqual(event['cuda_reseed'], 20)
+            # Matching environments, including legacy checkpoints, keep exact CUDA RNGs.
+            state['context']['gpu_name'] = 'NVIDIA A100-SXM4-40GB'
+            state['cuda_rng'] = state['cuda_rng'][:1]
+            reseed.reset_mock()
+            event = restore_checkpoint_rng(state, torch.device('cuda:0'), resume_mode='exact', **kwargs)
+            restore.assert_called_once_with(state['cuda_rng'])
+            reseed.assert_not_called()
+            self.assertEqual(event['differences'], {})
+
+    def test_pipeline_portable_resume_skips_completed_stages_and_reuses_selfplay(self):
+        sys.path.insert(0, str(ROOT / 'tools'))
+        from train_inez import pipeline
+        model_config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4)
+        config = json.loads((ROOT / 'configs/train/inez-29m.json').read_text())
+        config['training'].update(human_steps=1, teacher_steps=1, selfplay_steps=2,
+                                  batch_size=1, checkpoint_every=2)
+        teacher = stockfish_labels(example(), FakeStockfish(), nodes=10, multipv=2)
+        search_record = {**example(), 'label_kind': 'search',
+                         'teacher': {'name': 'fixture PUCT', 'version': '1', 'limits': {'nodes': 2}}}
+        class Stop:
+            requested = True
+        def interrupt_selfplay(*args, **kwargs):
+            if kwargs['stage'] == 'selfplay':
+                kwargs['stop'] = Stop()
+            return train_stage(*args, **kwargs)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data, run = root / 'data', root / 'run'
+            (data / 'human').mkdir(parents=True)
+            (data / 'teacher').mkdir()
+            atomic_json(data / 'human/manifest.json', {})
+            atomic_json(data / 'teacher/manifest.json',
+                        {'teacher': {'human_manifest_sha256': sha256(data / 'human/manifest.json')}})
+            args = SimpleNamespace(device='cpu', init_artifact=None, run_dir=str(run),
+                                   data_dir=str(data), resume_mode='exact')
+            def dataset(directory, split):
+                return [teacher if Path(directory).name == 'teacher' else example()]
+            with patch('train_inez.dataset_records', side_effect=dataset), \
+                 patch('train_inez.ChampionGate', return_value=lambda *args: None), \
+                 patch('train_inez.selfplay_records', return_value=([search_record], {})) as generate:
+                with patch('train_inez.train_stage', side_effect=interrupt_selfplay):
+                    with self.assertRaises(InterruptedError):
+                        pipeline(args, config, model_config)
+                self.assertEqual(json.loads((run / 'curriculum.json').read_text())['completed'],
+                                 ['human', 'teacher'])
+                replay_hash = sha256(run / 'selfplay-001.jsonl')
+                for name in ('human', 'teacher', 'selfplay-001'):
+                    path = run / name / 'last.pt'
+                    state = torch.load(path, weights_only=True)
+                    state['context']['torch'] = 'old-build'
+                    torch.save(state, path)
+                args.resume_mode = 'portable'
+                with patch('train_inez.train_stage', wraps=train_stage) as stages:
+                    pipeline(args, config, model_config)
+                self.assertEqual(stages.call_count, 1)
+                self.assertEqual(stages.call_args.kwargs['stage'], 'selfplay')
+                self.assertEqual(stages.call_args.kwargs['resume_mode'], 'portable')
+                generate.assert_called_once()
+                self.assertEqual(sha256(run / 'selfplay-001.jsonl'), replay_hash)
+                self.assertEqual(json.loads((run / 'curriculum.json').read_text())['completed'],
+                                 ['human', 'teacher', 'selfplay-001'])
+                final = torch.load(run / 'selfplay-001/last.pt', weights_only=True)
+                self.assertEqual(final['step'], 2)
+                self.assertEqual(final['resume_history'][0]['step'], 1)
+
     def test_slurm_warning_reaches_child_and_preserves_checkpoint_exit(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -195,6 +319,8 @@ class CurriculumTests(unittest.TestCase):
 import os, pathlib, signal, sys, time
 if 'preflight' in sys.argv:
     raise SystemExit(0)
+expected_mode = os.environ.get('RESUME_MODE', 'exact')
+assert sys.argv[sys.argv.index('--resume-mode') + 1] == expected_mode
 def stop(signum, frame):
     pathlib.Path(os.environ['INEZ_ROOT'], 'checkpoint-saved').write_text('saved')
     raise SystemExit(75)
@@ -205,7 +331,7 @@ while True:
 ''')
             fake.chmod(0o755)
             env = {**os.environ, 'INEZ_ROOT': str(root), 'INEZ_PYTHON': str(fake),
-                   'RUN_DIR': str(root / 'run')}
+                   'RUN_DIR': str(root / 'run'), 'RESUME_MODE': 'portable'}
             proc = subprocess.Popen(['bash', str(ROOT / 'hpc/train_29m.slurm')], env=env,
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             try:

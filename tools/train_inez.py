@@ -29,7 +29,7 @@ from inez.curriculum import (atomic_json, evaluate_candidate, import_games,
     position_key, read_tactics, relabel_dataset, selfplay_records, sha256)
 from inez.model import ChessTransformer, ModelConfig, load_checkpoint, save_checkpoint
 from inez.records import load_records, validate_record
-from inez.trainer import StopRequested, dataset_records, fingerprint, train_stage
+from inez.trainer import StopRequested, dataset_records, restore_checkpoint_rng, train_stage
 
 
 def rooted(path):
@@ -322,17 +322,17 @@ def pipeline(args, config, model_config):
         def stage(name, kind, train, validation, steps):
             nonlocal model
             if name in state['completed']:
-                previous = torch.load(root / name / 'last.pt', map_location='cpu', weights_only=True)
+                checkpoint = root / name / 'last.pt'
+                previous = torch.load(checkpoint, map_location='cpu', weights_only=True)
+                restore_checkpoint_rng(previous, next(model.parameters()).device,
+                    resume_mode=args.resume_mode, seed=config['seed'], checkpoint=checkpoint)
                 model.load_state_dict(previous['model'])
-                torch.set_rng_state(previous['torch_rng'])
-                random.setstate(previous['python_rng'])
-                if device.type == 'cuda':
-                    torch.cuda.set_rng_state_all(previous['cuda_rng'])
                 return
             options = {key: settings[key] for key in ('batch_size', 'weight_decay', 'clip_grad', 'checkpoint_every', 'log_every')}
             options.update(steps=steps, seed=config['seed'], lr=settings['lr'] if kind == 'human' else settings['teacher_lr'])
             if not train_stage(model, train, validation, root / name,
-                               config=options, stage=kind, gate=gate, stop=stop):
+                               config=options, stage=kind, gate=gate, stop=stop,
+                               resume_mode=args.resume_mode):
                 raise InterruptedError('training checkpoint saved')
             state['completed'].append(name)
             atomic_json(state_path, state)
@@ -387,6 +387,9 @@ def main():
     parser.add_argument('--threads', type=int, default=int(os.environ.get('SLURM_CPUS_PER_TASK', '8')))
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--init-artifact', help='accepted model to improve; skips human initialization')
+    parser.add_argument('--resume-mode', choices=('exact', 'portable'), default='exact',
+                        help='portable keeps training progress across hardware/PyTorch changes; '
+                             'reproducibility is no longer bitwise exact')
     args = parser.parse_args()
     config, model_config = read_config(args.config)
     torch.set_num_threads(args.threads)

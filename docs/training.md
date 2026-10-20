@@ -16,7 +16,7 @@ bash hpc/submit_29m.sh
 
 The submitter schedules CPU preparation and a dependent single-GPU training
 job under `nssac_students`. Set `INEZ_ACCOUNT` to override the account. Training
-requests one GPU, eight CPU cores, 64 GiB host memory and 24 hours. CUDA is
+requests one GPU, eight CPU cores, 64 GiB host memory and two hours. CUDA is
 required; there is no automatic CPU fallback. After preparation, a particular
 available GPU can be requested with a site-supported `--gres` override when
 submitting `hpc/train_29m.slurm` directly.
@@ -43,6 +43,7 @@ Overrides exported before submission:
 - `DATA_DIR`: default `data/processed/elite-29m-pilot`.
 - `RUN_DIR`: default `results/training/inez-29m-pilot`.
 - `INIT_ARTIFACT`: accepted 29M artifact to improve; skips human initialization.
+- `RESUME_MODE`: `exact` (default) or `portable` to continue across GPU/PyTorch changes.
 
 The default is a bounded engineering pilot. Use a fresh data/run directory when
 changing the experiment. The model has 29,228,779 parameters. The older 4M smoke
@@ -124,6 +125,23 @@ Configuration or data changes require a fresh directory. Exact resume requires
 the same numerical environment and visible CUDA device count; another GPU
 architecture can change floating-point behavior. The job does not automatically
 requeue or schedule indefinite training.
+
+If Slurm allocates a different GPU model, continue the **same run** explicitly:
+
+```sh
+RESUME_MODE=portable sbatch --export=ALL hpc/train_29m.slurm
+```
+
+Portable resume preserves the saved model, AdamW state, completed step, sampler
+order, CPU/Python RNGs, frozen self-play records and promotion history. It still
+rejects changed configuration or data. When the numerical environment differs,
+CUDA RNGs are reseeded with `(training seed + checkpoint step) mod 2^64` rather
+than loading device-specific RNG state. Subsequent results are not bitwise
+identical to an uninterrupted run. Environment differences are printed in
+`run.log` and retained in subsequent training checkpoints' `resume_history`.
+Completed curriculum stages use the same resume policy. Existing checkpoints
+are supported; no preparation rerun, checkpoint deletion or new `RUN_DIR` is
+needed. Keep `RESUME_MODE=portable` for future submissions on mixed GPU nodes.
 
 For later improvement, set `INIT_ARTIFACT` to the `artifact` value in an accepted
 checkpoint's `accepted.json` and select a new `RUN_DIR`. The new run performs

@@ -136,13 +136,54 @@ def fingerprint(records):
     return digest.hexdigest()
 
 
-def train_stage(model, train, validation, output, *, config, stage, gate, stop=None):
+def resume_environment(device):
+    return {'device': str(device),
+            'gpu_name': torch.cuda.get_device_name(device) if device.type == 'cuda' else None,
+            'torch': str(torch.__version__),
+            'cuda_device_count': torch.cuda.device_count() if device.type == 'cuda' else 0}
+
+
+def restore_checkpoint_rng(state, device, *, resume_mode, seed, checkpoint):
+    """Validate exact resumes; explicitly reseed CUDA when migrating environments."""
+    if resume_mode not in ('exact', 'portable'):
+        raise ValueError('resume mode must be exact or portable')
+    current = resume_environment(device)
+    saved = {**state['context'], 'cuda_device_count': len(state['cuda_rng'])}
+    differences = {key: {'checkpoint': saved.get(key), 'current': value}
+                   for key, value in current.items() if saved.get(key) != value}
+    if differences and resume_mode == 'exact':
+        details = '; '.join(f'{key}: checkpoint={values["checkpoint"]!r}, current={values["current"]!r}'
+                            for key, values in differences.items())
+        raise ValueError(f'exact resume environment mismatch ({details}). '
+                         'Use --resume-mode portable (Slurm: RESUME_MODE=portable) to continue '
+                         'this run without bitwise reproducibility, or request the original environment.')
+    torch.set_rng_state(state['torch_rng'])
+    random.setstate(state['python_rng'])
+    cuda_seed = None
+    if device.type == 'cuda':
+        if differences:
+            # CUDA RNG state is specific to the saved numerical environment.
+            # Retain the sampler order but start a documented new CUDA stream.
+            cuda_seed = (seed + state['step']) % (2**64)
+            torch.cuda.manual_seed_all(cuda_seed)
+        else:
+            torch.cuda.set_rng_state_all(state['cuda_rng'])
+    event = {'checkpoint': str(checkpoint), 'step': state['step'],
+             'mode': resume_mode, 'differences': differences, 'cuda_reseed': cuda_seed}
+    print(json.dumps({'checkpoint_resume': event}), flush=True)
+    return event
+
+
+def train_stage(model, train, validation, output, *, config, stage, gate, stop=None,
+                resume_mode='exact'):
     """Every exported candidate is evaluated; the gate owns champion selection.
 
     last.pt is a training-state checkpoint, never an accepted playing model.
     Resume validates data/config and restores the next minibatch RNG state.
     """
     output = Path(output)
+    if resume_mode not in ('exact', 'portable'):
+        raise ValueError('resume mode must be exact or portable')
     output.mkdir(parents=True, exist_ok=True)
     device = next(model.parameters()).device
     steps, batch_size = config['steps'], config['batch_size']
@@ -160,39 +201,35 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
     generator = torch.Generator().manual_seed(config['seed'])
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
     start_step = 0
+    resume_history = []
     checkpoint = output / 'last.pt'
     if checkpoint.exists():
         state = torch.load(checkpoint, map_location='cpu', weights_only=True)
         if state['signature'] != signature:
             raise ValueError('resume configuration or dataset changed; use a new run directory')
-        expected_gpu = torch.cuda.get_device_name(device) if device.type == 'cuda' else None
-        if (state['context']['device'] != str(device) or state['context']['gpu_name'] != expected_gpu
-                or state['context']['torch'] != str(torch.__version__)):
-            raise ValueError('exact resume requires the same device type/model and PyTorch version; use a new run with --init-artifact to change hardware')
+        event = restore_checkpoint_rng(state, device, resume_mode=resume_mode,
+                                       seed=config['seed'], checkpoint=checkpoint)
         model.load_state_dict(state['model'])
         optimizer.load_state_dict(state['optimizer'])
         generator.set_state(state['sampler_rng'])
-        torch.set_rng_state(state['torch_rng'])
-        random.setstate(state['python_rng'])
-        if device.type == 'cuda' and state['cuda_rng']:
-            if len(state['cuda_rng']) != torch.cuda.device_count():
-                raise ValueError('exact resume requires the same visible CUDA device count')
-            torch.cuda.set_rng_state_all(state['cuda_rng'])
+        resume_history = list(state.get('resume_history', []))
+        if event['differences']:
+            resume_history.append(event)
         start_step = state['step']
     try:
         revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     except (OSError, subprocess.CalledProcessError):
         revision = None
     context = {'hostname': socket.gethostname(), 'slurm_job_id': os.environ.get('SLURM_JOB_ID'),
-               'device': str(device), 'gpu_name': torch.cuda.get_device_name(device) if device.type == 'cuda' else None,
-               'python': sys.executable, 'torch': str(torch.__version__), 'git_revision': revision}
+               **resume_environment(device), 'python': sys.executable, 'git_revision': revision}
 
     def save(step):
         atomic_checkpoint(checkpoint, {'format_version': 1, 'signature': signature,
             'step': step, 'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
             'sampler_rng': generator.get_state(), 'torch_rng': torch.get_rng_state(),
             'python_rng': random.getstate(),
-            'cuda_rng': torch.cuda.get_rng_state_all() if device.type == 'cuda' else [], 'context': context})
+            'cuda_rng': torch.cuda.get_rng_state_all() if device.type == 'cuda' else [],
+            'context': context, 'resume_history': resume_history})
 
     # Complete a pending candidate evaluation after a signal or failed gate run.
     def evaluate_step(step):
