@@ -50,7 +50,11 @@ cleanup() {
     elif [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
         PY="${ROOT_DIR}/.venv/bin/python"
     else
-        PY=python3
+        PY="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
+        if [[ -z "${PY}" ]]; then
+            echo "ERROR: No Python interpreter found. Set INEZ_PYTHON or create a virtualenv." >&2
+            exit 1
+        fi
     fi
 
     JOB_TMP="$(mktemp -d "${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/inez-smoke.XXXXXX")"
