@@ -240,6 +240,9 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
         with torch.random.fork_rng(devices=list(range(torch.cuda.device_count())) if device.type == 'cuda' else []):
             gate(candidate, report)
 
+    print(json.dumps({'stage': stage, 'status': 'evaluating_final_checkpoint' if start_step >= steps else 'training',
+                      'completed_steps': start_step, 'target_steps': steps,
+                      'remaining_steps': max(0, steps - start_step)}), flush=True)
     if start_step and (start_step % config['checkpoint_every'] == 0 or start_step == steps):
         evaluate_step(start_step)
     if start_step >= steps:

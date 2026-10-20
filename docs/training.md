@@ -102,6 +102,25 @@ the accepted model and history. Rejected candidates cannot replace it. Gate
 reports retain complete game move lists, results, opponents and per-position
 tactical outcomes. The corpus evaluation split stays reserved from optimization.
 
+`"promoted": false` means the candidate did not pass every acceptance condition.
+Training can finish successfully with exit 0 while retaining an earlier accepted
+checkpoint. Gate output includes match scores, completed/unfinished games,
+tactical regressions and rejection reasons. `insufficient_match_evidence` means
+the score lower bound did not exceed 50%, even if the raw score was sufficient.
+
+Inspect an existing run on a login node without allocating a GPU:
+
+```sh
+"${INEZ_PYTHON:-$HOME/.conda/envs/inez/bin/python}" tools/train_inez.py status \
+    --run-dir results/training/inez-29m-pilot
+```
+
+This reads saved reports, including reports from older runs, and leaves run
+files untouched. A `complete` run has no further optimizer steps to perform;
+resubmitting the same directory does not start a new training round. To improve
+the accepted model further, initialize a new run as described below. The gate
+report provides the evidence needed before tuning training or search budgets.
+
 ## Checkpoint and resume
 
 `last.pt` is an atomic training-state checkpoint: model, AdamW state, completed

@@ -209,6 +209,66 @@ def prepare(args, config):
     print(f'Data ready: {output.resolve()}', flush=True)
 
 
+def gate_summary(result, report_path, *, minimum_score, cached=False):
+    """Explain existing gate reports too, without replaying matches or changing acceptance."""
+    opponents = []
+    for report in result['opponents']:
+        games = report.get('games', [])
+        scores = [game['candidate_score'] for game in games if game['candidate_score'] is not None]
+        completed = report.get('completed_games', len(scores))
+        score, lower = report.get('score'), report.get('score_lower_bound')
+        regressions = report.get('tactical_regressions', [])
+        reasons = []
+        if not report['passed']:
+            if completed == 0:
+                reasons.append('no_completed_games')
+            if completed < len(games):
+                reasons.append('unfinished_match_games')
+            if score is not None and score < minimum_score:
+                reasons.append('score_below_minimum')
+            if lower is not None and lower <= 0.5:
+                reasons.append('insufficient_match_evidence')
+            if regressions:
+                reasons.append('tactical_regression')
+            if not reasons:
+                reasons.append('gate_rejected; inspect the full report')
+        opponents.append({'opponent': report['opponent'], 'passed': report['passed'],
+            'score': score, 'minimum_score': minimum_score, 'score_lower_bound': lower,
+            'required_lower_bound_exclusive': 0.5, 'completed_games': completed,
+            'total_games': len(games), 'wins': scores.count(1.0), 'draws': scores.count(0.5),
+            'losses': scores.count(0.0), 'unfinished_games': len(games) - completed,
+            'tactical_regressions': regressions, 'rejection_reasons': reasons})
+    return {'gate': str(report_path), 'promoted': result['passed'], 'cached': cached,
+            'opponents': opponents}
+
+
+def run_status(directory):
+    """Inspect durable run/gate metadata without loading weights or requiring CUDA."""
+    root = Path(directory)
+    request_path = root / 'request.json'
+    if not request_path.exists():
+        raise ValueError(f'no training run request found at {request_path}')
+    request = json.loads(request_path.read_text())
+    config = request['config']
+    expected = ([] if request['initial_artifact'] else ['human']) + ['teacher']
+    expected += [f'selfplay-{number + 1:03d}' for number in range(config['selfplay']['rounds'])]
+    state_path = root / 'curriculum.json'
+    completed = json.loads(state_path.read_text())['completed'] if state_path.exists() else []
+    pending = [name for name in expected if name not in completed]
+    accepted_path = root / 'accepted.json'
+    accepted = json.loads(accepted_path.read_text()) if accepted_path.exists() else None
+    gates = [gate_summary(json.loads(path.read_text()), path,
+                         minimum_score=config['gate']['minimum_score'], cached=True)
+             for path in sorted(root.glob('*/gate-*.json'))]
+    return {'status': 'in_progress' if pending else 'complete',
+            'curriculum_completed': completed, 'pending_stages': pending,
+            'accepted': accepted, 'gates': gates,
+            'next_action': ('Resume this RUN_DIR to finish the pending stages.' if pending else
+                'Training finished. Reusing this RUN_DIR performs no further optimizer steps. '
+                'For more training, choose a new RUN_DIR and set INIT_ARTIFACT to accepted.artifact.'),
+            'note': 'Gate rejection keeps the earlier accepted model and is a normal training outcome.'}
+
+
 class ChampionGate:
     def __init__(self, root, config, model_config, device, stop):
         self.root, self.config, self.model_config = Path(root), config, model_config
@@ -232,6 +292,8 @@ class ChampionGate:
                     if result['parent_history'] != history:
                         raise ValueError('cannot apply a promotion report to another champion history')
                     atomic_json(self.path, {'artifact': current, 'history': history + [current]})
+                print(json.dumps(gate_summary(result, report_path,
+                    minimum_score=self.config['gate']['minimum_score'], cached=True)), flush=True)
                 return
             candidate = load_checkpoint(candidate_path, device=self.device, expected_config=self.model_config)
             opponents = history[-self.config['gate']['historical_opponents']:]
@@ -256,7 +318,8 @@ class ChampionGate:
             atomic_json(report_path, result)
             if passed:
                 atomic_json(self.path, {'artifact': current, 'history': history + [current]})
-            print(json.dumps({'gate': str(report_path), 'promoted': passed}), flush=True)
+            print(json.dumps(gate_summary(result, report_path,
+                minimum_score=self.config['gate']['minimum_score'])), flush=True)
 
 
 def pipeline(args, config, model_config):
@@ -327,6 +390,8 @@ def pipeline(args, config, model_config):
                 restore_checkpoint_rng(previous, next(model.parameters()).device,
                     resume_mode=args.resume_mode, seed=config['seed'], checkpoint=checkpoint)
                 model.load_state_dict(previous['model'])
+                print(json.dumps({'stage': name, 'status': 'already_complete',
+                                  'completed_steps': previous['step'], 'remaining_steps': 0}), flush=True)
                 return
             options = {key: settings[key] for key in ('batch_size', 'weight_decay', 'clip_grad', 'checkpoint_every', 'log_every')}
             options.update(steps=steps, seed=config['seed'], lr=settings['lr'] if kind == 'human' else settings['teacher_lr'])
@@ -371,14 +436,12 @@ def pipeline(args, config, model_config):
             replay_count = max(1, int(len(records) * fraction / (1 - fraction)))
             records += rng.choices(teacher_train, k=replay_count)
             stage(name, 'selfplay', records, teacher_validation, settings['selfplay_steps'])
-    print(json.dumps({'curriculum_completed': state['completed'],
-        'accepted': json.loads((root / 'accepted.json').read_text()),
-        'note': 'Candidates are research outputs; only accepted.json identifies the promoted playing model.'}, indent=2), flush=True)
+    print(json.dumps(run_status(root), indent=2), flush=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=('prepare', 'train', 'preflight'))
+    parser.add_argument('command', choices=('prepare', 'train', 'preflight', 'status'))
     parser.add_argument('--config', default=str(ROOT / 'configs/train/inez-29m.json'))
     parser.add_argument('--data-dir', default=str(ROOT / 'data/processed/elite-29m-pilot'))
     parser.add_argument('--run-dir', default=str(ROOT / 'results/training/inez-29m-pilot'))
@@ -391,6 +454,9 @@ def main():
                         help='portable keeps training progress across hardware/PyTorch changes; '
                              'reproducibility is no longer bitwise exact')
     args = parser.parse_args()
+    if args.command == 'status':
+        print(json.dumps(run_status(args.run_dir), indent=2), flush=True)
+        return
     config, model_config = read_config(args.config)
     torch.set_num_threads(args.threads)
     if args.command == 'prepare':

@@ -310,6 +310,84 @@ class CurriculumTests(unittest.TestCase):
                 final = torch.load(run / 'selfplay-001/last.pt', weights_only=True)
                 self.assertEqual(final['step'], 2)
                 self.assertEqual(final['resume_history'][0]['step'], 1)
+                with patch('train_inez.train_stage') as stages:
+                    pipeline(args, config, model_config)
+                stages.assert_not_called()
+                generate.assert_called_once()
+
+    def test_gate_summary_explains_rejection_from_existing_reports(self):
+        sys.path.insert(0, str(ROOT / 'tools'))
+        from train_inez import gate_summary
+        result = {'passed': False, 'opponents': [{'opponent': '/accepted', 'passed': False,
+            'score': 0.5, 'score_lower_bound': 0.1, 'completed_games': 2,
+            'games': [{'candidate_score': 1.0}, {'candidate_score': 0.0}, {'candidate_score': None}],
+            'tactical_regressions': ['mate']}]}
+        summary = gate_summary(result, '/gate.json', minimum_score=0.55, cached=True)
+        opponent = summary['opponents'][0]
+        self.assertFalse(summary['promoted'])
+        self.assertTrue(summary['cached'])
+        self.assertEqual(opponent['rejection_reasons'], ['unfinished_match_games',
+            'score_below_minimum', 'insufficient_match_evidence', 'tactical_regression'])
+        self.assertEqual((opponent['wins'], opponent['draws'], opponent['losses'],
+                          opponent['unfinished_games']), (1, 0, 1, 1))
+        result['opponents'][0].update(score=0.75, score_lower_bound=0.3,
+            completed_games=4, tactical_regressions=[],
+            games=[{'candidate_score': score} for score in (1.0, 1.0, 1.0, 0.0)])
+        summary = gate_summary(result, '/gate.json', minimum_score=0.55)
+        self.assertEqual(summary['opponents'][0]['rejection_reasons'], ['insufficient_match_evidence'])
+
+    def test_status_cli_reports_completed_run_without_cuda_or_external_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = {'selfplay': {'rounds': 1}, 'gate': {'minimum_score': 0.55}}
+            atomic_json(root / 'request.json', {'config': config, 'initial_artifact': None})
+            atomic_json(root / 'curriculum.json', {'completed': ['human', 'teacher', 'selfplay-001']})
+            accepted = {'artifact': '/accepted/teacher/candidate-0001000', 'history': []}
+            atomic_json(root / 'accepted.json', accepted)
+            (root / 'selfplay-001').mkdir()
+            atomic_json(root / 'selfplay-001/gate-0000500.json', {'passed': False, 'opponents': [
+                {'opponent': accepted['artifact'], 'passed': False, 'score': 0.5,
+                 'score_lower_bound': 0.25, 'completed_games': 2, 'tactical_regressions': [],
+                 'games': [{'candidate_score': 0.5}, {'candidate_score': 0.5}]}]})
+            before = {str(path): sha256(path) for path in root.rglob('*') if path.is_file()}
+            proc = subprocess.run([sys.executable, str(ROOT / 'tools/train_inez.py'), 'status',
+                '--run-dir', str(root), '--config', str(root / 'missing-config.json'), '--device', 'cuda'],
+                env={**os.environ, 'CUDA_VISIBLE_DEVICES': ''}, capture_output=True, text=True, timeout=30)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            result = json.loads(proc.stdout)
+            self.assertEqual(result['status'], 'complete')
+            self.assertEqual(result['pending_stages'], [])
+            self.assertEqual(result['accepted'], accepted)
+            self.assertIn('no further optimizer steps', result['next_action'])
+            self.assertEqual(result['gates'][0]['opponents'][0]['rejection_reasons'],
+                             ['score_below_minimum', 'insufficient_match_evidence'])
+            after = {str(path): sha256(path) for path in root.rglob('*') if path.is_file()}
+            self.assertEqual(before, after)
+
+    def test_completed_checkpoint_only_finishes_pending_gate(self):
+        model_config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4)
+        settings = dict(steps=1, batch_size=1, lr=0.001, weight_decay=0,
+                        clip_grad=1.0, checkpoint_every=1, seed=7)
+        records = [example()]
+        def pending_gate(candidate, report):
+            raise InterruptedError('gate pending')
+        with tempfile.TemporaryDirectory() as tmp:
+            model = ChessTransformer(model_config)
+            with self.assertRaises(InterruptedError):
+                train_stage(model, records, records, tmp, config=settings, stage='human',
+                            gate=pending_gate)
+            saved = copy.deepcopy(model.state_dict())
+            with patch('torch.optim.AdamW.step', side_effect=AssertionError('extra optimizer step')), \
+                 patch('inez.trainer.save_checkpoint') as export:
+                gates = []
+                self.assertTrue(train_stage(ChessTransformer(model_config), records, records, tmp,
+                    config=settings, stage='human', gate=lambda *args: gates.append(args)))
+                self.assertEqual(len(gates), 1)
+                export.assert_not_called()
+            state = torch.load(Path(tmp) / 'last.pt', weights_only=True)
+            self.assertEqual(state['step'], 1)
+            for name, value in saved.items():
+                self.assertTrue(torch.equal(value, state['model'][name]), name)
 
     def test_slurm_warning_reaches_child_and_preserves_checkpoint_exit(self):
         with tempfile.TemporaryDirectory() as tmp:
