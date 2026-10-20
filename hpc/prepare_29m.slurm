@@ -8,7 +8,7 @@
 #SBATCH --partition=standard
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --time=12:00:00
+#SBATCH --time=01:30:00
 
 set -Eeuo pipefail
 trap 'rc=$?; echo "Preparation failed at line ${LINENO}; exit=${rc}" >&2' ERR
