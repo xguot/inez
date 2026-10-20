@@ -6,6 +6,7 @@ engine. Values on edges are always from the parent's side-to-move perspective.
 """
 
 from dataclasses import dataclass, field
+import itertools
 import math
 import random
 
@@ -22,6 +23,28 @@ class Edge:
     visits: int = 0
     value_sum: float = 0.0
     children: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SearchInfo:
+    nodes: int
+    depth: int
+    pv: tuple
+    value: float | None
+
+
+def search_info(root, nodes, depth):
+    """Snapshot the most-visited line; values use the root side's perspective."""
+    children, pv, value = root, [], None
+    while children:
+        move, edge = max(children.items(), key=lambda item: item[1].visits)
+        if not edge.visits:
+            break
+        if not pv:
+            value = edge.value_sum / edge.visits
+        pv.append(move)
+        children = edge.children
+    return SearchInfo(nodes, depth, tuple(pv), value)
 
 
 class NeuralEvaluator:
@@ -52,18 +75,37 @@ def terminal_value(board):
     return 0.0 if outcome.winner is None else (1.0 if outcome.winner == board.turn else -1.0)
 
 
-def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None):
+def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None,
+           stop=None, on_update=None, update_interval=32, searchmoves=None, depth_limit=None):
     """Return root visit counts; model priors never substitute for visit targets."""
-    if simulations < 1 or cpuct <= 0:
+    if (simulations is not None and simulations < 1) or not math.isfinite(cpuct) or cpuct <= 0:
         raise ValueError("PUCT requires positive simulations and cpuct")
+    if update_interval < 1 or depth_limit is not None and depth_limit < 1:
+        raise ValueError('invalid search reporting/depth limit')
+    if simulations is None and stop is None and depth_limit is None:
+        raise ValueError('unbounded search requires a stop condition')
     if terminal_value(board) is not None:
+        if on_update:
+            on_update(SearchInfo(0, 0, (), None))
         return {}
+    legal = {move.uci() for move in board.legal_moves}
+    if searchmoves is not None and (not searchmoves or not set(searchmoves) <= legal):
+        raise ValueError('searchmoves must contain legal root moves')
+    if stop is not None and stop():
+        if on_update:
+            on_update(SearchInfo(0, 0, (), None))
+        return {move.uci(): 0 for move in board.legal_moves
+                if searchmoves is None or move.uci() in searchmoves}
     rng = rng or random.Random(0)
     priors, _ = evaluate(board)
-    if not priors or set(priors) != {move.uci() for move in board.legal_moves}:
+    if not priors or set(priors) != legal:
         raise ValueError("evaluator must return exactly the legal moves")
     if any(not math.isfinite(p) or p < 0 for p in priors.values()) or sum(priors.values()) <= 0:
         raise ValueError("invalid PUCT priors")
+    if searchmoves is not None:
+        priors = {move: p for move, p in priors.items() if move in searchmoves}
+        if sum(priors.values()) == 0:
+            priors = {move: 1.0 for move in priors}
     total = sum(priors.values())
     priors = {move: p / total for move, p in priors.items()}
     if noise:
@@ -72,11 +114,23 @@ def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None)
         priors = {move: 0.75 * p + 0.25 * sample / denominator
                   for (move, p), sample in zip(priors.items(), samples)}
     root = {move: Edge(p) for move, p in priors.items()}
-    for _ in range(simulations):
+    completed, deepest, reported = 0, 0, -1
+
+    def finish():
+        if on_update and completed != reported:
+            on_update(search_info(root, completed, deepest))
+        return {move: edge.visits for move, edge in root.items()}
+
+    iterations = range(simulations) if simulations is not None else itertools.count()
+    for _ in iterations:
+        if stop is not None and stop():
+            break
         cursor = board.copy(stack=True)
         children = root
         path = []
         while True:
+            if stop is not None and stop():
+                return finish()
             visits = sum(edge.visits for edge in children.values())
             move, edge = max(children.items(), key=lambda item: (
                 item[1].value_sum / item[1].visits if item[1].visits else 0.0
@@ -97,7 +151,14 @@ def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None)
             value = -value
             edge.visits += 1
             edge.value_sum += value
-    return {move: edge.visits for move, edge in root.items()}
+        completed += 1
+        deepest = max(deepest, len(path))
+        if on_update and completed % update_interval == 0:
+            on_update(search_info(root, completed, deepest))
+            reported = completed
+        if depth_limit is not None and deepest >= depth_limit:
+            break
+    return finish()
 
 
 def choose_move(visits, *, temperature=0.0, rng=None):

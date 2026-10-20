@@ -14,6 +14,8 @@ The engine includes:
 - A serial and batched PUCT search baseline with material/uniform evaluators,
   UCI engine (`inez`), and automated match/benchmark runner
   ([search guide](docs/search.md)).
+- A Python neural UCI player (`inez-neural`) that loads trained weights and
+  runs the reference PUCT search ([playing guide](docs/neural-uci.md)).
 
 ### Build and test
 
@@ -38,8 +40,9 @@ cmake --build build-debug --parallel
 ctest --test-dir build-debug --output-on-failure
 ```
 
-Python is only needed for the differential and match tests. The engine has no
-runtime dependencies beyond the C++ standard library.
+The C++ engine has no runtime dependencies beyond the C++ standard library.
+Python is needed for the differential and match tests; Python and PyTorch are
+required for the neural UCI player and model training.
 
 ### Model sizes and starter data
 
@@ -126,8 +129,14 @@ tries `~/.conda/envs/inez`, `.venv-model`, `.venv`, then `python3`.
 
 ### Run the UCI engine and match runner
 
+To play the **trained neural model**, add the executable `inez-neural` from the
+repository root to En Croissant or another UCI GUI. It loads the accepted local
+pilot weights and runs Python neural PUCT on CPU by default. See the
+[neural UCI guide](docs/neural-uci.md) for setup, model selection and device options.
+
 Run `build/inez` for standard UCI communication (`uci`, `isready`, `position`,
-`go`, `stop`, `quit`), or run the paired-opening match and benchmark suite:
+`go`, `stop`, `quit`) using the separate C++ material/uniform baseline, or run
+its paired-opening match and benchmark suite:
 
 ```sh
 .venv/bin/python tools/match.py build/inez --pairs 4 --nodes 64 --batch-size 4

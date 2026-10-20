@@ -110,6 +110,8 @@ if(BUILD_TESTING)
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/model_tests.py")
     add_test(NAME training
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/training_tests.py")
-    set_tests_properties(model training PROPERTIES TIMEOUT 180)
+    add_test(NAME neural-uci
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/neural_uci_tests.py")
+    set_tests_properties(model training neural-uci PROPERTIES TIMEOUT 180)
   endif()
 endif()

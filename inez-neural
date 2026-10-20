@@ -1,0 +1,20 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-only
+# Select this executable in a UCI chess GUI. No shell activation is required.
+set -eu
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ -n "${INEZ_PYTHON:-}" ]; then
+    PY=$INEZ_PYTHON
+elif [ -x "$ROOT_DIR/.venv-model/bin/python" ]; then
+    PY="$ROOT_DIR/.venv-model/bin/python"
+elif [ -x "$ROOT_DIR/.venv/bin/python" ]; then
+    PY="$ROOT_DIR/.venv/bin/python"
+else
+    PY=$(command -v python3 || true)
+fi
+if [ -z "$PY" ] || [ ! -x "$PY" ]; then
+    echo 'Inez Neural: set INEZ_PYTHON to Python with training/requirements.txt installed.' >&2
+    exit 1
+fi
+export PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+exec "$PY" -u "$ROOT_DIR/tools/neural_uci.py" "$@"

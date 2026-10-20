@@ -4,6 +4,9 @@ The search layer (`include/inez/search.hpp`, `src/search.cpp`) and UCI engine
 (`include/inez/uci.hpp`, `src/uci.cpp`, `src/main.cpp`) provide a playable,
 measurable MCTS/PUCT baseline on top of the rules core.
 
+To play trained neural weights in a GUI, use the separate
+[`inez-neural` launcher](neural-uci.md), which runs Python neural PUCT.
+
 ## Evaluators and search mechanics
 
 `inez::Evaluator` defines the leaf evaluation interface:

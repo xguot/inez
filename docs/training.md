@@ -86,6 +86,8 @@ labels. Earlier accepted models remain available for diagnosis and improvement.
 Every exported candidate is tested with the **Python neural PUCT reference**
 against up to two previously accepted versions. The native UCI engine still
 uses heuristic evaluators; native neural inference integration is future work.
+The trained Python player is available to chess GUIs through the
+[`inez-neural` UCI launcher](neural-uci.md).
 Both models receive equal search budgets and paired openings with colors
 reversed.
 
