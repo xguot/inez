@@ -60,6 +60,7 @@ target_include_directories(inez_chess PUBLIC include)
 target_link_libraries(inez_chess PUBLIC inez_options Threads::Threads)
 
 add_executable(inez src/main.cpp)
+target_compile_definitions(inez PRIVATE INEZ_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(inez PRIVATE inez_chess)
 
 add_executable(inez-rules tools/rules.cpp)
@@ -111,7 +112,8 @@ if(BUILD_TESTING)
     add_test(NAME training
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/training_tests.py")
     add_test(NAME neural-uci
-      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/neural_uci_tests.py")
+      COMMAND "${CMAKE_COMMAND}" -E env "INEZ_BINARY=$<TARGET_FILE:inez>"
+              "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/neural_uci_tests.py")
     add_test(NAME neural-diagnostics
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/diagnostics_tests.py")
     set_tests_properties(model training neural-uci neural-diagnostics PROPERTIES TIMEOUT 180)

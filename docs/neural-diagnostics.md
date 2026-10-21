@@ -12,7 +12,7 @@ budgets and no training or promotion changes:
 
 The interpreter needs `training/requirements.txt`. CPU is the default;
 `--device mps` and `--device cuda` require an available compatible accelerator.
-Model selection uses the same strict artifact loader as `inez-neural`, including
+Model selection uses the same strict artifact loader as `build/inez`, including
 the accepted checkpoint pointer and weight checksum verification. The runner
 starts a separate UCI process using the same interpreter, model and device.
 It checks legal moves, legal principal variations and completion of the requested

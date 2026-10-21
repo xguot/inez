@@ -11,6 +11,7 @@ utilization, and leaf-evaluation latency across fixed-node and timed runs.
 import argparse
 import json
 import math
+import os
 import queue
 import re
 import subprocess
@@ -74,6 +75,9 @@ class EngineSpec:
 class UciProcess:
     def __init__(self, spec: EngineSpec):
         self.spec = spec
+        env = os.environ.copy()
+        if "Evaluator" in spec.options:
+            env["INEZ_BASELINE"] = "1"
         self.process = subprocess.Popen(
             [spec.executable],
             stdin=subprocess.PIPE,
@@ -81,6 +85,7 @@ class UciProcess:
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
+            env=env,
         )
         self.out_queue: "queue.Queue[Optional[str]]" = queue.Queue()
         self.diag_queue: "queue.Queue[DiagSample]" = queue.Queue()

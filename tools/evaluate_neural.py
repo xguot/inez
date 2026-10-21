@@ -94,7 +94,7 @@ def run(args):
         'git_revision': revision, 'python': platform.python_version(), 'torch': str(torch.__version__),
         'chess': chess.__version__, 'platform': platform.platform(), 'device': args.device,
         'threads': args.threads, 'cpuct': 2.5, 'simulations': args.simulations,
-        'uci_launcher': str(ROOT / 'inez-neural')},
+        'uci_launcher': str(ROOT / 'build/inez')},
         'reference': None, 'moves': [], 'values': [], 'terminals': []}
     atomic_json(output, report)
     try:

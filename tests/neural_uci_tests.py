@@ -168,7 +168,8 @@ class ProtocolTests(unittest.TestCase):
         cls.temp.cleanup()
 
     def raw_client(self):
-        spec = EngineSpec('neural', str(ROOT / 'inez-neural'),
+        binary = os.environ.get('INEZ_BINARY', str(ROOT / 'build/inez'))
+        spec = EngineSpec('neural', binary,
                           {'ModelPath': str(self.artifact), 'Threads': '1'})
         with patch.dict(os.environ, {'INEZ_PYTHON': sys.executable}):
             client = UciProcess(spec)
@@ -177,6 +178,7 @@ class ProtocolTests(unittest.TestCase):
         return client
 
     def test_copied_cluster_pointer_resolves_locally_without_edits(self):
+        binary = os.environ.get('INEZ_BINARY', str(ROOT / 'build/inez'))
         run = self.root / 'copied-pilot'
         run.mkdir(exist_ok=True)
         local = run / 'teacher/candidate-0001000'
@@ -192,7 +194,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(pointer.read_text(), content)
         with patch.dict(os.environ, {'INEZ_PYTHON': sys.executable}):
             with chess.engine.SimpleEngine.popen_uci(
-                    [str(ROOT / 'inez-neural'), '--model', str(run), '--threads', '1'], timeout=15) as engine:
+                    [binary, '--model', str(run), '--threads', '1'], timeout=15) as engine:
                 result = engine.play(chess.Board(), chess.engine.Limit(nodes=4))
                 self.assertIn(result.move, chess.Board().legal_moves)
 
@@ -200,7 +202,7 @@ class ProtocolTests(unittest.TestCase):
         with chess.engine.SimpleEngine.popen_uci(
                 [sys.executable, str(ROOT / 'tools/neural_uci.py'), '--model', str(self.artifact),
                  '--threads', '1'], timeout=15) as engine:
-            self.assertIn('Inez Neural', engine.id['name'])
+            self.assertEqual(engine.id['name'], 'Inez 0.1.1')
             self.assertNotIn('Evaluator', engine.options)
             board = chess.Board()
             for move in ('e2e4', 'c7c5'):
@@ -274,8 +276,9 @@ class ProtocolTests(unittest.TestCase):
             self.assertNotIn('bestmove', proc.stdout)
 
     def test_launcher_handles_other_working_directories(self):
+        binary = os.environ.get('INEZ_BINARY', str(ROOT / 'build/inez'))
         with tempfile.TemporaryDirectory() as directory:
-            proc = subprocess.run([str(ROOT / 'inez-neural'), '--model', str(self.artifact), '--threads', '1'],
+            proc = subprocess.run([binary, '--model', str(self.artifact), '--threads', '1'],
                 input='uci\nisready\nquit\n', cwd=directory,
                 env={**os.environ, 'INEZ_PYTHON': sys.executable},
                 capture_output=True, text=True, timeout=15)

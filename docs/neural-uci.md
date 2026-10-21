@@ -1,15 +1,15 @@
 # Play the trained Inez in En Croissant
 
-Select the executable **`inez-neural` in the repository root** when adding a
-local UCI engine to your chess GUI. It launches the Python neural model and
-the same reference PUCT search used for training gates. It does not require
+Select the executable **`build/inez`** when adding a local UCI engine to your
+chess GUI. It launches the trained neural model and the same reference PUCT
+search used for training gates. Pulling updated weights does not require
 rebuilding `build/inez` or retraining the model.
 
-The launcher finds Python in `.venv-model`, then `.venv`, then `PATH`. Install
+The binary finds Python in `.venv-model`, then `.venv`, then `PATH`. Install
 `training/requirements.txt` in that interpreter first if necessary. Set
-`INEZ_PYTHON=/absolute/path/to/python` to select another interpreter. The launcher
-works when the GUI starts it from another working directory. Keep it inside the
-checkout; it needs the Python sources and a model artifact, not just the launcher.
+`INEZ_PYTHON=/absolute/path/to/python` to select another interpreter. The engine
+works when the GUI starts it from another working directory. Keep the checkout
+intact; it needs the Python sources and a model artifact alongside `build/inez`.
 
 The default **ModelPath** is `results/training/inez-29m-pilot`. The engine reads
 that run's `accepted.json` and loads the selected artifact. With the current
@@ -18,11 +18,12 @@ results resolve against the local copy of the same run, without editing any
 training metadata. If you renamed a copied run, select the artifact directory
 directly in ModelPath. Copy both `manifest.json` and `weights.pt`.
 
-The engine appears as **Inez Neural 0.1.1**. Its stderr log records the actual
+The engine appears as **Inez 0.1.1**. Its stderr log records the actual
 artifact path, parameter count and device when loaded. The manifest, encoding
 contract and weight checksum are validated before playing. Missing, corrupt or
 incompatible artifacts cause an explicit error; there is no heuristic fallback.
-The existing `build/inez` remains the separate C++ material/uniform engine.
+For C++ baseline search regression tests, `build/inez --baseline` (or
+`INEZ_BASELINE=1`) runs the handcrafted material/uniform evaluator.
 
 ## Settings
 
@@ -75,14 +76,14 @@ the engine unusable for subsequent searches rather than selecting another evalua
 To run from a terminal:
 
 ```sh
-./inez-neural
+./build/inez
 # Then enter: uci, isready, position startpos, go movetime 3000, quit
 ```
 
 Or choose another model/device:
 
 ```sh
-./inez-neural --model results/training/inez-29m-continue --device cpu --threads 4
+./build/inez --model results/training/inez-29m-continue --device cpu --threads 4
 ```
 
 Protocol tests, including independent python-chess client integration:
