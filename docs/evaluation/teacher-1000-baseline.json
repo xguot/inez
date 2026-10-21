@@ -1,0 +1,3550 @@
+{
+  "context": {
+    "chess": "1.11.2",
+    "cpuct": 2.5,
+    "device": "cpu",
+    "diagnostics_sha256": "300aa84896d63a42f888e53bc6735767091a7c2f8f3f06674ee2d33c272b73b7",
+    "git_revision": "c6652522b95eb4eeb275c54032653f4fa7742a24",
+    "model": "/Users/xguo/Projects/inez/results/training/inez-29m-pilot/teacher/candidate-0001000",
+    "parameters": 29228779,
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "puct_sha256": "96929b0244d8b7765884c8c2fb7922a2018325125fa58ebe1003840929326ecc",
+    "python": "3.14.8",
+    "runner_sha256": "6761addf4ee2b558d5f2ad840dd615b77ae43ef4d4ca1e8bfc20adb266738974",
+    "simulations": [
+      32,
+      128,
+      512
+    ],
+    "started_utc": "2026-10-21T00:28:24.963241+00:00",
+    "suite": "/Users/xguo/Projects/inez/tests/fixtures/neural_diagnostics.json",
+    "suite_sha256": "c58ea51b26e4f84a5972d89b60973f3c6e70ecd01d75cbc062b624557531e4d7",
+    "threads": 4,
+    "torch": "2.14.1",
+    "uci_command": [
+      "/Users/xguo/Projects/inez/.venv-model/bin/python",
+      "/Users/xguo/Projects/inez/tools/neural_uci.py",
+      "--model",
+      "/Users/xguo/Projects/inez/results/training/inez-29m-pilot/teacher/candidate-0001000",
+      "--device",
+      "cpu",
+      "--threads",
+      "4"
+    ],
+    "uci_id": {
+      "author": "Inez Developers",
+      "name": "Inez Neural 0.1.0"
+    },
+    "uci_launcher": "/Users/xguo/Projects/inez/inez-neural",
+    "uci_sha256": "dcf6e485c1d5aa52185c80765aafd651550294e57a3388945dbe43795956b46e",
+    "weights_sha256": "1af8a5a0267b484706a9e7fa4411450850bdfb96ddf60947e54542a0b0e2207e"
+  },
+  "format_version": 1,
+  "moves": [
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "a4b3"
+        ]
+      },
+      "depth": 4,
+      "description": "Retreat the attacked bishop instead of castling into its capture. Full game history is retained.",
+      "elapsed_seconds": 0.5585105409991229,
+      "group": "xiyuan_save_bishop",
+      "id": "xiyuan_save_bishop",
+      "mirrored": false,
+      "move": "e1g1",
+      "passed": false,
+      "policy_top": [
+        [
+          "e1g1",
+          0.21904420852661133
+        ],
+        [
+          "a4b3",
+          0.1768975704908371
+        ],
+        [
+          "c1f4",
+          0.11592378467321396
+        ],
+        [
+          "f3g1",
+          0.04892197996377945
+        ],
+        [
+          "h2h4",
+          0.045544929802417755
+        ]
+      ],
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "moves": [
+          "d2d4",
+          "d7d5",
+          "b1c3",
+          "e7e6",
+          "e2e4",
+          "g8f6",
+          "g1f3",
+          "f8b4",
+          "e4e5",
+          "f6d7",
+          "f1b5",
+          "a7a6",
+          "b5a4",
+          "b7b5"
+        ]
+      },
+      "pv": [
+        "e1g1",
+        "c7c5",
+        "d4c5",
+        "d7c5"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.14702676981687546,
+        "value_side_to_move": 0.14702676981687546,
+        "wdl_side_to_move": {
+          "draw": 0.7065960168838501,
+          "loss": 0.07318862527608871,
+          "win": 0.22021539509296417
+        }
+      },
+      "san": "O-O",
+      "simulations": 32
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "a4b3"
+        ]
+      },
+      "depth": 5,
+      "description": "Retreat the attacked bishop instead of castling into its capture. Full game history is retained.",
+      "elapsed_seconds": 1.9825584170030197,
+      "group": "xiyuan_save_bishop",
+      "id": "xiyuan_save_bishop",
+      "mirrored": false,
+      "move": "e1g1",
+      "passed": false,
+      "policy_top": [
+        [
+          "e1g1",
+          0.21904420852661133
+        ],
+        [
+          "a4b3",
+          0.1768975704908371
+        ],
+        [
+          "c1f4",
+          0.11592378467321396
+        ],
+        [
+          "f3g1",
+          0.04892197996377945
+        ],
+        [
+          "h2h4",
+          0.045544929802417755
+        ]
+      ],
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "moves": [
+          "d2d4",
+          "d7d5",
+          "b1c3",
+          "e7e6",
+          "e2e4",
+          "g8f6",
+          "g1f3",
+          "f8b4",
+          "e4e5",
+          "f6d7",
+          "f1b5",
+          "a7a6",
+          "b5a4",
+          "b7b5"
+        ]
+      },
+      "pv": [
+        "e1g1",
+        "c7c5",
+        "d4c5",
+        "d7c5",
+        "f3d4"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.14702676981687546,
+        "value_side_to_move": 0.14702676981687546,
+        "wdl_side_to_move": {
+          "draw": 0.7065960168838501,
+          "loss": 0.07318862527608871,
+          "win": 0.22021539509296417
+        }
+      },
+      "san": "O-O",
+      "simulations": 128
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "a4b3"
+        ]
+      },
+      "depth": 6,
+      "description": "Retreat the attacked bishop instead of castling into its capture. Full game history is retained.",
+      "elapsed_seconds": 7.6843538749999425,
+      "group": "xiyuan_save_bishop",
+      "id": "xiyuan_save_bishop",
+      "mirrored": false,
+      "move": "e1g1",
+      "passed": false,
+      "policy_top": [
+        [
+          "e1g1",
+          0.21904420852661133
+        ],
+        [
+          "a4b3",
+          0.1768975704908371
+        ],
+        [
+          "c1f4",
+          0.11592378467321396
+        ],
+        [
+          "f3g1",
+          0.04892197996377945
+        ],
+        [
+          "h2h4",
+          0.045544929802417755
+        ]
+      ],
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "moves": [
+          "d2d4",
+          "d7d5",
+          "b1c3",
+          "e7e6",
+          "e2e4",
+          "g8f6",
+          "g1f3",
+          "f8b4",
+          "e4e5",
+          "f6d7",
+          "f1b5",
+          "a7a6",
+          "b5a4",
+          "b7b5"
+        ]
+      },
+      "pv": [
+        "e1g1",
+        "c7c5",
+        "d4c5",
+        "b4c5",
+        "a4b3"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.14702676981687546,
+        "value_side_to_move": 0.14702676981687546,
+        "wdl_side_to_move": {
+          "draw": 0.7065960168838501,
+          "loss": 0.07318862527608871,
+          "win": 0.22021539509296417
+        }
+      },
+      "san": "O-O",
+      "simulations": 512
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "a5b6"
+        ]
+      },
+      "depth": 4,
+      "description": "Retreat the attacked bishop instead of castling into its capture. Full game history is retained.",
+      "elapsed_seconds": 0.5056142079993151,
+      "group": "xiyuan_save_bishop",
+      "id": "xiyuan_save_bishop_mirrored",
+      "mirrored": true,
+      "move": "e8g8",
+      "passed": false,
+      "policy_top": [
+        [
+          "e8g8",
+          0.2840528190135956
+        ],
+        [
+          "a5b6",
+          0.1896992325782776
+        ],
+        [
+          "c8f5",
+          0.12211199104785919
+        ],
+        [
+          "f6g8",
+          0.046659599989652634
+        ],
+        [
+          "c8g4",
+          0.04293796792626381
+        ]
+      ],
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+        "moves": [
+          "d7d5",
+          "d2d4",
+          "b8c6",
+          "e2e3",
+          "e7e5",
+          "g1f3",
+          "g8f6",
+          "f1b5",
+          "e5e4",
+          "f3d2",
+          "f8b4",
+          "a2a3",
+          "b4a5",
+          "b2b4"
+        ]
+      },
+      "pv": [
+        "e8g8",
+        "b4a5",
+        "c6a5",
+        "b5e2"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": 0.047704532742500305,
+        "value_side_to_move": 0.047704532742500305,
+        "wdl_side_to_move": {
+          "draw": 0.7596678733825684,
+          "loss": 0.09631381928920746,
+          "win": 0.14401835203170776
+        }
+      },
+      "san": "O-O",
+      "simulations": 32
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "a5b6"
+        ]
+      },
+      "depth": 5,
+      "description": "Retreat the attacked bishop instead of castling into its capture. Full game history is retained.",
+      "elapsed_seconds": 1.9507206250018498,
+      "group": "xiyuan_save_bishop",
+      "id": "xiyuan_save_bishop_mirrored",
+      "mirrored": true,
+      "move": "e8g8",
+      "passed": false,
+      "policy_top": [
+        [
+          "e8g8",
+          0.2840528190135956
+        ],
+        [
+          "a5b6",
+          0.1896992325782776
+        ],
+        [
+          "c8f5",
+          0.12211199104785919
+        ],
+        [
+          "f6g8",
+          0.046659599989652634
+        ],
+        [
+          "c8g4",
+          0.04293796792626381
+        ]
+      ],
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+        "moves": [
+          "d7d5",
+          "d2d4",
+          "b8c6",
+          "e2e3",
+          "e7e5",
+          "g1f3",
+          "g8f6",
+          "f1b5",
+          "e5e4",
+          "f3d2",
+          "f8b4",
+          "a2a3",
+          "b4a5",
+          "b2b4"
+        ]
+      },
+      "pv": [
+        "e8g8",
+        "b4a5",
+        "c6a5",
+        "b5c4",
+        "d5c4"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": 0.047704532742500305,
+        "value_side_to_move": 0.047704532742500305,
+        "wdl_side_to_move": {
+          "draw": 0.7596678733825684,
+          "loss": 0.09631381928920746,
+          "win": 0.14401835203170776
+        }
+      },
+      "san": "O-O",
+      "simulations": 128
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "a5b6"
+        ]
+      },
+      "depth": 6,
+      "description": "Retreat the attacked bishop instead of castling into its capture. Full game history is retained.",
+      "elapsed_seconds": 7.683502124997176,
+      "group": "xiyuan_save_bishop",
+      "id": "xiyuan_save_bishop_mirrored",
+      "mirrored": true,
+      "move": "e8g8",
+      "passed": false,
+      "policy_top": [
+        [
+          "e8g8",
+          0.2840528190135956
+        ],
+        [
+          "a5b6",
+          0.1896992325782776
+        ],
+        [
+          "c8f5",
+          0.12211199104785919
+        ],
+        [
+          "f6g8",
+          0.046659599989652634
+        ],
+        [
+          "c8g4",
+          0.04293796792626381
+        ]
+      ],
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+        "moves": [
+          "d7d5",
+          "d2d4",
+          "b8c6",
+          "e2e3",
+          "e7e5",
+          "g1f3",
+          "g8f6",
+          "f1b5",
+          "e5e4",
+          "f3d2",
+          "f8b4",
+          "a2a3",
+          "b4a5",
+          "b2b4"
+        ]
+      },
+      "pv": [
+        "e8g8",
+        "b4a5",
+        "c6a5",
+        "b5e2",
+        "f8e8"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": 0.047704532742500305,
+        "value_side_to_move": 0.047704532742500305,
+        "wdl_side_to_move": {
+          "draw": 0.7596678733825684,
+          "loss": 0.09631381928920746,
+          "win": 0.14401835203170776
+        }
+      },
+      "san": "O-O",
+      "simulations": 512
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e2e7"
+        ]
+      },
+      "depth": 2,
+      "description": "Capture the unprotected queen with the rook.",
+      "elapsed_seconds": 0.49145983299968066,
+      "group": "capture_free_queen",
+      "id": "capture_free_queen",
+      "mirrored": false,
+      "move": "e2e7",
+      "passed": true,
+      "policy_top": [
+        [
+          "e2e7",
+          0.09026903659105301
+        ],
+        [
+          "e2e1",
+          0.07379843294620514
+        ],
+        [
+          "e2e4",
+          0.0648096576333046
+        ],
+        [
+          "e2c2",
+          0.060580186545848846
+        ],
+        [
+          "e2h2",
+          0.058642297983169556
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4q3/8/8/8/8/4R3/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e2e7",
+        "g8h8"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.3426690995693207,
+        "value_side_to_move": 0.3426690995693207,
+        "wdl_side_to_move": {
+          "draw": 0.33452308177948,
+          "loss": 0.16140392422676086,
+          "win": 0.5040730237960815
+        }
+      },
+      "san": "Rxe7",
+      "simulations": 32
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e2e7"
+        ]
+      },
+      "depth": 4,
+      "description": "Capture the unprotected queen with the rook.",
+      "elapsed_seconds": 1.937068499999441,
+      "group": "capture_free_queen",
+      "id": "capture_free_queen",
+      "mirrored": false,
+      "move": "e2e7",
+      "passed": true,
+      "policy_top": [
+        [
+          "e2e7",
+          0.09026903659105301
+        ],
+        [
+          "e2e1",
+          0.07379843294620514
+        ],
+        [
+          "e2e4",
+          0.0648096576333046
+        ],
+        [
+          "e2c2",
+          0.060580186545848846
+        ],
+        [
+          "e2h2",
+          0.058642297983169556
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4q3/8/8/8/8/4R3/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e2e7",
+        "g8h8",
+        "g1h2",
+        "h8g8"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.3426690995693207,
+        "value_side_to_move": 0.3426690995693207,
+        "wdl_side_to_move": {
+          "draw": 0.33452308177948,
+          "loss": 0.16140392422676086,
+          "win": 0.5040730237960815
+        }
+      },
+      "san": "Rxe7",
+      "simulations": 128
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e2e7"
+        ]
+      },
+      "depth": 4,
+      "description": "Capture the unprotected queen with the rook.",
+      "elapsed_seconds": 7.8435547500012035,
+      "group": "capture_free_queen",
+      "id": "capture_free_queen",
+      "mirrored": false,
+      "move": "e2e7",
+      "passed": true,
+      "policy_top": [
+        [
+          "e2e7",
+          0.09026903659105301
+        ],
+        [
+          "e2e1",
+          0.07379843294620514
+        ],
+        [
+          "e2e4",
+          0.0648096576333046
+        ],
+        [
+          "e2c2",
+          0.060580186545848846
+        ],
+        [
+          "e2h2",
+          0.058642297983169556
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4q3/8/8/8/8/4R3/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e2e7",
+        "g8h8",
+        "g1h2",
+        "h8g8"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.3426690995693207,
+        "value_side_to_move": 0.3426690995693207,
+        "wdl_side_to_move": {
+          "draw": 0.33452308177948,
+          "loss": 0.16140392422676086,
+          "win": 0.5040730237960815
+        }
+      },
+      "san": "Rxe7",
+      "simulations": 512
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e7e2"
+        ]
+      },
+      "depth": 3,
+      "description": "Capture the unprotected queen with the rook.",
+      "elapsed_seconds": 0.5146497080022527,
+      "group": "capture_free_queen",
+      "id": "capture_free_queen_mirrored",
+      "mirrored": true,
+      "move": "e7e2",
+      "passed": true,
+      "policy_top": [
+        [
+          "e7e2",
+          0.09562639892101288
+        ],
+        [
+          "e7e8",
+          0.07296688854694366
+        ],
+        [
+          "g8h7",
+          0.06809638440608978
+        ],
+        [
+          "e7h7",
+          0.06757400929927826
+        ],
+        [
+          "e7e5",
+          0.065799780189991
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4Q3/6K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e7e2",
+        "g1h1",
+        "g8h7"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18123993277549744,
+        "value_side_to_move": -0.18123993277549744,
+        "wdl_side_to_move": {
+          "draw": 0.5529018640518188,
+          "loss": 0.3141690194606781,
+          "win": 0.13292908668518066
+        }
+      },
+      "san": "Rxe2",
+      "simulations": 32
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e7e2"
+        ]
+      },
+      "depth": 3,
+      "description": "Capture the unprotected queen with the rook.",
+      "elapsed_seconds": 1.9287942920018395,
+      "group": "capture_free_queen",
+      "id": "capture_free_queen_mirrored",
+      "mirrored": true,
+      "move": "e7e2",
+      "passed": true,
+      "policy_top": [
+        [
+          "e7e2",
+          0.09562639892101288
+        ],
+        [
+          "e7e8",
+          0.07296688854694366
+        ],
+        [
+          "g8h7",
+          0.06809638440608978
+        ],
+        [
+          "e7h7",
+          0.06757400929927826
+        ],
+        [
+          "e7e5",
+          0.065799780189991
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4Q3/6K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e7e2",
+        "g1h1",
+        "g8h8"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18123993277549744,
+        "value_side_to_move": -0.18123993277549744,
+        "wdl_side_to_move": {
+          "draw": 0.5529018640518188,
+          "loss": 0.3141690194606781,
+          "win": 0.13292908668518066
+        }
+      },
+      "san": "Rxe2",
+      "simulations": 128
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e7e2"
+        ]
+      },
+      "depth": 5,
+      "description": "Capture the unprotected queen with the rook.",
+      "elapsed_seconds": 7.480551500000729,
+      "group": "capture_free_queen",
+      "id": "capture_free_queen_mirrored",
+      "mirrored": true,
+      "move": "e7e2",
+      "passed": true,
+      "policy_top": [
+        [
+          "e7e2",
+          0.09562639892101288
+        ],
+        [
+          "e7e8",
+          0.07296688854694366
+        ],
+        [
+          "g8h7",
+          0.06809638440608978
+        ],
+        [
+          "e7h7",
+          0.06757400929927826
+        ],
+        [
+          "e7e5",
+          0.065799780189991
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4Q3/6K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e7e2",
+        "g1h1",
+        "g8h7",
+        "h1g1",
+        "h7h8"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18123993277549744,
+        "value_side_to_move": -0.18123993277549744,
+        "wdl_side_to_move": {
+          "draw": 0.5529018640518188,
+          "loss": 0.3141690194606781,
+          "win": 0.13292908668518066
+        }
+      },
+      "san": "Rxe2",
+      "simulations": 512
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e2e7"
+        ]
+      },
+      "depth": 2,
+      "description": "Win the unprotected opposing rook instead of keeping a level rook ending.",
+      "elapsed_seconds": 0.4927149579998513,
+      "group": "capture_free_rook",
+      "id": "capture_free_rook",
+      "mirrored": false,
+      "move": "e2e7",
+      "passed": true,
+      "policy_top": [
+        [
+          "e2e7",
+          0.08778183907270432
+        ],
+        [
+          "e2e4",
+          0.07314727455377579
+        ],
+        [
+          "e2e1",
+          0.07280028611421585
+        ],
+        [
+          "e2e6",
+          0.06050403043627739
+        ],
+        [
+          "e2e5",
+          0.058161020278930664
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4R3/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e2e7",
+        "g8h8"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.3407997339963913,
+        "value_side_to_move": 0.3407997339963913,
+        "wdl_side_to_move": {
+          "draw": 0.3335200846195221,
+          "loss": 0.1628400832414627,
+          "win": 0.503639817237854
+        }
+      },
+      "san": "Rxe7",
+      "simulations": 32
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e2e7"
+        ]
+      },
+      "depth": 4,
+      "description": "Win the unprotected opposing rook instead of keeping a level rook ending.",
+      "elapsed_seconds": 1.9459107500006212,
+      "group": "capture_free_rook",
+      "id": "capture_free_rook",
+      "mirrored": false,
+      "move": "e2e7",
+      "passed": true,
+      "policy_top": [
+        [
+          "e2e7",
+          0.08778183907270432
+        ],
+        [
+          "e2e4",
+          0.07314727455377579
+        ],
+        [
+          "e2e1",
+          0.07280028611421585
+        ],
+        [
+          "e2e6",
+          0.06050403043627739
+        ],
+        [
+          "e2e5",
+          0.058161020278930664
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4R3/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e2e7",
+        "g8f8",
+        "g1h2",
+        "f8e7"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.3407997339963913,
+        "value_side_to_move": 0.3407997339963913,
+        "wdl_side_to_move": {
+          "draw": 0.3335200846195221,
+          "loss": 0.1628400832414627,
+          "win": 0.503639817237854
+        }
+      },
+      "san": "Rxe7",
+      "simulations": 128
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e2e7"
+        ]
+      },
+      "depth": 5,
+      "description": "Win the unprotected opposing rook instead of keeping a level rook ending.",
+      "elapsed_seconds": 9.0594219170016,
+      "group": "capture_free_rook",
+      "id": "capture_free_rook",
+      "mirrored": false,
+      "move": "e2e7",
+      "passed": true,
+      "policy_top": [
+        [
+          "e2e7",
+          0.08778183907270432
+        ],
+        [
+          "e2e4",
+          0.07314727455377579
+        ],
+        [
+          "e2e1",
+          0.07280028611421585
+        ],
+        [
+          "e2e6",
+          0.06050403043627739
+        ],
+        [
+          "e2e5",
+          0.058161020278930664
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4R3/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e2e7",
+        "g8f8",
+        "e7f7",
+        "f8f7"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.3407997339963913,
+        "value_side_to_move": 0.3407997339963913,
+        "wdl_side_to_move": {
+          "draw": 0.3335200846195221,
+          "loss": 0.1628400832414627,
+          "win": 0.503639817237854
+        }
+      },
+      "san": "Rxe7",
+      "simulations": 512
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e7e2"
+        ]
+      },
+      "depth": 3,
+      "description": "Win the unprotected opposing rook instead of keeping a level rook ending.",
+      "elapsed_seconds": 0.5491589580014988,
+      "group": "capture_free_rook",
+      "id": "capture_free_rook_mirrored",
+      "mirrored": true,
+      "move": "g8h7",
+      "passed": false,
+      "policy_top": [
+        [
+          "e7e2",
+          0.08016663044691086
+        ],
+        [
+          "e7e5",
+          0.07591378688812256
+        ],
+        [
+          "e7e8",
+          0.0732845664024353
+        ],
+        [
+          "g8h7",
+          0.07055969536304474
+        ],
+        [
+          "e7h7",
+          0.0662413164973259
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4R3/6K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g8h7",
+        "e2e7"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18090295791625977,
+        "value_side_to_move": -0.18090295791625977,
+        "wdl_side_to_move": {
+          "draw": 0.5557019114494324,
+          "loss": 0.3126005232334137,
+          "win": 0.13169756531715393
+        }
+      },
+      "san": "Kh7",
+      "simulations": 32
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e7e2"
+        ]
+      },
+      "depth": 3,
+      "description": "Win the unprotected opposing rook instead of keeping a level rook ending.",
+      "elapsed_seconds": 2.312591624999186,
+      "group": "capture_free_rook",
+      "id": "capture_free_rook_mirrored",
+      "mirrored": true,
+      "move": "e7e2",
+      "passed": true,
+      "policy_top": [
+        [
+          "e7e2",
+          0.08016663044691086
+        ],
+        [
+          "e7e5",
+          0.07591378688812256
+        ],
+        [
+          "e7e8",
+          0.0732845664024353
+        ],
+        [
+          "g8h7",
+          0.07055969536304474
+        ],
+        [
+          "e7h7",
+          0.0662413164973259
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4R3/6K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e7e2",
+        "g1f1",
+        "g8h8"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18090295791625977,
+        "value_side_to_move": -0.18090295791625977,
+        "wdl_side_to_move": {
+          "draw": 0.5557019114494324,
+          "loss": 0.3126005232334137,
+          "win": 0.13169756531715393
+        }
+      },
+      "san": "Rxe2",
+      "simulations": 128
+    },
+    {
+      "category": "material_capture",
+      "criterion": {
+        "best_moves": [
+          "e7e2"
+        ]
+      },
+      "depth": 5,
+      "description": "Win the unprotected opposing rook instead of keeping a level rook ending.",
+      "elapsed_seconds": 8.877259499997308,
+      "group": "capture_free_rook",
+      "id": "capture_free_rook_mirrored",
+      "mirrored": true,
+      "move": "e7e2",
+      "passed": true,
+      "policy_top": [
+        [
+          "e7e2",
+          0.08016663044691086
+        ],
+        [
+          "e7e5",
+          0.07591378688812256
+        ],
+        [
+          "e7e8",
+          0.0732845664024353
+        ],
+        [
+          "g8h7",
+          0.07055969536304474
+        ],
+        [
+          "e7h7",
+          0.0662413164973259
+        ]
+      ],
+      "position": {
+        "fen": "6k1/4r3/8/8/8/8/4R3/6K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e7e2",
+        "g1f1",
+        "g8h7",
+        "f1e2"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18090295791625977,
+        "value_side_to_move": -0.18090295791625977,
+        "wdl_side_to_move": {
+          "draw": 0.5557019114494324,
+          "loss": 0.3126005232334137,
+          "win": 0.13169756531715393
+        }
+      },
+      "san": "Rxe2",
+      "simulations": 512
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "g5e4",
+          "g5e6",
+          "g5f3",
+          "g5h3"
+        ]
+      },
+      "depth": 3,
+      "description": "Move the attacked knight to a square where it is not immediately capturable. This tests piece safety, not a unique strategic best move.",
+      "elapsed_seconds": 0.6746779169989168,
+      "group": "save_attacked_knight",
+      "id": "save_attacked_knight",
+      "mirrored": false,
+      "move": "g5f7",
+      "passed": false,
+      "policy_top": [
+        [
+          "g5f7",
+          0.23147104680538177
+        ],
+        [
+          "g5e6",
+          0.20051434636116028
+        ],
+        [
+          "g5h7",
+          0.15000754594802856
+        ],
+        [
+          "g5e4",
+          0.11482363194227219
+        ],
+        [
+          "g5h3",
+          0.09989940375089645
+        ]
+      ],
+      "position": {
+        "fen": "r5k1/p7/7p/6N1/8/8/P7/R5K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g5f7",
+        "a7a5",
+        "a1e1"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.36781738698482513,
+        "value_side_to_move": 0.36781738698482513,
+        "wdl_side_to_move": {
+          "draw": 0.3214339315891266,
+          "loss": 0.15537430346012115,
+          "win": 0.5231916904449463
+        }
+      },
+      "san": "Nf7",
+      "simulations": 32
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "g5e4",
+          "g5e6",
+          "g5f3",
+          "g5h3"
+        ]
+      },
+      "depth": 3,
+      "description": "Move the attacked knight to a square where it is not immediately capturable. This tests piece safety, not a unique strategic best move.",
+      "elapsed_seconds": 2.103518666997843,
+      "group": "save_attacked_knight",
+      "id": "save_attacked_knight",
+      "mirrored": false,
+      "move": "g5f7",
+      "passed": false,
+      "policy_top": [
+        [
+          "g5f7",
+          0.23147104680538177
+        ],
+        [
+          "g5e6",
+          0.20051434636116028
+        ],
+        [
+          "g5h7",
+          0.15000754594802856
+        ],
+        [
+          "g5e4",
+          0.11482363194227219
+        ],
+        [
+          "g5h3",
+          0.09989940375089645
+        ]
+      ],
+      "position": {
+        "fen": "r5k1/p7/7p/6N1/8/8/P7/R5K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g5f7",
+        "a7a5",
+        "f7e5"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.36781738698482513,
+        "value_side_to_move": 0.36781738698482513,
+        "wdl_side_to_move": {
+          "draw": 0.3214339315891266,
+          "loss": 0.15537430346012115,
+          "win": 0.5231916904449463
+        }
+      },
+      "san": "Nf7",
+      "simulations": 128
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "g5e4",
+          "g5e6",
+          "g5f3",
+          "g5h3"
+        ]
+      },
+      "depth": 4,
+      "description": "Move the attacked knight to a square where it is not immediately capturable. This tests piece safety, not a unique strategic best move.",
+      "elapsed_seconds": 8.792410416997882,
+      "group": "save_attacked_knight",
+      "id": "save_attacked_knight",
+      "mirrored": false,
+      "move": "g5f7",
+      "passed": false,
+      "policy_top": [
+        [
+          "g5f7",
+          0.23147104680538177
+        ],
+        [
+          "g5e6",
+          0.20051434636116028
+        ],
+        [
+          "g5h7",
+          0.15000754594802856
+        ],
+        [
+          "g5e4",
+          0.11482363194227219
+        ],
+        [
+          "g5h3",
+          0.09989940375089645
+        ]
+      ],
+      "position": {
+        "fen": "r5k1/p7/7p/6N1/8/8/P7/R5K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g5f7",
+        "a7a5",
+        "a1f1",
+        "a5a4"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.36781738698482513,
+        "value_side_to_move": 0.36781738698482513,
+        "wdl_side_to_move": {
+          "draw": 0.3214339315891266,
+          "loss": 0.15537430346012115,
+          "win": 0.5231916904449463
+        }
+      },
+      "san": "Nf7",
+      "simulations": 512
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "g4e5",
+          "g4e3",
+          "g4f6",
+          "g4h6"
+        ]
+      },
+      "depth": 2,
+      "description": "Move the attacked knight to a square where it is not immediately capturable. This tests piece safety, not a unique strategic best move.",
+      "elapsed_seconds": 0.5063701660001243,
+      "group": "save_attacked_knight",
+      "id": "save_attacked_knight_mirrored",
+      "mirrored": true,
+      "move": "g4e5",
+      "passed": true,
+      "policy_top": [
+        [
+          "g4e5",
+          0.16378384828567505
+        ],
+        [
+          "g4e3",
+          0.16377940773963928
+        ],
+        [
+          "g4h6",
+          0.11633909493684769
+        ],
+        [
+          "g4f2",
+          0.112766332924366
+        ],
+        [
+          "g4h2",
+          0.10476583987474442
+        ]
+      ],
+      "position": {
+        "fen": "r5k1/p7/8/8/6n1/7P/P7/R5K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g4e5",
+        "g1g2"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1762678623199463,
+        "value_side_to_move": -0.1762678623199463,
+        "wdl_side_to_move": {
+          "draw": 0.5459017753601074,
+          "loss": 0.3151830732822418,
+          "win": 0.13891521096229553
+        }
+      },
+      "san": "Ne5",
+      "simulations": 32
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "g4e5",
+          "g4e3",
+          "g4f6",
+          "g4h6"
+        ]
+      },
+      "depth": 3,
+      "description": "Move the attacked knight to a square where it is not immediately capturable. This tests piece safety, not a unique strategic best move.",
+      "elapsed_seconds": 2.0805323750028037,
+      "group": "save_attacked_knight",
+      "id": "save_attacked_knight_mirrored",
+      "mirrored": true,
+      "move": "g4e5",
+      "passed": true,
+      "policy_top": [
+        [
+          "g4e5",
+          0.16378384828567505
+        ],
+        [
+          "g4e3",
+          0.16377940773963928
+        ],
+        [
+          "g4h6",
+          0.11633909493684769
+        ],
+        [
+          "g4f2",
+          0.112766332924366
+        ],
+        [
+          "g4h2",
+          0.10476583987474442
+        ]
+      ],
+      "position": {
+        "fen": "r5k1/p7/8/8/6n1/7P/P7/R5K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g4e5",
+        "g1g2",
+        "e5d3"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1762678623199463,
+        "value_side_to_move": -0.1762678623199463,
+        "wdl_side_to_move": {
+          "draw": 0.5459017753601074,
+          "loss": 0.3151830732822418,
+          "win": 0.13891521096229553
+        }
+      },
+      "san": "Ne5",
+      "simulations": 128
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "best_moves": [
+          "g4e5",
+          "g4e3",
+          "g4f6",
+          "g4h6"
+        ]
+      },
+      "depth": 3,
+      "description": "Move the attacked knight to a square where it is not immediately capturable. This tests piece safety, not a unique strategic best move.",
+      "elapsed_seconds": 7.8966589590017975,
+      "group": "save_attacked_knight",
+      "id": "save_attacked_knight_mirrored",
+      "mirrored": true,
+      "move": "g4e3",
+      "passed": true,
+      "policy_top": [
+        [
+          "g4e5",
+          0.16378384828567505
+        ],
+        [
+          "g4e3",
+          0.16377940773963928
+        ],
+        [
+          "g4h6",
+          0.11633909493684769
+        ],
+        [
+          "g4f2",
+          0.112766332924366
+        ],
+        [
+          "g4h2",
+          0.10476583987474442
+        ]
+      ],
+      "position": {
+        "fen": "r5k1/p7/8/8/6n1/7P/P7/R5K1 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g4e3",
+        "a2a4",
+        "g8f8"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1762678623199463,
+        "value_side_to_move": -0.1762678623199463,
+        "wdl_side_to_move": {
+          "draw": 0.5459017753601074,
+          "loss": 0.3151830732822418,
+          "win": 0.13891521096229553
+        }
+      },
+      "san": "Ne3",
+      "simulations": 512
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "avoid_moves": [
+          "c4f7"
+        ]
+      },
+      "depth": 2,
+      "description": "Do not take the king-defended f7 pawn with the queen. Passing only certifies avoidance of that specific poisoned capture.",
+      "elapsed_seconds": 0.5181080419970385,
+      "group": "avoid_poisoned_pawn",
+      "id": "avoid_poisoned_pawn",
+      "mirrored": false,
+      "move": "c4f1",
+      "passed": true,
+      "policy_top": [
+        [
+          "c4f1",
+          0.06914915889501572
+        ],
+        [
+          "c4c1",
+          0.05709543824195862
+        ],
+        [
+          "c4d4",
+          0.05233139917254448
+        ],
+        [
+          "c4b3",
+          0.05033150687813759
+        ],
+        [
+          "c4c6",
+          0.048382390290498734
+        ]
+      ],
+      "position": {
+        "fen": "3qk3/5p2/8/8/2Q5/8/8/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c4f1",
+        "d8d4"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.38210029900074005,
+        "value_side_to_move": 0.38210029900074005,
+        "wdl_side_to_move": {
+          "draw": 0.30901917815208435,
+          "loss": 0.1544402688741684,
+          "win": 0.5365405678749084
+        }
+      },
+      "san": "Qf1",
+      "simulations": 32
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "avoid_moves": [
+          "c4f7"
+        ]
+      },
+      "depth": 3,
+      "description": "Do not take the king-defended f7 pawn with the queen. Passing only certifies avoidance of that specific poisoned capture.",
+      "elapsed_seconds": 2.352552332999039,
+      "group": "avoid_poisoned_pawn",
+      "id": "avoid_poisoned_pawn",
+      "mirrored": false,
+      "move": "c4f1",
+      "passed": true,
+      "policy_top": [
+        [
+          "c4f1",
+          0.06914915889501572
+        ],
+        [
+          "c4c1",
+          0.05709543824195862
+        ],
+        [
+          "c4d4",
+          0.05233139917254448
+        ],
+        [
+          "c4b3",
+          0.05033150687813759
+        ],
+        [
+          "c4c6",
+          0.048382390290498734
+        ]
+      ],
+      "position": {
+        "fen": "3qk3/5p2/8/8/2Q5/8/8/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c4f1",
+        "e8f8"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.38210029900074005,
+        "value_side_to_move": 0.38210029900074005,
+        "wdl_side_to_move": {
+          "draw": 0.30901917815208435,
+          "loss": 0.1544402688741684,
+          "win": 0.5365405678749084
+        }
+      },
+      "san": "Qf1",
+      "simulations": 128
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "avoid_moves": [
+          "c4f7"
+        ]
+      },
+      "depth": 4,
+      "description": "Do not take the king-defended f7 pawn with the queen. Passing only certifies avoidance of that specific poisoned capture.",
+      "elapsed_seconds": 8.250055209002312,
+      "group": "avoid_poisoned_pawn",
+      "id": "avoid_poisoned_pawn",
+      "mirrored": false,
+      "move": "c4f1",
+      "passed": true,
+      "policy_top": [
+        [
+          "c4f1",
+          0.06914915889501572
+        ],
+        [
+          "c4c1",
+          0.05709543824195862
+        ],
+        [
+          "c4d4",
+          0.05233139917254448
+        ],
+        [
+          "c4b3",
+          0.05033150687813759
+        ],
+        [
+          "c4c6",
+          0.048382390290498734
+        ]
+      ],
+      "position": {
+        "fen": "3qk3/5p2/8/8/2Q5/8/8/6K1 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c4f1",
+        "f7f5",
+        "f1f5"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.38210029900074005,
+        "value_side_to_move": 0.38210029900074005,
+        "wdl_side_to_move": {
+          "draw": 0.30901917815208435,
+          "loss": 0.1544402688741684,
+          "win": 0.5365405678749084
+        }
+      },
+      "san": "Qf1",
+      "simulations": 512
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "avoid_moves": [
+          "c5f2"
+        ]
+      },
+      "depth": 2,
+      "description": "Do not take the king-defended f7 pawn with the queen. Passing only certifies avoidance of that specific poisoned capture.",
+      "elapsed_seconds": 0.507628666000528,
+      "group": "avoid_poisoned_pawn",
+      "id": "avoid_poisoned_pawn_mirrored",
+      "mirrored": true,
+      "move": "c5d5",
+      "passed": true,
+      "policy_top": [
+        [
+          "c5c3",
+          0.054483696818351746
+        ],
+        [
+          "c5d5",
+          0.053982410579919815
+        ],
+        [
+          "c5f8",
+          0.052086006850004196
+        ],
+        [
+          "c5b6",
+          0.051681339740753174
+        ],
+        [
+          "c5d6",
+          0.0488722063601017
+        ]
+      ],
+      "position": {
+        "fen": "6k1/8/8/2q5/8/8/5P2/3QK3 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c5d5",
+        "d1g4"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1800157129764557,
+        "value_side_to_move": -0.1800157129764557,
+        "wdl_side_to_move": {
+          "draw": 0.5480871200561523,
+          "loss": 0.3159642815589905,
+          "win": 0.1359485685825348
+        }
+      },
+      "san": "Qd5",
+      "simulations": 32
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "avoid_moves": [
+          "c5f2"
+        ]
+      },
+      "depth": 3,
+      "description": "Do not take the king-defended f7 pawn with the queen. Passing only certifies avoidance of that specific poisoned capture.",
+      "elapsed_seconds": 2.0053451669991773,
+      "group": "avoid_poisoned_pawn",
+      "id": "avoid_poisoned_pawn_mirrored",
+      "mirrored": true,
+      "move": "c5f8",
+      "passed": true,
+      "policy_top": [
+        [
+          "c5c3",
+          0.054483696818351746
+        ],
+        [
+          "c5d5",
+          0.053982410579919815
+        ],
+        [
+          "c5f8",
+          0.052086006850004196
+        ],
+        [
+          "c5b6",
+          0.051681339740753174
+        ],
+        [
+          "c5d6",
+          0.0488722063601017
+        ]
+      ],
+      "position": {
+        "fen": "6k1/8/8/2q5/8/8/5P2/3QK3 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c5f8",
+        "f2f4",
+        "f8d8"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1800157129764557,
+        "value_side_to_move": -0.1800157129764557,
+        "wdl_side_to_move": {
+          "draw": 0.5480871200561523,
+          "loss": 0.3159642815589905,
+          "win": 0.1359485685825348
+        }
+      },
+      "san": "Qf8",
+      "simulations": 128
+    },
+    {
+      "category": "piece_safety",
+      "criterion": {
+        "avoid_moves": [
+          "c5f2"
+        ]
+      },
+      "depth": 5,
+      "description": "Do not take the king-defended f7 pawn with the queen. Passing only certifies avoidance of that specific poisoned capture.",
+      "elapsed_seconds": 8.40304604099947,
+      "group": "avoid_poisoned_pawn",
+      "id": "avoid_poisoned_pawn_mirrored",
+      "mirrored": true,
+      "move": "c5f8",
+      "passed": true,
+      "policy_top": [
+        [
+          "c5c3",
+          0.054483696818351746
+        ],
+        [
+          "c5d5",
+          0.053982410579919815
+        ],
+        [
+          "c5f8",
+          0.052086006850004196
+        ],
+        [
+          "c5b6",
+          0.051681339740753174
+        ],
+        [
+          "c5d6",
+          0.0488722063601017
+        ]
+      ],
+      "position": {
+        "fen": "6k1/8/8/2q5/8/8/5P2/3QK3 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c5f8",
+        "f2f4",
+        "f8e8"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1800157129764557,
+        "value_side_to_move": -0.1800157129764557,
+        "wdl_side_to_move": {
+          "draw": 0.5480871200561523,
+          "loss": 0.3159642815589905,
+          "win": 0.1359485685825348
+        }
+      },
+      "san": "Qf8",
+      "simulations": 512
+    },
+    {
+      "category": "mate",
+      "criterion": {
+        "best_moves": [
+          "g6g7"
+        ]
+      },
+      "depth": 2,
+      "description": "Find the immediate queen mate.",
+      "elapsed_seconds": 0.19200400000045192,
+      "group": "mate_in_one",
+      "id": "mate_in_one",
+      "mirrored": false,
+      "move": "g6g7",
+      "passed": true,
+      "policy_top": [
+        [
+          "g6g8",
+          0.050897177308797836
+        ],
+        [
+          "g6h5",
+          0.04981140419840813
+        ],
+        [
+          "g6e4",
+          0.0479658767580986
+        ],
+        [
+          "g6f5",
+          0.047520946711301804
+        ],
+        [
+          "g6g2",
+          0.046333570033311844
+        ]
+      ],
+      "position": {
+        "fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g6g7"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33056527376174927,
+        "value_side_to_move": 0.33056527376174927,
+        "wdl_side_to_move": {
+          "draw": 0.3410910964012146,
+          "loss": 0.16417184472084045,
+          "win": 0.4947371184825897
+        }
+      },
+      "san": "Qg7#",
+      "simulations": 32
+    },
+    {
+      "category": "mate",
+      "criterion": {
+        "best_moves": [
+          "g6g7"
+        ]
+      },
+      "depth": 2,
+      "description": "Find the immediate queen mate.",
+      "elapsed_seconds": 0.35086266699727275,
+      "group": "mate_in_one",
+      "id": "mate_in_one",
+      "mirrored": false,
+      "move": "g6g7",
+      "passed": true,
+      "policy_top": [
+        [
+          "g6g8",
+          0.050897177308797836
+        ],
+        [
+          "g6h5",
+          0.04981140419840813
+        ],
+        [
+          "g6e4",
+          0.0479658767580986
+        ],
+        [
+          "g6f5",
+          0.047520946711301804
+        ],
+        [
+          "g6g2",
+          0.046333570033311844
+        ]
+      ],
+      "position": {
+        "fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g6g7"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33056527376174927,
+        "value_side_to_move": 0.33056527376174927,
+        "wdl_side_to_move": {
+          "draw": 0.3410910964012146,
+          "loss": 0.16417184472084045,
+          "win": 0.4947371184825897
+        }
+      },
+      "san": "Qg7#",
+      "simulations": 128
+    },
+    {
+      "category": "mate",
+      "criterion": {
+        "best_moves": [
+          "g6g7"
+        ]
+      },
+      "depth": 3,
+      "description": "Find the immediate queen mate.",
+      "elapsed_seconds": 0.6222041670007457,
+      "group": "mate_in_one",
+      "id": "mate_in_one",
+      "mirrored": false,
+      "move": "g6g7",
+      "passed": true,
+      "policy_top": [
+        [
+          "g6g8",
+          0.050897177308797836
+        ],
+        [
+          "g6h5",
+          0.04981140419840813
+        ],
+        [
+          "g6e4",
+          0.0479658767580986
+        ],
+        [
+          "g6f5",
+          0.047520946711301804
+        ],
+        [
+          "g6g2",
+          0.046333570033311844
+        ]
+      ],
+      "position": {
+        "fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g6g7"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33056527376174927,
+        "value_side_to_move": 0.33056527376174927,
+        "wdl_side_to_move": {
+          "draw": 0.3410910964012146,
+          "loss": 0.16417184472084045,
+          "win": 0.4947371184825897
+        }
+      },
+      "san": "Qg7#",
+      "simulations": 512
+    },
+    {
+      "category": "mate",
+      "criterion": {
+        "best_moves": [
+          "g3g2"
+        ]
+      },
+      "depth": 1,
+      "description": "Find the immediate queen mate.",
+      "elapsed_seconds": 0.19745895899905008,
+      "group": "mate_in_one",
+      "id": "mate_in_one_mirrored",
+      "mirrored": true,
+      "move": "g3g2",
+      "passed": true,
+      "policy_top": [
+        [
+          "g3e1",
+          0.05325177311897278
+        ],
+        [
+          "g3g1",
+          0.05064092576503754
+        ],
+        [
+          "g3h4",
+          0.047866057604551315
+        ],
+        [
+          "g3f4",
+          0.046999868005514145
+        ],
+        [
+          "f3e3",
+          0.04627073556184769
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/5kq1/8/7K b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g3g2"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1839938759803772,
+        "value_side_to_move": -0.1839938759803772,
+        "wdl_side_to_move": {
+          "draw": 0.5567774772644043,
+          "loss": 0.31360819935798645,
+          "win": 0.12961432337760925
+        }
+      },
+      "san": "Qg2#",
+      "simulations": 32
+    },
+    {
+      "category": "mate",
+      "criterion": {
+        "best_moves": [
+          "g3g2"
+        ]
+      },
+      "depth": 1,
+      "description": "Find the immediate queen mate.",
+      "elapsed_seconds": 0.261139792000904,
+      "group": "mate_in_one",
+      "id": "mate_in_one_mirrored",
+      "mirrored": true,
+      "move": "g3g2",
+      "passed": true,
+      "policy_top": [
+        [
+          "g3e1",
+          0.05325177311897278
+        ],
+        [
+          "g3g1",
+          0.05064092576503754
+        ],
+        [
+          "g3h4",
+          0.047866057604551315
+        ],
+        [
+          "g3f4",
+          0.046999868005514145
+        ],
+        [
+          "f3e3",
+          0.04627073556184769
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/5kq1/8/7K b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g3g2"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1839938759803772,
+        "value_side_to_move": -0.1839938759803772,
+        "wdl_side_to_move": {
+          "draw": 0.5567774772644043,
+          "loss": 0.31360819935798645,
+          "win": 0.12961432337760925
+        }
+      },
+      "san": "Qg2#",
+      "simulations": 128
+    },
+    {
+      "category": "mate",
+      "criterion": {
+        "best_moves": [
+          "g3g2"
+        ]
+      },
+      "depth": 2,
+      "description": "Find the immediate queen mate.",
+      "elapsed_seconds": 0.4899452499994368,
+      "group": "mate_in_one",
+      "id": "mate_in_one_mirrored",
+      "mirrored": true,
+      "move": "g3g2",
+      "passed": true,
+      "policy_top": [
+        [
+          "g3e1",
+          0.05325177311897278
+        ],
+        [
+          "g3g1",
+          0.05064092576503754
+        ],
+        [
+          "g3h4",
+          0.047866057604551315
+        ],
+        [
+          "g3f4",
+          0.046999868005514145
+        ],
+        [
+          "f3e3",
+          0.04627073556184769
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/5kq1/8/7K b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "g3g2"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1839938759803772,
+        "value_side_to_move": -0.1839938759803772,
+        "wdl_side_to_move": {
+          "draw": 0.5567774772644043,
+          "loss": 0.31360819935798645,
+          "win": 0.12961432337760925
+        }
+      },
+      "san": "Qg2#",
+      "simulations": 512
+    },
+    {
+      "category": "conversion",
+      "criterion": {
+        "avoid_stalemate": true
+      },
+      "depth": 4,
+      "description": "Avoid every immediate stalemating move in this queen ending. Passing does not certify optimal conversion.",
+      "elapsed_seconds": 0.2918772920020274,
+      "group": "avoid_stalemate",
+      "id": "avoid_stalemate",
+      "mirrored": false,
+      "move": "e6h3",
+      "passed": true,
+      "policy_top": [
+        [
+          "e6d6",
+          0.0464123971760273
+        ],
+        [
+          "e6c6",
+          0.045002587139606476
+        ],
+        [
+          "e6d5",
+          0.040450893342494965
+        ],
+        [
+          "e6e1",
+          0.04016796126961708
+        ],
+        [
+          "e6e4",
+          0.04001929983496666
+        ]
+      ],
+      "position": {
+        "fen": "7k/5K2/4Q3/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e6h3"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33465760946273804,
+        "value_side_to_move": 0.33465760946273804,
+        "wdl_side_to_move": {
+          "draw": 0.33807170391082764,
+          "loss": 0.16363531351089478,
+          "win": 0.4982929229736328
+        }
+      },
+      "san": "Qh3#",
+      "simulations": 32
+    },
+    {
+      "category": "conversion",
+      "criterion": {
+        "avoid_stalemate": true
+      },
+      "depth": 4,
+      "description": "Avoid every immediate stalemating move in this queen ending. Passing does not certify optimal conversion.",
+      "elapsed_seconds": 0.2882137499982491,
+      "group": "avoid_stalemate",
+      "id": "avoid_stalemate",
+      "mirrored": false,
+      "move": "e6h3",
+      "passed": true,
+      "policy_top": [
+        [
+          "e6d6",
+          0.0464123971760273
+        ],
+        [
+          "e6c6",
+          0.045002587139606476
+        ],
+        [
+          "e6d5",
+          0.040450893342494965
+        ],
+        [
+          "e6e1",
+          0.04016796126961708
+        ],
+        [
+          "e6e4",
+          0.04001929983496666
+        ]
+      ],
+      "position": {
+        "fen": "7k/5K2/4Q3/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e6h3"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33465760946273804,
+        "value_side_to_move": 0.33465760946273804,
+        "wdl_side_to_move": {
+          "draw": 0.33807170391082764,
+          "loss": 0.16363531351089478,
+          "win": 0.4982929229736328
+        }
+      },
+      "san": "Qh3#",
+      "simulations": 128
+    },
+    {
+      "category": "conversion",
+      "criterion": {
+        "avoid_stalemate": true
+      },
+      "depth": 4,
+      "description": "Avoid every immediate stalemating move in this queen ending. Passing does not certify optimal conversion.",
+      "elapsed_seconds": 0.7897422080022807,
+      "group": "avoid_stalemate",
+      "id": "avoid_stalemate",
+      "mirrored": false,
+      "move": "e6h3",
+      "passed": true,
+      "policy_top": [
+        [
+          "e6d6",
+          0.0464123971760273
+        ],
+        [
+          "e6c6",
+          0.045002587139606476
+        ],
+        [
+          "e6d5",
+          0.040450893342494965
+        ],
+        [
+          "e6e1",
+          0.04016796126961708
+        ],
+        [
+          "e6e4",
+          0.04001929983496666
+        ]
+      ],
+      "position": {
+        "fen": "7k/5K2/4Q3/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e6h3"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33465760946273804,
+        "value_side_to_move": 0.33465760946273804,
+        "wdl_side_to_move": {
+          "draw": 0.33807170391082764,
+          "loss": 0.16363531351089478,
+          "win": 0.4982929229736328
+        }
+      },
+      "san": "Qh3#",
+      "simulations": 512
+    },
+    {
+      "category": "conversion",
+      "criterion": {
+        "avoid_stalemate": true
+      },
+      "depth": 1,
+      "description": "Avoid every immediate stalemating move in this queen ending. Passing does not certify optimal conversion.",
+      "elapsed_seconds": 0.1862094589996559,
+      "group": "avoid_stalemate",
+      "id": "avoid_stalemate_mirrored",
+      "mirrored": true,
+      "move": "e3h6",
+      "passed": true,
+      "policy_top": [
+        [
+          "e3c3",
+          0.0447545051574707
+        ],
+        [
+          "e3d3",
+          0.04469124972820282
+        ],
+        [
+          "f2e1",
+          0.043834224343299866
+        ],
+        [
+          "e3e1",
+          0.042618416249752045
+        ],
+        [
+          "f2f1",
+          0.03974815830588341
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/4q3/5k2/7K b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e3h6"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1835506707429886,
+        "value_side_to_move": -0.1835506707429886,
+        "wdl_side_to_move": {
+          "draw": 0.5585713386535645,
+          "loss": 0.31248968839645386,
+          "win": 0.12893901765346527
+        }
+      },
+      "san": "Qh6#",
+      "simulations": 32
+    },
+    {
+      "category": "conversion",
+      "criterion": {
+        "avoid_stalemate": true
+      },
+      "depth": 1,
+      "description": "Avoid every immediate stalemating move in this queen ending. Passing does not certify optimal conversion.",
+      "elapsed_seconds": 0.21322541700283182,
+      "group": "avoid_stalemate",
+      "id": "avoid_stalemate_mirrored",
+      "mirrored": true,
+      "move": "e3h6",
+      "passed": true,
+      "policy_top": [
+        [
+          "e3c3",
+          0.0447545051574707
+        ],
+        [
+          "e3d3",
+          0.04469124972820282
+        ],
+        [
+          "f2e1",
+          0.043834224343299866
+        ],
+        [
+          "e3e1",
+          0.042618416249752045
+        ],
+        [
+          "f2f1",
+          0.03974815830588341
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/4q3/5k2/7K b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e3h6"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1835506707429886,
+        "value_side_to_move": -0.1835506707429886,
+        "wdl_side_to_move": {
+          "draw": 0.5585713386535645,
+          "loss": 0.31248968839645386,
+          "win": 0.12893901765346527
+        }
+      },
+      "san": "Qh6#",
+      "simulations": 128
+    },
+    {
+      "category": "conversion",
+      "criterion": {
+        "avoid_stalemate": true
+      },
+      "depth": 2,
+      "description": "Avoid every immediate stalemating move in this queen ending. Passing does not certify optimal conversion.",
+      "elapsed_seconds": 0.5298587500001304,
+      "group": "avoid_stalemate",
+      "id": "avoid_stalemate_mirrored",
+      "mirrored": true,
+      "move": "e3h6",
+      "passed": true,
+      "policy_top": [
+        [
+          "e3c3",
+          0.0447545051574707
+        ],
+        [
+          "e3d3",
+          0.04469124972820282
+        ],
+        [
+          "f2e1",
+          0.043834224343299866
+        ],
+        [
+          "e3e1",
+          0.042618416249752045
+        ],
+        [
+          "f2f1",
+          0.03974815830588341
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/4q3/5k2/7K b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "e3h6"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.1835506707429886,
+        "value_side_to_move": -0.1835506707429886,
+        "wdl_side_to_move": {
+          "draw": 0.5585713386535645,
+          "loss": 0.31248968839645386,
+          "win": 0.12893901765346527
+        }
+      },
+      "san": "Qh6#",
+      "simulations": 512
+    },
+    {
+      "category": "promotion",
+      "criterion": {
+        "best_moves": [
+          "c7c8r"
+        ],
+        "root_moves": [
+          "c7c8q",
+          "c7c8r",
+          "c7c8b",
+          "c7c8n"
+        ]
+      },
+      "depth": 1,
+      "description": "Among the four promotion choices, promote to a rook; queen promotion stalemates and minor promotions draw. Root restriction is intentional and reported.",
+      "elapsed_seconds": 0.02377166700171074,
+      "group": "rook_underpromotion",
+      "id": "rook_underpromotion",
+      "mirrored": false,
+      "move": "c7c8q",
+      "passed": false,
+      "policy_top": [
+        [
+          "c7c8q",
+          0.2638112008571625
+        ],
+        [
+          "c6d6",
+          0.20522040128707886
+        ],
+        [
+          "c6d5",
+          0.16909101605415344
+        ],
+        [
+          "c6c5",
+          0.1340855211019516
+        ],
+        [
+          "c6b5",
+          0.11576522886753082
+        ]
+      ],
+      "position": {
+        "fen": "8/k1P5/2K5/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c7c8q"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33300718665122986,
+        "value_side_to_move": 0.33300718665122986,
+        "wdl_side_to_move": {
+          "draw": 0.3408931791782379,
+          "loss": 0.1630498468875885,
+          "win": 0.49605703353881836
+        }
+      },
+      "san": "c8=Q",
+      "simulations": 32
+    },
+    {
+      "category": "promotion",
+      "criterion": {
+        "best_moves": [
+          "c7c8r"
+        ],
+        "root_moves": [
+          "c7c8q",
+          "c7c8r",
+          "c7c8b",
+          "c7c8n"
+        ]
+      },
+      "depth": 1,
+      "description": "Among the four promotion choices, promote to a rook; queen promotion stalemates and minor promotions draw. Root restriction is intentional and reported.",
+      "elapsed_seconds": 0.019912832998670638,
+      "group": "rook_underpromotion",
+      "id": "rook_underpromotion",
+      "mirrored": false,
+      "move": "c7c8q",
+      "passed": false,
+      "policy_top": [
+        [
+          "c7c8q",
+          0.2638112008571625
+        ],
+        [
+          "c6d6",
+          0.20522040128707886
+        ],
+        [
+          "c6d5",
+          0.16909101605415344
+        ],
+        [
+          "c6c5",
+          0.1340855211019516
+        ],
+        [
+          "c6b5",
+          0.11576522886753082
+        ]
+      ],
+      "position": {
+        "fen": "8/k1P5/2K5/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c7c8q"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33300718665122986,
+        "value_side_to_move": 0.33300718665122986,
+        "wdl_side_to_move": {
+          "draw": 0.3408931791782379,
+          "loss": 0.1630498468875885,
+          "win": 0.49605703353881836
+        }
+      },
+      "san": "c8=Q",
+      "simulations": 128
+    },
+    {
+      "category": "promotion",
+      "criterion": {
+        "best_moves": [
+          "c7c8r"
+        ],
+        "root_moves": [
+          "c7c8q",
+          "c7c8r",
+          "c7c8b",
+          "c7c8n"
+        ]
+      },
+      "depth": 1,
+      "description": "Among the four promotion choices, promote to a rook; queen promotion stalemates and minor promotions draw. Root restriction is intentional and reported.",
+      "elapsed_seconds": 0.029448375000356464,
+      "group": "rook_underpromotion",
+      "id": "rook_underpromotion",
+      "mirrored": false,
+      "move": "c7c8q",
+      "passed": false,
+      "policy_top": [
+        [
+          "c7c8q",
+          0.2638112008571625
+        ],
+        [
+          "c6d6",
+          0.20522040128707886
+        ],
+        [
+          "c6d5",
+          0.16909101605415344
+        ],
+        [
+          "c6c5",
+          0.1340855211019516
+        ],
+        [
+          "c6b5",
+          0.11576522886753082
+        ]
+      ],
+      "position": {
+        "fen": "8/k1P5/2K5/8/8/8/8/8 w - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c7c8q"
+      ],
+      "raw_value": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33300718665122986,
+        "value_side_to_move": 0.33300718665122986,
+        "wdl_side_to_move": {
+          "draw": 0.3408931791782379,
+          "loss": 0.1630498468875885,
+          "win": 0.49605703353881836
+        }
+      },
+      "san": "c8=Q",
+      "simulations": 512
+    },
+    {
+      "category": "promotion",
+      "criterion": {
+        "best_moves": [
+          "c2c1r"
+        ],
+        "root_moves": [
+          "c2c1q",
+          "c2c1r",
+          "c2c1b",
+          "c2c1n"
+        ]
+      },
+      "depth": 1,
+      "description": "Among the four promotion choices, promote to a rook; queen promotion stalemates and minor promotions draw. Root restriction is intentional and reported.",
+      "elapsed_seconds": 0.03187616699869977,
+      "group": "rook_underpromotion",
+      "id": "rook_underpromotion_mirrored",
+      "mirrored": true,
+      "move": "c2c1q",
+      "passed": false,
+      "policy_top": [
+        [
+          "c2c1q",
+          0.30869364738464355
+        ],
+        [
+          "c3d3",
+          0.18073026835918427
+        ],
+        [
+          "c3d4",
+          0.14788711071014404
+        ],
+        [
+          "c3c4",
+          0.14370761811733246
+        ],
+        [
+          "c3b4",
+          0.10579338669776917
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/2k5/K1p5/8 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c2c1q"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18285444378852844,
+        "value_side_to_move": -0.18285444378852844,
+        "wdl_side_to_move": {
+          "draw": 0.5512062907218933,
+          "loss": 0.31582406163215637,
+          "win": 0.13296961784362793
+        }
+      },
+      "san": "c1=Q",
+      "simulations": 32
+    },
+    {
+      "category": "promotion",
+      "criterion": {
+        "best_moves": [
+          "c2c1r"
+        ],
+        "root_moves": [
+          "c2c1q",
+          "c2c1r",
+          "c2c1b",
+          "c2c1n"
+        ]
+      },
+      "depth": 2,
+      "description": "Among the four promotion choices, promote to a rook; queen promotion stalemates and minor promotions draw. Root restriction is intentional and reported.",
+      "elapsed_seconds": 0.055539249999128515,
+      "group": "rook_underpromotion",
+      "id": "rook_underpromotion_mirrored",
+      "mirrored": true,
+      "move": "c2c1q",
+      "passed": false,
+      "policy_top": [
+        [
+          "c2c1q",
+          0.30869364738464355
+        ],
+        [
+          "c3d3",
+          0.18073026835918427
+        ],
+        [
+          "c3d4",
+          0.14788711071014404
+        ],
+        [
+          "c3c4",
+          0.14370761811733246
+        ],
+        [
+          "c3b4",
+          0.10579338669776917
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/2k5/K1p5/8 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c2c1q"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18285444378852844,
+        "value_side_to_move": -0.18285444378852844,
+        "wdl_side_to_move": {
+          "draw": 0.5512062907218933,
+          "loss": 0.31582406163215637,
+          "win": 0.13296961784362793
+        }
+      },
+      "san": "c1=Q",
+      "simulations": 128
+    },
+    {
+      "category": "promotion",
+      "criterion": {
+        "best_moves": [
+          "c2c1r"
+        ],
+        "root_moves": [
+          "c2c1q",
+          "c2c1r",
+          "c2c1b",
+          "c2c1n"
+        ]
+      },
+      "depth": 3,
+      "description": "Among the four promotion choices, promote to a rook; queen promotion stalemates and minor promotions draw. Root restriction is intentional and reported.",
+      "elapsed_seconds": 0.21337483300158055,
+      "group": "rook_underpromotion",
+      "id": "rook_underpromotion_mirrored",
+      "mirrored": true,
+      "move": "c2c1q",
+      "passed": false,
+      "policy_top": [
+        [
+          "c2c1q",
+          0.30869364738464355
+        ],
+        [
+          "c3d3",
+          0.18073026835918427
+        ],
+        [
+          "c3d4",
+          0.14788711071014404
+        ],
+        [
+          "c3c4",
+          0.14370761811733246
+        ],
+        [
+          "c3b4",
+          0.10579338669776917
+        ]
+      ],
+      "position": {
+        "fen": "8/8/8/8/8/2k5/K1p5/8 b - - 0 1",
+        "moves": []
+      },
+      "pv": [
+        "c2c1q"
+      ],
+      "raw_value": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18285444378852844,
+        "value_side_to_move": -0.18285444378852844,
+        "wdl_side_to_move": {
+          "draw": 0.5512062907218933,
+          "loss": 0.31582406163215637,
+          "win": 0.13296961784362793
+        }
+      },
+      "san": "c1=Q",
+      "simulations": 512
+    }
+  ],
+  "reference": {
+    "binary_sha256": "8eed61129d1493c5d1f2fd9323f0c54c47ac49319911fbde18c6b9c87e8b13c5",
+    "executable": "/Users/xguo/Library/Application Support/org.encroissant.app/engines/stockfish/stockfish-macos-universal",
+    "id": {
+      "author": "the Stockfish developers (see AUTHORS file)",
+      "name": "Stockfish 19"
+    },
+    "move_labels": [
+      {
+        "id": "xiyuan_save_bishop",
+        "label_confirmed": true,
+        "move": "a4b3",
+        "score_side_to_move": "-11"
+      },
+      {
+        "id": "xiyuan_save_bishop_mirrored",
+        "label_confirmed": true,
+        "move": "a5b6",
+        "score_side_to_move": "-21"
+      },
+      {
+        "id": "capture_free_queen",
+        "label_confirmed": true,
+        "move": "e2e7",
+        "score_side_to_move": "+449"
+      },
+      {
+        "id": "capture_free_queen_mirrored",
+        "label_confirmed": true,
+        "move": "e7e2",
+        "score_side_to_move": "#+12"
+      },
+      {
+        "id": "capture_free_rook",
+        "label_confirmed": true,
+        "move": "e2e7",
+        "score_side_to_move": "#+12"
+      },
+      {
+        "id": "capture_free_rook_mirrored",
+        "label_confirmed": true,
+        "move": "e7e2",
+        "score_side_to_move": "#+12"
+      },
+      {
+        "id": "save_attacked_knight",
+        "label_confirmed": true,
+        "move": "g5e4",
+        "score_side_to_move": "+172"
+      },
+      {
+        "id": "save_attacked_knight_mirrored",
+        "label_confirmed": true,
+        "move": "g4e5",
+        "score_side_to_move": "+174"
+      },
+      {
+        "id": "avoid_poisoned_pawn",
+        "label_confirmed": true,
+        "move": "g1f1",
+        "score_side_to_move": "-14"
+      },
+      {
+        "id": "avoid_poisoned_pawn_mirrored",
+        "label_confirmed": true,
+        "move": "c5b5",
+        "score_side_to_move": "0"
+      },
+      {
+        "id": "mate_in_one",
+        "label_confirmed": true,
+        "move": "g6g7",
+        "score_side_to_move": "#+1"
+      },
+      {
+        "id": "mate_in_one_mirrored",
+        "label_confirmed": true,
+        "move": "g3g2",
+        "score_side_to_move": "#+1"
+      },
+      {
+        "id": "avoid_stalemate",
+        "label_confirmed": true,
+        "move": "e6h3",
+        "score_side_to_move": "#+1"
+      },
+      {
+        "id": "avoid_stalemate_mirrored",
+        "label_confirmed": true,
+        "move": "e3h6",
+        "score_side_to_move": "#+1"
+      },
+      {
+        "id": "rook_underpromotion",
+        "label_confirmed": true,
+        "move": "c7c8r",
+        "score_side_to_move": "#+2"
+      },
+      {
+        "id": "rook_underpromotion_mirrored",
+        "label_confirmed": true,
+        "move": "c2c1r",
+        "score_side_to_move": "#+2"
+      }
+    ],
+    "nodes": 100000,
+    "options": {
+      "Hash": 64,
+      "Threads": 1,
+      "UCI_LimitStrength": false
+    },
+    "value_ordering": [
+      {
+        "better_score": "#+8",
+        "id": "queen_advantage",
+        "ordering_confirmed": true,
+        "worse_score": "#-9"
+      },
+      {
+        "better_score": "#+8",
+        "id": "queen_advantage_mirrored",
+        "ordering_confirmed": true,
+        "worse_score": "#-9"
+      },
+      {
+        "better_score": "#+12",
+        "id": "rook_advantage",
+        "ordering_confirmed": true,
+        "worse_score": "-419"
+      },
+      {
+        "better_score": "#+12",
+        "id": "rook_advantage_mirrored",
+        "ordering_confirmed": true,
+        "worse_score": "-439"
+      },
+      {
+        "better_score": "-16",
+        "id": "xiyuan_bishop_loss",
+        "ordering_confirmed": true,
+        "worse_score": "-526"
+      },
+      {
+        "better_score": "-14",
+        "id": "xiyuan_bishop_loss_mirrored",
+        "ordering_confirmed": true,
+        "worse_score": "-499"
+      }
+    ]
+  },
+  "status": "complete",
+  "summary": {
+    "all_checks_passed": false,
+    "limitations": "Mirrored cases are correlated; this development suite includes a known failure. WDL checks test direction/order, not calibrated win probabilities. Terminal controls test engine rules, not learned playing strength.",
+    "moves_by_budget": {
+      "128": {
+        "categories": {
+          "conversion": {
+            "passed": 2,
+            "total": 2
+          },
+          "mate": {
+            "passed": 2,
+            "total": 2
+          },
+          "material_capture": {
+            "passed": 4,
+            "total": 4
+          },
+          "piece_safety": {
+            "passed": 3,
+            "total": 6
+          },
+          "promotion": {
+            "passed": 0,
+            "total": 2
+          }
+        },
+        "passed": 11,
+        "total": 16
+      },
+      "32": {
+        "categories": {
+          "conversion": {
+            "passed": 2,
+            "total": 2
+          },
+          "mate": {
+            "passed": 2,
+            "total": 2
+          },
+          "material_capture": {
+            "passed": 3,
+            "total": 4
+          },
+          "piece_safety": {
+            "passed": 3,
+            "total": 6
+          },
+          "promotion": {
+            "passed": 0,
+            "total": 2
+          }
+        },
+        "passed": 10,
+        "total": 16
+      },
+      "512": {
+        "categories": {
+          "conversion": {
+            "passed": 2,
+            "total": 2
+          },
+          "mate": {
+            "passed": 2,
+            "total": 2
+          },
+          "material_capture": {
+            "passed": 4,
+            "total": 4
+          },
+          "piece_safety": {
+            "passed": 3,
+            "total": 6
+          },
+          "promotion": {
+            "passed": 0,
+            "total": 2
+          }
+        },
+        "passed": 11,
+        "total": 16
+      }
+    },
+    "rating_estimate": null,
+    "terminal_controls": {
+      "passed": 8,
+      "total": 8
+    },
+    "value_comparisons": {
+      "passed": 0,
+      "total": 6
+    }
+  },
+  "terminals": [
+    {
+      "bestmove": "0000",
+      "id": "checkmate",
+      "passed": true,
+      "termination": "checkmate",
+      "used_network": false,
+      "value": -1.0
+    },
+    {
+      "bestmove": "0000",
+      "id": "checkmate_mirrored",
+      "passed": true,
+      "termination": "checkmate",
+      "used_network": false,
+      "value": -1.0
+    },
+    {
+      "bestmove": "0000",
+      "id": "stalemate",
+      "passed": true,
+      "termination": "stalemate",
+      "used_network": false,
+      "value": 0.0
+    },
+    {
+      "bestmove": "0000",
+      "id": "stalemate_mirrored",
+      "passed": true,
+      "termination": "stalemate",
+      "used_network": false,
+      "value": 0.0
+    },
+    {
+      "bestmove": "0000",
+      "id": "seventyfive_move_draw",
+      "passed": true,
+      "termination": "seventyfive_moves",
+      "used_network": false,
+      "value": 0.0
+    },
+    {
+      "bestmove": "0000",
+      "id": "seventyfive_move_draw_mirrored",
+      "passed": true,
+      "termination": "seventyfive_moves",
+      "used_network": false,
+      "value": 0.0
+    },
+    {
+      "bestmove": "0000",
+      "id": "fivefold_repetition",
+      "passed": true,
+      "termination": "fivefold_repetition",
+      "used_network": false,
+      "value": 0.0
+    },
+    {
+      "bestmove": "0000",
+      "id": "fivefold_repetition_mirrored",
+      "passed": true,
+      "termination": "fivefold_repetition",
+      "used_network": false,
+      "value": 0.0
+    }
+  ],
+  "values": [
+    {
+      "actual_value_gap": 0.017162561416625977,
+      "better": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.33809177577495575,
+        "value_side_to_move": 0.33809177577495575,
+        "wdl_side_to_move": {
+          "draw": 0.3365766704082489,
+          "loss": 0.16266579926013947,
+          "win": 0.5007575750350952
+        }
+      },
+      "checks": {
+        "advantage_positive": true,
+        "disadvantage_negative": false,
+        "ordered_with_margin": false
+      },
+      "group": "queen_advantage",
+      "id": "queen_advantage",
+      "minimum_value_gap": 0.05,
+      "mirrored": false,
+      "passed": false,
+      "worse": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.3209292143583298,
+        "value_side_to_move": 0.3209292143583298,
+        "wdl_side_to_move": {
+          "draw": 0.34929555654525757,
+          "loss": 0.16488762199878693,
+          "win": 0.4858168363571167
+        }
+      }
+    },
+    {
+      "actual_value_gap": -0.0003291219472885132,
+      "better": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18324850499629974,
+        "value_side_to_move": -0.18324850499629974,
+        "wdl_side_to_move": {
+          "draw": 0.5540252923965454,
+          "loss": 0.31461161375045776,
+          "win": 0.13136310875415802
+        }
+      },
+      "checks": {
+        "advantage_positive": false,
+        "disadvantage_negative": true,
+        "ordered_with_margin": false
+      },
+      "group": "queen_advantage",
+      "id": "queen_advantage_mirrored",
+      "minimum_value_gap": 0.05,
+      "mirrored": true,
+      "passed": false,
+      "worse": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18291938304901123,
+        "value_side_to_move": -0.18291938304901123,
+        "wdl_side_to_move": {
+          "draw": 0.5564900636672974,
+          "loss": 0.31321465969085693,
+          "win": 0.1302952766418457
+        }
+      }
+    },
+    {
+      "actual_value_gap": -0.013302326202392578,
+      "better": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.31337760388851166,
+        "value_side_to_move": 0.31337760388851166,
+        "wdl_side_to_move": {
+          "draw": 0.35404902696609497,
+          "loss": 0.16628669202327728,
+          "win": 0.47966429591178894
+        }
+      },
+      "checks": {
+        "advantage_positive": true,
+        "disadvantage_negative": false,
+        "ordered_with_margin": false
+      },
+      "group": "rook_advantage",
+      "id": "rook_advantage",
+      "minimum_value_gap": 0.05,
+      "mirrored": false,
+      "passed": false,
+      "worse": {
+        "perspective": "white",
+        "side_to_move": "white",
+        "value_for_perspective": 0.32667993009090424,
+        "value_side_to_move": 0.32667993009090424,
+        "wdl_side_to_move": {
+          "draw": 0.34375494718551636,
+          "loss": 0.1647825390100479,
+          "win": 0.49146246910095215
+        }
+      }
+    },
+    {
+      "actual_value_gap": -0.0010802596807479858,
+      "better": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18380515277385712,
+        "value_side_to_move": -0.18380515277385712,
+        "wdl_side_to_move": {
+          "draw": 0.554459810256958,
+          "loss": 0.31467264890670776,
+          "win": 0.13086749613285065
+        }
+      },
+      "checks": {
+        "advantage_positive": false,
+        "disadvantage_negative": true,
+        "ordered_with_margin": false
+      },
+      "group": "rook_advantage",
+      "id": "rook_advantage_mirrored",
+      "minimum_value_gap": 0.05,
+      "mirrored": true,
+      "passed": false,
+      "worse": {
+        "perspective": "black",
+        "side_to_move": "black",
+        "value_for_perspective": -0.18272489309310913,
+        "value_side_to_move": -0.18272489309310913,
+        "wdl_side_to_move": {
+          "draw": 0.5534415245056152,
+          "loss": 0.31464168429374695,
+          "win": 0.13191679120063782
+        }
+      }
+    },
+    {
+      "actual_value_gap": -0.02205768972635269,
+      "better": {
+        "perspective": "white",
+        "side_to_move": "black",
+        "value_for_perspective": -0.039687953889369965,
+        "value_side_to_move": 0.039687953889369965,
+        "wdl_side_to_move": {
+          "draw": 0.761345386505127,
+          "loss": 0.09948331862688065,
+          "win": 0.1391712725162506
+        }
+      },
+      "checks": {
+        "ordered_with_margin": false
+      },
+      "group": "xiyuan_bishop_loss",
+      "id": "xiyuan_bishop_loss",
+      "minimum_value_gap": 0.05,
+      "mirrored": false,
+      "passed": false,
+      "worse": {
+        "perspective": "white",
+        "side_to_move": "black",
+        "value_for_perspective": -0.017630264163017273,
+        "value_side_to_move": 0.017630264163017273,
+        "wdl_side_to_move": {
+          "draw": 0.711297869682312,
+          "loss": 0.13553592562675476,
+          "win": 0.15316618978977203
+        }
+      }
+    },
+    {
+      "actual_value_gap": 0.01481115072965622,
+      "better": {
+        "perspective": "black",
+        "side_to_move": "white",
+        "value_for_perspective": -0.12613292038440704,
+        "value_side_to_move": 0.12613292038440704,
+        "wdl_side_to_move": {
+          "draw": 0.7205126285552979,
+          "loss": 0.07667724788188934,
+          "win": 0.2028101682662964
+        }
+      },
+      "checks": {
+        "ordered_with_margin": false
+      },
+      "group": "xiyuan_bishop_loss",
+      "id": "xiyuan_bishop_loss_mirrored",
+      "minimum_value_gap": 0.05,
+      "mirrored": true,
+      "passed": false,
+      "worse": {
+        "perspective": "black",
+        "side_to_move": "white",
+        "value_for_perspective": -0.14094407111406326,
+        "value_side_to_move": 0.14094407111406326,
+        "wdl_side_to_move": {
+          "draw": 0.6646572351455688,
+          "loss": 0.09719934314489365,
+          "win": 0.2381434142589569
+        }
+      }
+    }
+  ]
+}

@@ -91,4 +91,8 @@ Protocol tests, including independent python-chess client integration:
 .venv-model/bin/python tests/neural_uci_tests.py
 ```
 
+For model behavior tests, including the bishop-loss regression from the recorded
+game, see the [neural diagnostic suite](neural-diagnostics.md). It measures the
+accepted weights at fixed search budgets without changing promotion decisions.
+
 The UCI behavior follows the [UCI protocol specification](https://backscattering.de/chess/uci/).

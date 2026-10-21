@@ -134,6 +134,9 @@ repository root to En Croissant or another UCI GUI. It loads the accepted local
 pilot weights and runs Python neural PUCT on CPU by default. See the
 [neural UCI guide](docs/neural-uci.md) for setup, model selection and device options.
 
+Measure the accepted model with the [neural diagnostic suite](docs/neural-diagnostics.md),
+which reports piece safety, material, value and terminal checks separately.
+
 Run `build/inez` for standard UCI communication (`uci`, `isready`, `position`,
 `go`, `stop`, `quit`) using the separate C++ material/uniform baseline, or run
 its paired-opening match and benchmark suite:

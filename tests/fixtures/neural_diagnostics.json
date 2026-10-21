@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "purpose": "Development diagnostics, including an observed failure; not a held-out rating test or training corpus.",
+  "mirror_colors": true,
+  "moves": [
+    {
+      "id": "xiyuan_save_bishop",
+      "category": "piece_safety",
+      "description": "Retreat the attacked bishop instead of castling into its capture. Full game history is retained.",
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "moves": ["d2d4", "d7d5", "b1c3", "e7e6", "e2e4", "g8f6", "g1f3", "f8b4", "e4e5", "f6d7", "f1b5", "a7a6", "b5a4", "b7b5"]
+      },
+      "best_moves": ["a4b3"]
+    },
+    {
+      "id": "capture_free_queen",
+      "category": "material_capture",
+      "description": "Capture the unprotected queen with the rook.",
+      "position": {"fen": "6k1/4q3/8/8/8/8/4R3/6K1 w - - 0 1", "moves": []},
+      "best_moves": ["e2e7"]
+    },
+    {
+      "id": "capture_free_rook",
+      "category": "material_capture",
+      "description": "Win the unprotected opposing rook instead of keeping a level rook ending.",
+      "position": {"fen": "6k1/4r3/8/8/8/8/4R3/6K1 w - - 0 1", "moves": []},
+      "best_moves": ["e2e7"]
+    },
+    {
+      "id": "save_attacked_knight",
+      "category": "piece_safety",
+      "description": "Move the attacked knight to a square where it is not immediately capturable. This tests piece safety, not a unique strategic best move.",
+      "position": {"fen": "r5k1/p7/7p/6N1/8/8/P7/R5K1 w - - 0 1", "moves": []},
+      "best_moves": ["g5e4", "g5e6", "g5f3", "g5h3"]
+    },
+    {
+      "id": "avoid_poisoned_pawn",
+      "category": "piece_safety",
+      "description": "Do not take the king-defended f7 pawn with the queen. Passing only certifies avoidance of that specific poisoned capture.",
+      "position": {"fen": "3qk3/5p2/8/8/2Q5/8/8/6K1 w - - 0 1", "moves": []},
+      "avoid_moves": ["c4f7"]
+    },
+    {
+      "id": "mate_in_one",
+      "category": "mate",
+      "description": "Find the immediate queen mate.",
+      "position": {"fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1", "moves": []},
+      "best_moves": ["g6g7"]
+    },
+    {
+      "id": "avoid_stalemate",
+      "category": "conversion",
+      "description": "Avoid every immediate stalemating move in this queen ending. Passing does not certify optimal conversion.",
+      "position": {"fen": "7k/5K2/4Q3/8/8/8/8/8 w - - 0 1", "moves": []},
+      "avoid_stalemate": true
+    },
+    {
+      "id": "rook_underpromotion",
+      "category": "promotion",
+      "description": "Among the four promotion choices, promote to a rook; queen promotion stalemates and minor promotions draw. Root restriction is intentional and reported.",
+      "position": {"fen": "8/k1P5/2K5/8/8/8/8/8 w - - 0 1", "moves": []},
+      "root_moves": ["c7c8q", "c7c8r", "c7c8b", "c7c8n"],
+      "best_moves": ["c7c8r"]
+    }
+  ],
+  "values": [
+    {
+      "id": "queen_advantage",
+      "description": "The same side should prefer its extra queen to the opponent having the extra queen.",
+      "perspective": "white",
+      "better": {"fen": "4k3/8/8/8/8/8/8/3QK3 w - - 0 1", "moves": []},
+      "worse": {"fen": "3qk3/8/8/8/8/8/8/4K3 w - - 0 1", "moves": []},
+      "minimum_value_gap": 0.05,
+      "require_decisive_signs": true
+    },
+    {
+      "id": "rook_advantage",
+      "description": "Prefer a winning rook-up ending to a rook-down ending, from a fixed player's perspective.",
+      "perspective": "white",
+      "better": {"fen": "4k3/8/8/8/8/8/8/R3K3 w - - 0 1", "moves": []},
+      "worse": {"fen": "r3k3/8/8/8/8/8/8/4K3 w - - 0 1", "moves": []},
+      "minimum_value_gap": 0.05,
+      "require_decisive_signs": true
+    },
+    {
+      "id": "xiyuan_bishop_loss",
+      "description": "Compare preserving the bishop with losing it for a pawn. Both positions are evaluated for White even though Black is to move.",
+      "perspective": "white",
+      "better": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "moves": ["d2d4", "d7d5", "b1c3", "e7e6", "e2e4", "g8f6", "g1f3", "f8b4", "e4e5", "f6d7", "f1b5", "a7a6", "b5a4", "b7b5", "a4b3"]
+      },
+      "worse": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "moves": ["d2d4", "d7d5", "b1c3", "e7e6", "e2e4", "g8f6", "g1f3", "f8b4", "e4e5", "f6d7", "f1b5", "a7a6", "b5a4", "b7b5", "e1g1", "b5a4", "c3a4"]
+      },
+      "minimum_value_gap": 0.05,
+      "require_decisive_signs": false
+    }
+  ],
+  "terminals": [
+    {
+      "id": "checkmate",
+      "position": {"fen": "7k/6Q1/5K2/8/8/8/8/8 b - - 0 1", "moves": []},
+      "termination": "checkmate",
+      "value": -1.0
+    },
+    {
+      "id": "stalemate",
+      "position": {"fen": "7k/5Q2/5K2/8/8/8/8/8 b - - 0 1", "moves": []},
+      "termination": "stalemate",
+      "value": 0.0
+    },
+    {
+      "id": "seventyfive_move_draw",
+      "position": {"fen": "6k1/8/8/8/8/8/8/R5K1 w - - 150 76", "moves": []},
+      "termination": "seventyfive_moves",
+      "value": 0.0
+    },
+    {
+      "id": "fivefold_repetition",
+      "position": {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "moves": ["g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8"]
+      },
+      "termination": "fivefold_repetition",
+      "value": 0.0
+    }
+  ]
+}
