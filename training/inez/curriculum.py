@@ -191,14 +191,21 @@ def stockfish_labels(record, engine, *, nodes=10000, multipv=4, temperature=0.15
     outcome = board.outcome(claim_draw=False)
     if outcome is not None:
         raise ValueError('teacher corpus must contain nonterminal positions')
+    requested_multipv = max(multipv, 8) if any(m.promotion for m in board.legal_moves) else multipv
     infos = engine.analyse(board, chess.engine.Limit(nodes=nodes),
-                           multipv=min(multipv, board.legal_moves.count()))
+                           multipv=min(requested_multipv, board.legal_moves.count()))
     if not isinstance(infos, list):
         infos = [infos]
     if not infos or any('wdl' not in info or not info.get('pv') for info in infos):
         raise ValueError('Stockfish must provide UCI_ShowWDL and principal variations')
     outcomes = [info['wdl'].pov(board.turn) for info in infos]
-    values = [(wdl.wins - wdl.losses) / 1000 for wdl in outcomes]
+    values = []
+    for info, wdl in zip(infos, outcomes):
+        value = (wdl.wins - wdl.losses) / 1000
+        score = info['score'].pov(board.turn) if 'score' in info else None
+        if score is not None and score.is_mate() and score.mate() != 0:
+            value += 0.5 / score.mate()
+        values.append(value)
     weights = [math.exp((value - max(values)) / temperature) for value in values]
     policy = {info['pv'][0].uci(): weight / sum(weights) for info, weight in zip(infos, weights)}
     best = max(range(len(values)), key=values.__getitem__)

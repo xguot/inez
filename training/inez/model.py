@@ -138,8 +138,14 @@ class ChessTransformer(nn.Module):
         query = self.policy_from(tokens)
         key = self.policy_to(tokens)
         from_to = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.config.policy_width)
-        pooled = tokens.mean(dim=1)
-        policy = torch.cat((from_to.flatten(start_dim=1), self.underpromotions(pooled)), dim=1)
+        occupied = features[:, :, :12].sum(dim=-1, keepdim=True)
+        occupied_mean = (tokens * occupied).sum(dim=1) / occupied.sum(dim=1).clamp(min=1.0)
+        piece_diff = features[:, :, :6].sum(dim=1) - features[:, :, 6:12].sum(dim=1)
+        piece_weights = self.input_projection.weight[:, :6] - self.input_projection.weight[:, 6:12]
+        piece_balance = F.linear(piece_diff, piece_weights) * 4.0
+        pooled = tokens.mean(dim=1) + occupied_mean + piece_balance
+        promotion_pooled = pooled + tokens[:, 48:64].mean(dim=1)
+        policy = torch.cat((from_to.flatten(start_dim=1), self.underpromotions(promotion_pooled)), dim=1)
         return policy, self.value_head(pooled)
 
     def metadata(self):

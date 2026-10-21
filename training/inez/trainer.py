@@ -72,7 +72,10 @@ def supervised_loss(model, batch):
     policy_rows = policy_target.sum(dim=-1) > 0
     policy_loss = -(policy_target * log_probs).sum(dim=-1)
     policy_loss = policy_loss[policy_rows].mean() if bool(policy_rows.any()) else policy_logits.sum() * 0
-    value_loss = -(wdl_target * F.log_softmax(value_logits, dim=-1)).sum(dim=-1).mean()
+    wdl_log_probs = F.log_softmax(value_logits, dim=-1)
+    wdl_probs = wdl_log_probs.exp()
+    expected_diff = (wdl_probs[:, 0] - wdl_probs[:, 2]) - (wdl_target[:, 0] - wdl_target[:, 2])
+    value_loss = -(wdl_target * wdl_log_probs).sum(dim=-1).mean() + expected_diff.square().mean()
     return policy_loss + value_loss, policy_loss, value_loss
 
 

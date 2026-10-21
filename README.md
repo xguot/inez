@@ -2,24 +2,9 @@
 
 Stealing the quiet hours of my twenties.
 
-## Development
+## Quickstart
 
-See [TODO](TODO) for the development roadmap and next implementation milestone.
-
-The engine includes:
-
-- A C++20 standard-chess rules library with legal move generation, FEN
-  import/export, reversible moves, and draw-history handling
-  ([rules guide](docs/rules.md)).
-- A serial and batched PUCT search baseline with material/uniform evaluators,
-  UCI engine (`inez`), and automated match/benchmark runner
-  ([search guide](docs/search.md)).
-- A Python neural UCI player (`inez-neural`) that loads trained weights and
-  runs the reference PUCT search ([playing guide](docs/neural-uci.md)).
-
-### Build and test
-
-Requires CMake 3.20 or newer and a C++20 compiler.
+Build and test the C++20 rules and PUCT engine:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -27,141 +12,15 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-For the independent python-chess oracle, automated match suite, and debug
-sanitizers:
+Play against the trained neural engine (`inez-neural`) in a UCI client, or evaluate it directly:
 
 ```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r tests/requirements.txt
-cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug \
-  -DINEZ_SANITIZERS=ON -DINEZ_DIFFERENTIAL_TESTS=ON \
-  -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
-cmake --build build-debug --parallel
-ctest --test-dir build-debug --output-on-failure
+./inez-neural
+.venv-model/bin/python tools/evaluate_neural.py --output results/diagnostics.json
 ```
 
-The C++ engine has no runtime dependencies beyond the C++ standard library.
-Python is needed for the differential and match tests; Python and PyTorch are
-required for the neural UCI player and model training.
-
-### Model sizes and starter data
-
-The existing transformer supports larger models through configuration:
-
-| Configuration | Parameters | Width | Layers | Heads |
-| --- | ---: | ---: | ---: | ---: |
-| Default `ModelConfig()` | 4,056,299 | 256 | 6 | 8 |
-| `configs/models/inez-29m.json` | 29,228,779 | 512 | 15 | 8 |
-| `configs/models/inez-49m.json` | 49,760,891 | 768 | 11 | 24 |
-
-Load a JSON configuration with `ModelConfig.from_dict(json.loads(path.read_text()))`
-and pass it to `ChessTransformer`. The larger presets share the existing input,
-policy, value, and artifact contracts; their training and playing strength have
-not yet been evaluated. The smoke script still uses the default 4M model.
-
-See [staged training](docs/training.md) for the Elite importer, Stockfish
-correction, PUCT self-play, checkpoint match gates and resumable 29M Slurm pilot:
-
-```sh
-export INEZ_PYTHON="$HOME/.conda/envs/inez/bin/python"
-bash hpc/submit_29m.sh
-```
-
-The CPU preparation job downloads Elite games and generates teacher labels. The
-dependent GPU job runs human initialization, teacher correction and gated
-self-play updates. Later runs initialized from an accepted artifact skip human
-imitation. The [starter corpus](data/README.md) remains an importer fixture.
-
-### Slurm GPU smoke test
-
-Install `training/requirements.txt` in a Python environment with CUDA-enabled
-PyTorch, then submit from the repository root:
-
-```sh
-INEZ_PYTHON=/absolute/path/to/env/bin/python sbatch hpc/run_smoke.slurm
-```
-
-The job builds the engine, runs CTest (including model checks), and performs a
-GPU diagnostic overfit and checkpoint round trip. The script submits to the
-`nssac_students` allocation (override it with `sbatch -A <account>`), the same
-account used by the lensless-recon jobs. Logs and artifacts are written
-to `results/smoke/<job-id>/`. Slurm bootstrap output and errors go to
-`inez_smoke_<job-id>.out` and `inez_smoke_<job-id>.err` in the submission
-directory, so no log directory needs to exist before the job starts.
-
-If a job disappears quickly, inspect its final state and log paths:
-
-```sh
-sacct -j JOBID --format=JobID,State,ExitCode,Elapsed
-scontrol show job JOBID
-cat inez_smoke_JOBID.out inez_smoke_JOBID.err
-```
-
-`CG` means Slurm is completing cleanup; use `sacct` to check whether the job
-succeeded. The run log includes startup failures and a final exit status.
-
-Interpret copied results using the recorded execution metadata. Copying an HPC
-result to this checkout does not make it a local run, and CPU execution does
-not imply a laptop run: HPC jobs can also run on CPU. Folder names and artifact
-paths alone do not establish where computation happened.
-
-New summaries record the execution hostname, Slurm job ID, Python executable,
-PyTorch/CUDA versions, and requested device in `run_context`. The top-level
-`device` records the model's actual device, and `gpu_name` identifies its CUDA
-GPU. A CPU smoke pass verifies learning and checkpoint export/reload; a CUDA
-smoke pass additionally verifies GPU execution. Older summaries without
-`run_context` should be read alongside their original job logs.
-
-The diagnostic weights come from overfitting a tiny batch; they are a pipeline
-check. The staged pilot adds held-out validation, resumable training checkpoints
-and neural checkpoint matches. Native engine inference integration remains
-future work. Confirm CUDA execution in the first HPC training pilot before
-scaling up.
-
-When environment modules are available, the job loads the site's default `gcc`
-module. Use `module spider gcc` to list installed versions and select one with
-`INEZ_COMPILER_MODULE=gcc/<installed-version>` if the default lacks C++20
-support. Set `CXX=/absolute/path/to/compiler` to use a prepared toolchain
-without loading a module. GCC 8.5, the Rivanna system compiler seen in the first
-smoke run, lacks the required C++20 features; CMake now checks these at configure
-time. Python selection can be overridden with `INEZ_PYTHON`; otherwise the job
-tries `~/.conda/envs/inez`, `.venv-model`, `.venv`, then `python3`.
-
-### Run the UCI engine and match runner
-
-To play the **trained neural model**, add the executable `inez-neural` from the
-repository root to En Croissant or another UCI GUI. It loads the accepted local
-pilot weights and runs Python neural PUCT on CPU by default. See the
-[neural UCI guide](docs/neural-uci.md) for setup, model selection and device options.
-
-Measure the accepted model with the [neural diagnostic suite](docs/neural-diagnostics.md),
-which reports piece safety, material, value and terminal checks separately.
-
-Run `build/inez` for standard UCI communication (`uci`, `isready`, `position`,
-`go`, `stop`, `quit`) using the separate C++ material/uniform baseline, or run
-its paired-opening match and benchmark suite:
-
-```sh
-.venv/bin/python tools/match.py build/inez --pairs 4 --nodes 64 --batch-size 4
-```
-
-### Inspect a position
-
-Run `build/inez-rules` and enter one command per line:
-
-```text
-start
-push e2e4
-state
-pop
-perft 4
-quit
-```
-
-The tool returns JSON snapshots with legal moves, FEN, and draw information.
-Use `fen <six-field FEN>` to inspect another position.
+See [`docs/`](docs/) for rules, search, training, and neural UCI documentation.
 
 ## License
 
-Inez is licensed under the GNU General Public License v3.0.
-See [LICENSE](LICENSE) for details.
+GNU General Public License v3.0. See [LICENSE](LICENSE).
