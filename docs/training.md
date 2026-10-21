@@ -181,10 +181,10 @@ replay and evaluation every 250 steps. Four games and 32 simulations per move
 keep generation at the pilot budget. These settings are a conservative next
 experiment; improved match results still need to be demonstrated.
 
-For the pilot whose accepted model is `teacher/candidate-0001000`:
+For the pilot whose accepted model is `teacher/candidate-0002000`:
 
 ```sh
-export INIT_ARTIFACT="$PWD/results/training/inez-29m-pilot/teacher/candidate-0001000"
+export INIT_ARTIFACT="$PWD/results/training/inez-29m-pilot/teacher/candidate-0002000"
 export RUN_DIR="$PWD/results/training/inez-29m-continue"
 export TRAIN_CONFIG=configs/train/inez-29m-continue.json
 export RESUME_MODE=portable

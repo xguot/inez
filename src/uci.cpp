@@ -148,7 +148,7 @@ void Engine::wait_for_search()
 
 void Engine::handle_uci()
 {
-	write("id name Inez 0.1.0");
+	write("id name Inez 0.1.1");
 	write("id author Inez Developers");
 	write("option name Evaluator type combo default material var material var uniform");
 	write("option name BatchSize type spin default 1 min 1 max 256");

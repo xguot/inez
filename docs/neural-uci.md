@@ -13,12 +13,12 @@ checkout; it needs the Python sources and a model artifact, not just the launche
 
 The default **ModelPath** is `results/training/inez-29m-pilot`. The engine reads
 that run's `accepted.json` and loads the selected artifact. With the current
-results this is `teacher/candidate-0001000`. Absolute cluster paths in copied
+results this is `teacher/candidate-0002000`. Absolute cluster paths in copied
 results resolve against the local copy of the same run, without editing any
 training metadata. If you renamed a copied run, select the artifact directory
 directly in ModelPath. Copy both `manifest.json` and `weights.pt`.
 
-The engine appears as **Inez Neural 0.1.0**. Its stderr log records the actual
+The engine appears as **Inez Neural 0.1.1**. Its stderr log records the actual
 artifact path, parameter count and device when loaded. The manifest, encoding
 contract and weight checksum are validated before playing. Missing, corrupt or
 incompatible artifacts cause an explicit error; there is no heuristic fallback.

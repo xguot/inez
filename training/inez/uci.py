@@ -261,7 +261,7 @@ class NeuralUci:
             return True
         command, args = tokens[0], tokens[1:]
         if command == 'uci':
-            self.write('id name Inez Neural 0.1.0')
+            self.write('id name Inez Neural 0.1.1')
             self.write('id author Inez Developers')
             self.write(f'option name ModelPath type string default {self.model_path}')
             self.write(f'option name Device type combo default {self.device} var cpu var mps var cuda')
