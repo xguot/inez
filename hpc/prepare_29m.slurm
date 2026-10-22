@@ -21,8 +21,13 @@ fi
 if [[ -n "${INEZ_STOCKFISH_MODULE:-}" ]]; then
     module load "${INEZ_STOCKFISH_MODULE}"
 fi
-if [[ -n "${INEZ_PYTHON:-}" ]]; then
+if [[ "${INEZ_PYTHON:-}" == HOME/* ]]; then
+    INEZ_PYTHON="${HOME}/${INEZ_PYTHON#HOME/}"
+fi
+if [[ -n "${INEZ_PYTHON:-}" && -x "${INEZ_PYTHON}" ]]; then
     PY="${INEZ_PYTHON}"
+elif [[ -n "${INEZ_PYTHON:-}" ]] && command -v "${INEZ_PYTHON}" >/dev/null 2>&1; then
+    PY="$(command -v "${INEZ_PYTHON}")"
 elif [[ -x "${HOME}/.conda/envs/inez/bin/python" ]]; then
     PY="${HOME}/.conda/envs/inez/bin/python"
 elif [[ -x "${ROOT_DIR}/.venv-model/bin/python" ]]; then

@@ -11,7 +11,6 @@ Promotion requires game results and tactical regression checks.
 Use Python 3.12 or newer with `training/requirements.txt` installed. On Rivanna:
 
 ```sh
-export INEZ_PYTHON="$HOME/.conda/envs/inez/bin/python"
 bash hpc/submit_inezita.sh
 ```
 
@@ -215,3 +214,12 @@ Logs: `inezita_prepare_<job>.out/.err`, `inezita_train_<job>.out/.err`, and
 `RUN_DIR/run.log`. Inspect `validation-*`, `gate-*`, `accepted.json`, and the
 recorded actual device alongside loss curves. Failure to promote means the
 run has not established a stronger playing model, even if training loss fell.
+
+## References
+
+- Monroe et al. (ICLR 2026), [*Chessformer: A Unified Architecture for Chess Modeling*](https://arxiv.org/abs/2605.19091) — 64-square token representation, dynamic Geometric Attention Bias (GAB), `from–to` query-key policy head with promotion offsets, and 5% history-frame masking.
+- Braun (2026), [*Engineering Efficient Self-Play Chess: Search, Replay, and Throughput Under Limited Compute*](https://arxiv.org/abs/2609.37447) — dynamic reduced-parent FPU, per-ply search/outcome discounting, 90/10 outcome + root-WDL target blending, and 30/70 policy-surprise prioritized sampling.
+- Weichart (2026), [*Variance-Aware Prior-Based Tree Policies for Monte Carlo Tree Search*](https://arxiv.org/abs/2512.21648) — Welford $O(1)$ online variance tracking and Bernstein `PUCT-V` exploration.
+- Farebrother et al. (ICML 2024), [*Stop Regressing: Training Value Functions via Classification for Scalable Deep RL*](https://arxiv.org/abs/2403.03950) & Ruoss et al. (NeurIPS 2024), [*Amortized Planning with Large-Scale Transformers: A Case Study on Chess*](https://arxiv.org/abs/2402.04494) — ordinal `HL-Gauss` value target smoothing and 15–16 layer transformer depth scaling.
+- Morales-Brotons et al. (TMLR 2024), [*Exponential Moving Average of Weights in Deep Learning: Dynamics and Benefits*](https://arxiv.org/abs/2411.18704) — non-bootstrapped shadow EMA weight averaging (`period = 16`, warmup decay to `0.992`).
+- Helfenstein et al. (IEEE ToG 2026), [*Checkmating One, by Using Many: Combining Mixture of Experts With MCTS to Improve in Chess*](https://doi.org/10.1109/TG.2026.3659995) — phase-aware endgame curriculum stratification.
