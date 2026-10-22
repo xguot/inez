@@ -579,10 +579,23 @@ while True:
 
     def test_paper_upgrades_surprise_sampling_history_masking_and_soft_wdl(self):
         from inez.curriculum import _soft_wdl_from_scalar
-        from inez.trainer import _apply_history_mask, _priority_sampling_table
+        from inez.trainer import (_apply_history_mask, _hl_gauss_wdl,
+                                  _priority_sampling_table, _update_ema_state)
         w, d, l = _soft_wdl_from_scalar(0.6)
         self.assertAlmostEqual(w + d + l, 1.0)
         self.assertAlmostEqual(w - l, 0.6)
+
+        raw_wdl = torch.tensor([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+        smoothed_wdl = _hl_gauss_wdl(raw_wdl, blend=0.20)
+        self.assertTrue(torch.allclose(smoothed_wdl.sum(dim=-1), torch.ones(2)))
+        self.assertGreater(float(smoothed_wdl[0, 1].item()), float(smoothed_wdl[0, 2].item()) * 10.0)
+        self.assertGreater(float(smoothed_wdl[1, 1].item()), float(smoothed_wdl[1, 0].item()) * 10.0)
+
+        model = ChessTransformer(ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4))
+        ema = {k: torch.zeros_like(v) for k, v in model.state_dict().items()}
+        _update_ema_state(ema, model, step=16)
+        self.assertFalse(torch.allclose(ema['input_projection.weight'],
+                                        torch.zeros_like(model.input_projection.weight)))
 
         rec_routine = {**example(ply=0), 'policy': {'f2f3': 0.95, 'e2e4': 0.05},
                        'label_kind': 'teacher_wdl',

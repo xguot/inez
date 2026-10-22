@@ -221,6 +221,32 @@ def _apply_history_mask(features, step, seed):
     return masked if masked is not None else features
 
 
+def _hl_gauss_wdl(wdl_target, blend=0.15):
+    """Project expected value onto 3 ordinal WDL bins via HL-Gauss (Farebrother et al. 2024 Listing 2)."""
+    mean = wdl_target[:, 0] - wdl_target[:, 2]
+    inv_s = 1.0 / (math.sqrt(2.0) * 0.45)
+    c_m15 = torch.erf((-1.5 - mean) * inv_s)
+    c_m05 = torch.erf((-0.5 - mean) * inv_s)
+    c_p05 = torch.erf((0.5 - mean) * inv_s)
+    c_p15 = torch.erf((1.5 - mean) * inv_s)
+    z = (c_p15 - c_m15).clamp(min=1e-6)
+    hl_probs = torch.stack(((c_p15 - c_p05) / z, (c_p05 - c_m05) / z, (c_m05 - c_m15) / z), dim=-1)
+    smoothed = (1.0 - blend) * wdl_target + blend * hl_probs
+    return smoothed / smoothed.sum(dim=-1, keepdim=True).clamp(min=1e-6)
+
+
+@torch.no_grad()
+def _update_ema_state(ema_state, model, step, *, period=16, max_decay=0.992):
+    """Update shadow EMA weights outside the optimizer loop (Morales-Brotons et al. 2024 Sec 4.1)."""
+    t = max(1, step // period)
+    alpha = min(max_decay, (t + 1.0) / (t + 10.0))
+    for key, param in model.state_dict().items():
+        if param.is_floating_point():
+            ema_state[key].mul_(alpha).add_(param.detach(), alpha=1.0 - alpha)
+        else:
+            ema_state[key].copy_(param)
+
+
 def train_stage(model, train, validation, output, *, config, stage, gate, stop=None,
                 resume_mode='exact'):
     """Every exported candidate is evaluated; the gate owns champion selection.
@@ -249,6 +275,8 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
     start_step = 0
     resume_history = []
+    ema_state = ({k: v.detach().clone() for k, v in model.state_dict().items()}
+                 if steps >= 100 else None)
     checkpoint = output / 'last.pt'
     if checkpoint.exists():
         state = torch.load(checkpoint, map_location='cpu', weights_only=True)
@@ -257,6 +285,9 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
         event = restore_checkpoint_rng(state, device, resume_mode=resume_mode,
                                        seed=config['seed'], checkpoint=checkpoint)
         model.load_state_dict(state['model'])
+        if ema_state is not None:
+            saved_ema = state.get('ema_model', state['model'])
+            ema_state = {k: v.to(device).detach().clone() for k, v in saved_ema.items()}
         optimizer.load_state_dict(state['optimizer'])
         generator.set_state(state['sampler_rng'])
         resume_history = list(state.get('resume_history', []))
@@ -271,19 +302,30 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
                **resume_environment(device), 'python': sys.executable, 'git_revision': revision}
 
     def save(step):
-        atomic_checkpoint(checkpoint, {'format_version': 1, 'signature': signature,
+        payload = {'format_version': 1, 'signature': signature,
             'step': step, 'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
             'sampler_rng': generator.get_state(), 'torch_rng': torch.get_rng_state(),
             'python_rng': random.getstate(),
             'cuda_rng': torch.cuda.get_rng_state_all() if device.type == 'cuda' else [],
-            'context': context, 'resume_history': resume_history})
+            'context': context, 'resume_history': resume_history}
+        if ema_state is not None:
+            payload['ema_model'] = ema_state
+        atomic_checkpoint(checkpoint, payload)
 
     # Complete a pending candidate evaluation after a signal or failed gate run.
     def evaluate_step(step):
         candidate = output / f'candidate-{step:07d}'
         report = output / f'gate-{step:07d}.json'
         if not candidate.exists():
-            save_checkpoint(model, candidate)
+            if ema_state is not None:
+                raw_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+                model.load_state_dict(ema_state)
+                try:
+                    save_checkpoint(model, candidate)
+                finally:
+                    model.load_state_dict(raw_state)
+            else:
+                save_checkpoint(model, candidate)
         with torch.random.fork_rng(devices=list(range(torch.cuda.device_count())) if device.type == 'cuda' else []):
             gate(candidate, report)
 
@@ -297,6 +339,7 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
     base_lr = float(config['lr'])
     warmup_steps = min(500, max(10, steps // 20)) if steps >= 100 else 0
     priority_table = _priority_sampling_table(train) if steps >= 100 else None
+    hl_blend = 0.20 if stage == 'human' else 0.08
     for step in range(start_step + 1, steps + 1):
         if steps >= 100:
             if step <= warmup_steps:
@@ -314,7 +357,12 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
             indices = torch.randint(len(train), (batch_size,), generator=generator).tolist()
         batch = dataset.batch(indices, device)
         if steps >= 100:
-            batch = (_apply_history_mask(batch[0], step, config['seed']), batch[1], batch[2], batch[3])
+            batch = (
+                _apply_history_mask(batch[0], step, config['seed']),
+                batch[1],
+                batch[2],
+                _hl_gauss_wdl(batch[3], blend=hl_blend),
+            )
         optimizer.zero_grad(set_to_none=True)
         loss, policy_loss, value_loss = supervised_loss(model, batch)
         if not bool(torch.isfinite(loss)):
@@ -322,10 +370,14 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), config['clip_grad'], error_if_nonfinite=True)
         optimizer.step()
+        if ema_state is not None and (step % 16 == 0 or step == steps or step % config['checkpoint_every'] == 0):
+            _update_ema_state(ema_state, model, step)
         if step == 1 or step % config.get('log_every', 20) == 0:
             print(json.dumps({'stage': stage, 'step': step, 'loss': float(loss.item()),
                               'policy_loss': float(policy_loss.item()), 'value_loss': float(value_loss.item())}), flush=True)
         due = step % config['checkpoint_every'] == 0 or step == steps
+        if step == steps and ema_state is not None and not (stop is not None and stop.requested):
+            model.load_state_dict(ema_state)
         if due or stop is not None and stop.requested:
             save(step)
         if stop is not None and stop.requested:

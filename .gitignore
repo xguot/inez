@@ -21,3 +21,5 @@ __pycache__/
 /inezita_prepare_*.err
 /inezita_train_*.out
 /inezita_train_*.err
+/*.pdf
+/docs/papers/

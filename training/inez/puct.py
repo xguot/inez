@@ -33,6 +33,7 @@ class Edge:
     prior: float
     visits: int = 0
     value_sum: float = 0.0
+    var: float = 0.0
     children: dict = field(default_factory=dict)
     parent_value: float = 0.0
     terminal: float | None = None
@@ -354,7 +355,13 @@ def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None,
                 return 2.0 + edge.prior
         else:
             q = fpu_value if visits > 0 else node_value
-        return q + cpuct * edge.prior * math.sqrt(visits + 1) / (1 + edge.visits)
+        if edge.visits >= 2:
+            sigma = math.sqrt(max(0.0, edge.var))
+            explore = (cpuct * (0.65 + 0.70 * sigma) * math.sqrt(visits + 1)
+                       + 0.35 * math.log(visits + 2.0)) * edge.prior / (1 + edge.visits)
+        else:
+            explore = cpuct * edge.prior * math.sqrt(visits + 1) / (1 + edge.visits)
+        return q + explore
 
     iterations = range(simulations) if simulations is not None else itertools.count()
     for _ in iterations:
@@ -394,8 +401,11 @@ def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None,
             children = edge.children
         for depth_from_leaf, edge in enumerate(reversed(path)):
             value = -value * (0.99 if depth_from_leaf > 0 else 1.0)
+            old_mean = edge.value_sum / edge.visits if edge.visits else 0.0
             edge.visits += 1
             edge.value_sum += value
+            new_mean = edge.value_sum / edge.visits
+            edge.var = ((edge.visits - 1) * edge.var + (value - old_mean) * (value - new_mean)) / edge.visits
         completed += 1
         deepest = max(deepest, len(path))
         if on_update and completed % update_interval == 0:
