@@ -184,14 +184,26 @@ def resolve_stockfish(value):
 
 def prepare(args, config):
     settings = config['preparation']
-    archive = Path(args.archive) if args.archive else rooted(settings['archive'])
+    if args.archive:
+        archives = [Path(args.archive)]
+        urls = [settings.get('url') or settings['urls'][0]]
+    elif settings.get('archives'):
+        archives = [rooted(item) for item in settings['archives']]
+        urls = list(settings['urls'])
+    else:
+        archives = [rooted(settings['archive'])]
+        urls = [settings['url']]
     executable = resolve_stockfish(args.stockfish)
-    download_archive(archive, settings['url'])
+    for archive_path, archive_url in zip(archives, urls):
+        download_archive(archive_path, archive_url)
+    openings_path = rooted(settings['openings']) if settings.get('openings') else None
     output = Path(args.data_dir)
     output.mkdir(parents=True, exist_ok=True)
     # Persist the complete preparation request so reruns cannot silently combine
     # a new teacher/configuration with an older human split.
-    request = {'preparation': settings, 'seed': config['seed'], 'archive_sha256': sha256(archive),
+    request = {'preparation': settings, 'seed': config['seed'],
+               'archive_sha256': [sha256(a) for a in archives] if len(archives) > 1 else sha256(archives[0]),
+               'openings_sha256': sha256(openings_path) if openings_path and openings_path.is_file() else None,
                'teacher_binary_sha256': sha256(executable), 'teacher_threads': args.threads,
                'tactics_sha256': sha256(rooted(config['tactics']))}
     request_path = output / 'request.json'
@@ -199,10 +211,12 @@ def prepare(args, config):
         raise ValueError('preparation request changed; choose a new data directory')
     atomic_json(request_path, request)
     if not (output / 'human').exists():
-        manifest = import_games(archive, output / 'human', uri=settings['url'],
+        manifest = import_games(archives, output / 'human', uri=urls,
             license_name=settings['license'], tactics=rooted(config['tactics']),
             max_games=settings['max_games'], samples_per_game=settings['samples_per_game'],
-            min_ply=settings['min_ply'], min_rating=settings['min_rating'], seed=config['seed'])
+            min_ply=settings['min_ply'], min_rating=settings['min_rating'], seed=config['seed'],
+            openings_path=openings_path,
+            blunder_samples_per_game=settings.get('blunder_samples_per_game', 0))
         print(json.dumps({'human_prepared': manifest['preparation']}, indent=2), flush=True)
     if not (output / 'teacher').exists():
         relabel_dataset(output / 'human', output / 'teacher', executable,
@@ -457,9 +471,9 @@ def pipeline(args, config, model_config):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=('prepare', 'train', 'preflight', 'status'))
-    parser.add_argument('--config', default=str(ROOT / 'configs/train/inez-29m.json'))
-    parser.add_argument('--data-dir', default=str(ROOT / 'data/processed/elite-29m-pilot'))
-    parser.add_argument('--run-dir', default=str(ROOT / 'results/training/inez-29m-pilot'))
+    parser.add_argument('--config', default=str(ROOT / 'configs/train/inezita.json'))
+    parser.add_argument('--data-dir', default=str(ROOT / 'data/processed/inezita'))
+    parser.add_argument('--run-dir', default=str(ROOT / 'results/training/inezita'))
     parser.add_argument('--archive')
     parser.add_argument('--stockfish', default=os.environ.get('INEZ_STOCKFISH', 'stockfish'))
     parser.add_argument('--threads', type=int, default=int(os.environ.get('SLURM_CPUS_PER_TASK', '8')))

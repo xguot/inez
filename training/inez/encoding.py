@@ -47,7 +47,9 @@ def _repetition_identity(board: chess.Board):
     # Piece origin (promoted or original) is irrelevant to FIDE repetition.
     # Raw FEN EP squares count only if an EP capture is actually legal.
     return (
-        board.board_fen(), board.turn, board.clean_castling_rights(),
+        board.pawns, board.knights, board.bishops, board.rooks, board.queens, board.kings,
+        board.occupied_co[chess.WHITE], board.occupied_co[chess.BLACK],
+        board.turn, board.clean_castling_rights(),
         board.ep_square if board.has_legal_en_passant() else None,
     )
 

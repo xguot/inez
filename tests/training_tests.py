@@ -492,6 +492,113 @@ while True:
                     self.assertTrue(stop.requested)
                     raise InterruptedError('checkpoint saved')
 
+    def test_mco_openings_cover_all_volumes_and_hash_to_train_split(self):
+        from inez.openings import default_opening_book, load_mco_entries, opening_records
+        from inez.records import assign_splits
+        entries = load_mco_entries()
+        self.assertGreaterEqual(len(entries), 3800)
+        volumes = {entry.eco[0] for entry in entries}
+        self.assertEqual(volumes, {'A', 'B', 'C', 'D', 'E'})
+        book = default_opening_book()
+        root_priors = book.priors(chess.Board())
+        self.assertIsNotNone(root_priors)
+        self.assertGreater(root_priors.get('e2e4', 0.0) + root_priors.get('d2d4', 0.0), 0.85)
+        self.assertNotIn('f2f3', root_priors)
+        records, meta = opening_records(seed='20261019')
+        self.assertGreaterEqual(len(records), 5500)
+        self.assertEqual(len(meta), 1)
+        splits = assign_splits(records, seed='20261019')
+        self.assertEqual(len(splits['train']), len(records))
+        self.assertEqual(len(splits['validation']), 0)
+        self.assertEqual(len(splits['evaluation']), 0)
+
+    def test_see_tactical_priors_prevent_game3_knight_blunder_and_convert_kqk(self):
+        from inez.puct import _leaf_value_adjustment, _loss_on_square, _tactical_priors
+        board = chess.Board()
+        for move_uci in ('b1c3', 'd7d5', 'g1f3', 'd5d4', 'c3b5', 'b8c6'):
+            board.push_uci(move_uci)
+        after_blunder = board.copy()
+        after_blunder.push_uci('b5d4')
+        self.assertGreaterEqual(_loss_on_square(after_blunder, chess.D4, chess.WHITE), 3.0)
+        uniform_priors = {m.uci(): 1.0 / board.legal_moves.count() for m in board.legal_moves}
+        adjusted = _tactical_priors(board, uniform_priors)
+        self.assertLess(adjusted['b5d4'], 0.002)
+        self.assertGreater(adjusted['e2e3'], adjusted['b5d4'] * 20)
+
+        kqk = chess.Board('1k3K2/8/8/8/8/8/6q1/8 b - - 0 1')
+        def kqk_eval(pos):
+            raw = {m.uci(): 1.0 / pos.legal_moves.count() for m in pos.legal_moves}
+            return _tactical_priors(pos, raw), _leaf_value_adjustment(pos, 0.0)
+        for _ in range(40):
+            if kqk.is_game_over(claim_draw=True):
+                break
+            kqk.push_uci(choose_move(search(kqk, kqk_eval, simulations=16)))
+        self.assertTrue(kqk.is_checkmate(), f'Expected checkmate in K+Q vs K, got {kqk.fen()}')
+
+    def test_importer_supports_multi_archive_mco_and_blunder_counterfactuals(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            p1, p2 = root / 'a.pgn', root / 'b.pgn'
+            rng = random.Random(19)
+            for idx, path in enumerate((p1, p2)):
+                games = []
+                for _ in range(40):
+                    board = chess.Board()
+                    game = chess.pgn.Game()
+                    game.headers.update(WhiteElo='2500', BlackElo='2450', Result='1-0')
+                    node = game
+                    for _ in range(20):
+                        if board.outcome(claim_draw=False) is not None:
+                            break
+                        move = rng.choice(list(board.legal_moves))
+                        node = node.add_variation(move)
+                        board.push(move)
+                    outcome = board.outcome(claim_draw=False)
+                    if outcome:
+                        game.headers['Result'] = outcome.result()
+                    games.append(str(game))
+                path.write_text('\n\n'.join(games))
+            mini_mco = root / 'mini_mco.tsv'
+            mini_mco.write_text(
+                'eco\tname\tpgn\tuci\n'
+                'C20\tKing Pawn\t1. e4 e5\te2e4 e7e5\n'
+                'D00\tQueen Pawn\t1. d4 d5\td2d4 d7d5\n',
+                encoding='utf-8',
+            )
+            manifest = import_games(
+                [p1, p2], root / 'dataset',
+                uri=['fixture://a', 'fixture://b'],
+                license_name='fixture',
+                tactics=ROOT / 'tests/fixtures/independent_tactics.json',
+                max_games=60, samples_per_game=2, min_ply=0, min_rating=2300,
+                seed=20261019, openings_path=mini_mco, blunder_samples_per_game=1,
+            )
+            self.assertEqual(manifest['audit']['cross_split_positions'], 0)
+            self.assertGreaterEqual(manifest['preparation']['mco_opening_records'], 3)
+            self.assertGreater(manifest['preparation']['blunder_counterfactual_records'], 0)
+
+    def test_paper_upgrades_surprise_sampling_history_masking_and_soft_wdl(self):
+        from inez.curriculum import _soft_wdl_from_scalar
+        from inez.trainer import _apply_history_mask, _priority_sampling_table
+        w, d, l = _soft_wdl_from_scalar(0.6)
+        self.assertAlmostEqual(w + d + l, 1.0)
+        self.assertAlmostEqual(w - l, 0.6)
+
+        rec_routine = {**example(ply=0), 'policy': {'f2f3': 0.95, 'e2e4': 0.05},
+                       'label_kind': 'teacher_wdl',
+                       'teacher': {'name': 'Stockfish', 'version': '17.1', 'limits': {'nodes': 100}}}
+        rec_surprise = {**example(ply=0), 'policy': {'f2f3': 0.05, 'e2e4': 0.95},
+                        'label_kind': 'teacher_wdl',
+                        'teacher': {'name': 'Stockfish', 'version': '17.1', 'limits': {'nodes': 100}}}
+        table = _priority_sampling_table([rec_routine, rec_surprise])
+        self.assertGreater(table.count(1), table.count(0))
+
+        features = torch.ones(64, 64, 119)
+        masked = _apply_history_mask(features, step=7, seed=20261019)
+        self.assertTrue(torch.equal(features, torch.ones(64, 64, 119)))
+        self.assertTrue(torch.equal(masked[:, :, :11], torch.ones(64, 64, 11)))
+        self.assertLess(float(masked[:, :, 14:112].sum().item()), float(features[:, :, 14:112].sum().item()))
+
 
 if __name__ == '__main__':
     unittest.main()

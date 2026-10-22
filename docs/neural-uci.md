@@ -11,12 +11,13 @@ The binary finds Python in `.venv-model`, then `.venv`, then `PATH`. Install
 works when the GUI starts it from another working directory. Keep the checkout
 intact; it needs the Python sources and a model artifact alongside `build/inez`.
 
-The default **ModelPath** is `results/training/inez-29m-pilot`. The engine reads
-that run's `accepted.json` and loads the selected artifact. With the current
-results this is `teacher/candidate-0002000`. Absolute cluster paths in copied
-results resolve against the local copy of the same run, without editing any
-training metadata. If you renamed a copied run, select the artifact directory
-directly in ModelPath. Copy both `manifest.json` and `weights.pt`.
+The default **ModelPath** is `results/training/inezita` (falling back to
+`results/training/inez-29m-pilot` if `inezita` has not yet been pulled locally).
+The engine reads that run's `accepted.json` and loads the selected artifact.
+Absolute cluster paths in copied results resolve against the local copy of the
+same run, without editing any training metadata. If you renamed a copied run,
+select the artifact directory directly in ModelPath. Copy both `manifest.json`
+and `weights.pt`.
 
 The engine appears as **Inez 0.1.1**. Its stderr log records the actual
 artifact path, parameter count and device when loaded. The manifest, encoding

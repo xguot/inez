@@ -1,9 +1,10 @@
-# Staged learning and the 29M Rivanna pilot
+# Staged learning and Inezita (~29M) training on Rivanna
 
-Human games initialize Inez. Later stages use independent Stockfish targets and
-neural PUCT self-play. This reduces dependence on human mistakes; it does not
-guarantee monotonic true playing strength. Promotion requires game results and
-tactical regression checks.
+Human games initialize **Inezita** (`inezita`, our ~29.2M model; the bare name
+**`inez`** is reserved for the future ~229M grand model). Later stages use
+independent Stockfish targets and neural PUCT self-play. This reduces dependence
+on human mistakes; it does not guarantee monotonic true playing strength.
+Promotion requires game results and tactical regression checks.
 
 ## Submit
 
@@ -11,60 +12,75 @@ Use Python 3.12 or newer with `training/requirements.txt` installed. On Rivanna:
 
 ```sh
 export INEZ_PYTHON="$HOME/.conda/envs/inez/bin/python"
-bash hpc/submit_29m.sh
+bash hpc/submit_inezita.sh
 ```
 
-The submitter schedules CPU preparation and a dependent single-GPU training
-job under `nssac_students`. Set `INEZ_ACCOUNT` to override the account. Training
-requests one GPU, eight CPU cores, 64 GiB host memory and two hours. CUDA is
-required; there is no automatic CPU fallback. After preparation, a particular
-available GPU can be requested with a site-supported `--gres` override when
-submitting `hpc/train_29m.slurm` directly.
+The submitter schedules CPU preparation (`hpc/prepare_inezita.slurm`) and a
+dependent single-GPU training job (`hpc/train_inezita.slurm`) under
+`nssac_students`. Set `INEZ_ACCOUNT` to override the account. Training requests
+one GPU, 16 CPU cores, 64 GiB host memory and eight hours. CUDA is required;
+there is no automatic CPU fallback. After preparation, a particular available
+GPU can be requested with a site-supported `--gres` override when submitting
+`hpc/train_inezita.slurm` directly.
 
-Preparation downloads the November 2025 Lichess Elite archive (about 77 MiB),
-imports at most 1,000 completed standard games, and samples up to 16 positions
-per game. If Stockfish is unavailable, it caches the official 17.1 release for
-Linux x86-64 or Apple Silicon. Set `INEZ_STOCKFISH=/absolute/path/to/stockfish`
-to use an existing engine; `INEZ_STOCKFISH_MODULE` can load a site module first.
-If an Ubuntu release binary cannot run against the cluster's older libc, the
-preparer rebuilds the bundled release source using `make` and the loaded GCC.
-The Makefile downloads the release's NNUE files when needed.
-Offline clusters need the archive and engine copied into place beforehand.
-Downloads stay in ignored `data/raw/`. Observed SHA256 hashes are recorded;
-the Elite publisher provides no archive checksum here.
+Preparation reads the September, October, and November 2025 Lichess Elite
+archives, imports 20,000 completed 2300+ standard games (sampling up to 16
+positions plus 2 off-policy tactical blunder/recapture counterfactual pairs per
+training game from ply 0), and merges all 5,607 unique positions from the
+3,871-line Modern Chess Openings corpus (`data/openings/mco_openings.tsv`,
+covering ECO Volumes A–E) into the training split. Validation and evaluation
+splits remain strictly disjoint and post-opening so common opening positions are
+never excluded from training or self-play. If Stockfish is unavailable, it
+caches the official 17.1 release for Linux x86-64 or Apple Silicon. Set
+`INEZ_STOCKFISH=/absolute/path/to/stockfish` to use an existing engine;
+`INEZ_STOCKFISH_MODULE` can load a site module first. If an Ubuntu release
+binary cannot run against the cluster's older libc, the preparer rebuilds the
+bundled release source using `make` and the loaded GCC. The Makefile downloads
+the release's NNUE files when needed. Offline clusters need the archives and
+engine copied into place beforehand. Downloads stay in ignored `data/raw/`.
+Observed SHA256 hashes are recorded; the Elite publisher provides no archive
+checksum here.
 
 Sources: [Lichess Elite](https://database.nikonoel.fr/), underlying
 [Lichess standard games and CC0 terms](https://database.lichess.org/#standard_games),
+[Lichess ECO/MCO chess-openings (CC0)](https://github.com/lichess-org/chess-openings),
 [Stockfish 17.1 release/source](https://github.com/official-stockfish/Stockfish/releases/tag/sf_17.1).
 
 Overrides exported before submission:
 
-- `TRAIN_CONFIG`: default `configs/train/inez-29m.json`.
-- `DATA_DIR`: default `data/processed/elite-29m-pilot`.
-- `RUN_DIR`: default `results/training/inez-29m-pilot`.
-- `INIT_ARTIFACT`: accepted 29M artifact to improve; skips human initialization.
+- `TRAIN_CONFIG`: default `configs/train/inezita.json`.
+- `DATA_DIR`: default `data/processed/inezita`.
+- `RUN_DIR`: default `results/training/inezita`.
+- `INIT_ARTIFACT`: accepted Inezita artifact to improve; skips human initialization.
 - `RESUME_MODE`: `exact` (default) or `portable` to continue across GPU/PyTorch changes.
 
-The default is a bounded engineering pilot. Use a fresh data/run directory when
-changing the experiment. The model has 29,228,779 parameters. The older 4M smoke
-weights have different tensor shapes and cannot initialize it.
+Use a fresh data/run directory when changing the experiment. Inezita
+(`configs/models/inezita.json`) has 29,228,779 parameters. The older 4M smoke
+weights have different tensor shapes and cannot initialize her.
 
 ## Curriculum and isolation
 
-1. **Human initialization:** played-move policy and side-to-move game-result
-   WDL, for 2,000 AdamW steps at learning rate 3e-4.
-2. **Stockfish correction:** replace both human targets, including bad moves,
-   with fresh analysis using the sampled position and its history. Defaults:
-   10,000 nodes, MultiPV 4, native `UCI_ShowWDL`. Policy is a softmax over each
-   line's `(win-loss)/temperature`, with temperature 0.15. Value is the best
-   line's full WDL. These are teacher score targets, not Stockfish visit counts.
-   Defaults: 2,000 steps at learning rate 1e-4. Engine version, binary checksum,
-   analysis budget and target transformation are recorded.
-3. **Self-play:** the accepted model plays complete games with neural PUCT.
-   Policy targets are normalized root visits; WDL comes from actual outcomes.
-   Defaults: four games, 32 simulations per move, and 500 training steps.
-   Teacher examples comprise 50% of replay samples; human imitation labels are
-   never reintroduced. Root Dirichlet noise and early-game move sampling add
+1. **Human + MCO + tactical initialization:** played-move policy, MCO opening
+   repertoire distributions, off-policy blunder/recapture counterfactuals, and
+   side-to-move game-result WDL, for 20,000 AdamW steps (batch size 128) at
+   learning rate 3e-4.
+2. **Stockfish correction:** replace human targets, including bad moves and
+   off-policy blunder counterfactuals, with fresh analysis across a parallel
+   worker pool of independent single-threaded Stockfish 17.1 instances with
+   transposition caching. Defaults: 10,000 nodes, MultiPV 4, native
+   `UCI_ShowWDL`. Policy is a softmax over each line's centipawn-tiebroken
+   `(win-loss)/temperature`, with temperature 0.15 (blended with MCO book
+   priors on `mco-*` opening records). Value is the best line's full WDL.
+   Defaults: 30,000 steps (batch size 128) at learning rate 1e-4. Engine
+   version, binary checksum, analysis budget and target transformation are
+   recorded.
+3. **Self-play:** the accepted model plays complete games with neural PUCT
+   equipped with the MCO opening book, exact Static Exchange Evaluation (SEE)
+   piece-safety priors, and bare-king endgame conversion shaping. Policy
+   targets are normalized root visits; WDL comes from actual outcomes (filtering
+   out any botched decisive-material draw). Defaults: two rounds of 16 games,
+   64 simulations per move, and 4,000 training steps per round at learning rate
+   3e-5 with 75% teacher replay. Human imitation labels are never reintroduced. Root Dirichlet noise and early-game move sampling add
    exploration. Subsequent runs with `INIT_ARTIFACT` skip human initialization.
    Each new self-play round initializes optimization from the accepted model
    recorded in that round's frozen source metadata. A rejected tail checkpoint
@@ -118,7 +134,7 @@ Inspect an existing run on a login node without allocating a GPU:
 
 ```sh
 "${INEZ_PYTHON:-$HOME/.conda/envs/inez/bin/python}" tools/train_inez.py status \
-    --run-dir results/training/inez-29m-pilot
+    --run-dir results/training/inezita
 ```
 
 This reads saved reports, including reports from older runs, and leaves run
@@ -131,8 +147,9 @@ report provides the evidence needed before tuning training or search budgets.
 
 `last.pt` is an atomic training-state checkpoint: model, AdamW state, completed
 step, minibatch/Python/PyTorch/CUDA RNGs, data fingerprints, configuration,
-source revision and hardware context. Each stage uses its configured constant
-learning rate. Portable model artifacts contain weights only.
+source revision and hardware context. Long stages (`steps >= 100`) apply a
+deterministic linear warmup followed by cosine learning-rate decay to 10% of the
+stage peak LR. Portable model artifacts contain weights only.
 
 The job forwards Slurm's 120-second warning and termination signals to the
 trainer. It checkpoints after an optimizer step and exits 75. Gates and
@@ -143,7 +160,7 @@ so resumed optimization consumes the same examples.
 Resume with the same environment, configuration, data and persistent `RUN_DIR`:
 
 ```sh
-sbatch hpc/train_29m.slurm
+sbatch hpc/train_inezita.slurm
 ```
 
 Configuration or data changes require a fresh directory. Exact resume requires
@@ -154,7 +171,7 @@ requeue or schedule indefinite training.
 If Slurm allocates a different GPU model, continue the **same run** explicitly:
 
 ```sh
-RESUME_MODE=portable sbatch --export=ALL hpc/train_29m.slurm
+RESUME_MODE=portable sbatch --export=ALL hpc/train_inezita.slurm
 ```
 
 Portable resume preserves the saved model, AdamW state, completed step, sampler
@@ -174,21 +191,19 @@ teacher correction and new self-play, with no human imitation phase.
 Initialization is restricted to artifacts listed in an earlier run's accepted
 history; a rejected candidate cannot bypass promotion by starting a new run.
 
-For a continuation after the bounded pilot, `configs/train/inez-29m-continue.json`
-reuses the prepared data and keeps the same gate. It runs 500 teacher steps at
-3e-5, then 250 self-play steps at a separate 1e-5 learning rate, with 75% teacher
-replay and evaluation every 250 steps. Four games and 32 simulations per move
-keep generation at the pilot budget. These settings are a conservative next
-experiment; improved match results still need to be demonstrated.
+For a continuation after an initial run, `configs/train/inezita-continue.json`
+reuses the prepared data and keeps the same gate. It runs 15,000 teacher steps at
+3e-5, then two rounds of 3,000 self-play steps at a separate 1e-5 learning rate,
+with 75% teacher replay and evaluation every 3,000 steps.
 
-For the pilot whose accepted model is `teacher/candidate-0002000`:
+For a run whose accepted model is `teacher/candidate-0002000`:
 
 ```sh
 export INIT_ARTIFACT="$PWD/results/training/inez-29m-pilot/teacher/candidate-0002000"
-export RUN_DIR="$PWD/results/training/inez-29m-continue"
-export TRAIN_CONFIG=configs/train/inez-29m-continue.json
+export RUN_DIR="$PWD/results/training/inezita-continue"
+export TRAIN_CONFIG=configs/train/inezita-continue.json
 export RESUME_MODE=portable
-sbatch --export=ALL hpc/train_29m.slurm
+sbatch --export=ALL hpc/train_inezita.slurm
 ```
 
 Use the original data directory (`DATA_DIR`, if overridden) and retain the same
@@ -196,7 +211,7 @@ environment variables when resubmitting this continuation. Existing pilot
 results remain valid; the corrected initialization takes effect for new rounds.
 Existing partial self-play checkpoints preserve their original progress.
 
-Logs: `inez_prepare_<job>.out/.err`, `inez_train_<job>.out/.err`, and
+Logs: `inezita_prepare_<job>.out/.err`, `inezita_train_<job>.out/.err`, and
 `RUN_DIR/run.log`. Inspect `validation-*`, `gate-*`, `accepted.json`, and the
 recorded actual device alongside loss curves. Failure to promote means the
-pilot has not established a stronger playing model, even if training loss fell.
+run has not established a stronger playing model, even if training loss fell.

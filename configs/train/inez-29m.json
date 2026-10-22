@@ -1,41 +1,54 @@
 {
-  "model_config": "configs/models/inez-29m.json",
+  "model_config": "configs/models/inezita.json",
   "seed": 20261019,
   "tactics": "tests/fixtures/independent_tactics.json",
   "preparation": {
     "url": "https://database.nikonoel.fr/lichess_elite_2025-11.zip",
     "archive": "data/raw/lichess/lichess_elite_2025-11.zip",
-    "license": "CC0-1.0 (underlying Lichess standard games)",
-    "max_games": 1000,
+    "urls": [
+      "https://database.nikonoel.fr/lichess_elite_2025-11.zip",
+      "https://database.nikonoel.fr/lichess_elite_2025-10.zip",
+      "https://database.nikonoel.fr/lichess_elite_2025-09.zip"
+    ],
+    "archives": [
+      "data/raw/lichess/lichess_elite_2025-11.zip",
+      "data/raw/lichess/lichess_elite_2025-10.zip",
+      "data/raw/lichess/lichess_elite_2025-09.zip"
+    ],
+    "openings": "data/openings/mco_openings.tsv",
+    "license": "CC0-1.0 (underlying Lichess standard games and ECO/MCO openings)",
+    "max_games": 20000,
     "samples_per_game": 16,
-    "min_ply": 8,
+    "blunder_samples_per_game": 2,
+    "min_ply": 0,
     "min_rating": 2300,
     "teacher_nodes": 10000,
     "teacher_multipv": 4,
     "teacher_temperature": 0.15
   },
   "training": {
-    "human_steps": 2000,
-    "teacher_steps": 2000,
-    "selfplay_steps": 500,
-    "batch_size": 64,
+    "human_steps": 20000,
+    "teacher_steps": 30000,
+    "selfplay_steps": 4000,
+    "batch_size": 128,
     "lr": 0.0003,
     "teacher_lr": 0.0001,
+    "selfplay_lr": 3e-05,
     "weight_decay": 0.0001,
     "clip_grad": 1.0,
-    "checkpoint_every": 1000,
-    "log_every": 20
+    "checkpoint_every": 5000,
+    "log_every": 50
   },
   "selfplay": {
-    "rounds": 1,
-    "games": 4,
-    "simulations": 32,
+    "rounds": 2,
+    "games": 16,
+    "simulations": 64,
     "max_plies": 512,
-    "teacher_replay_fraction": 0.5
+    "teacher_replay_fraction": 0.75
   },
   "gate": {
-    "pairs": 8,
-    "simulations": 32,
+    "pairs": 12,
+    "simulations": 64,
     "max_plies": 512,
     "minimum_score": 0.55,
     "historical_opponents": 2,
@@ -47,7 +60,11 @@
       ["e2e4", "c7c6", "d2d4", "d7d5"],
       ["d2d4", "g8f6", "c2c4", "g7g6"],
       ["e2e4", "e7e6", "d2d4", "d7d5"],
-      ["c2c4", "e7e5", "b1c3", "g8f6"]
+      ["c2c4", "e7e5", "b1c3", "g8f6"],
+      ["b1c3", "d7d5", "g1f3", "d5d4"],
+      ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4"],
+      ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6"],
+      ["d2d4", "d7d5", "c2c4", "c7c6", "g1f3", "g8f6"]
     ]
   }
 }

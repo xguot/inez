@@ -36,32 +36,41 @@ def dataset_records(directory, split):
 
 
 class RecordBatches:
-    """Cache only minibatch encodings; do not materialize a corpus on the GPU."""
-    def __init__(self, records):
+    """Cache decoded board tensors in host RAM; never materialize a corpus on the GPU."""
+    def __init__(self, records, *, max_cache=65536):
         if not records:
             raise ValueError('empty training/validation records')
         self.records = records
+        self.max_cache = max_cache
+        self._cache = {}
         # Legal game histories are validated by dataset_records/load_records.
 
+    def _encode_one(self, index):
+        cached = self._cache.get(index)
+        if cached is not None:
+            return cached
+        record = self.records[index]
+        board = chess.Board(record['initial_fen'])
+        for move in record['moves'][:record['ply']]:
+            board.push_uci(move)
+        x = torch.tensor(encode_position(board), dtype=torch.float32).reshape(64, 119)
+        mask = torch.zeros(4288, dtype=torch.bool)
+        mask[legal_policy_indices(board)] = True
+        policy = torch.zeros(4288, dtype=torch.float32)
+        for move, probability in record['policy'].items():
+            policy[move_to_policy_index(board, chess.Move.from_uci(move))] = probability
+        wdl = torch.tensor(record['wdl'], dtype=torch.float32)
+        item = (x, mask, policy, wdl)
+        if len(self._cache) < self.max_cache:
+            self._cache[index] = item
+        return item
+
     def batch(self, indices, device):
-        xs, masks, policies, wdls = [], [], [], []
-        for index in indices:
-            record = self.records[index]
-            board = chess.Board(record['initial_fen'])
-            for move in record['moves'][:record['ply']]:
-                board.push_uci(move)
-            xs.append(encode_position(board))
-            mask = torch.zeros(4288, dtype=torch.bool)
-            mask[legal_policy_indices(board)] = True
-            policy = torch.zeros(4288)
-            for move, probability in record['policy'].items():
-                policy[move_to_policy_index(board, chess.Move.from_uci(move))] = probability
-            masks.append(mask)
-            policies.append(policy)
-            wdls.append(record['wdl'])
-        return (torch.tensor(xs, dtype=torch.float32, device=device).reshape(-1, 64, 119),
-                torch.stack(masks).to(device), torch.stack(policies).to(device),
-                torch.tensor(wdls, dtype=torch.float32, device=device))
+        items = [self._encode_one(index) for index in indices]
+        return (torch.stack([item[0] for item in items]).to(device),
+                torch.stack([item[1] for item in items]).to(device),
+                torch.stack([item[2] for item in items]).to(device),
+                torch.stack([item[3] for item in items]).to(device))
 
 
 def supervised_loss(model, batch):
@@ -177,6 +186,41 @@ def restore_checkpoint_rng(state, device, *, resume_mode, seed, checkpoint):
     return event
 
 
+def _priority_sampling_table(records):
+    """Build a deterministic 30% uniform + 70% capped policy-surprise/phase table (Braun 2026 Sec 4.2.4)."""
+    table = []
+    for index, record in enumerate(records):
+        surprise = 1.0
+        policy = record.get('policy')
+        moves = record.get('moves', ())
+        ply = record.get('ply', 0)
+        if policy and ply < len(moves) and record.get('label_kind') in ('teacher_wdl', 'search'):
+            p_played = float(policy.get(moves[ply], 0.0))
+            surprise = min(2.0, -math.log(max(p_played, 0.05)))
+        if ply >= 56 or str(record.get('source_id', '')).startswith('mco-'):
+            surprise = min(2.0, surprise * 1.25)
+        weight = 0.30 + 0.70 * surprise
+        slots = max(1, min(6, int(round(weight * 2.0))))
+        table.extend([index] * slots)
+    return table
+
+
+def _apply_history_mask(features, step, seed):
+    """Mask a random suffix of history frames with 5% probability (Chessformer ICLR 2026 Sec E)."""
+    masked = None
+    batch_size = features.shape[0]
+    for b in range(batch_size):
+        h = ((step * 6364136223846793005) + (b * 1442695040888963407) + seed) & 0xFFFFFFFFFFFFFFFF
+        if (h % 20) == 0:
+            if masked is None:
+                masked = features.clone()
+            keep_frames = 1 + ((h >> 8) % 7)
+            masked[b, :, keep_frames * 14:112] = 0.0
+            if keep_frames == 1:
+                masked[b, :, 12] = 0.0
+    return masked if masked is not None else features
+
+
 def train_stage(model, train, validation, output, *, config, stage, gate, stop=None,
                 resume_mode='exact'):
     """Every exported candidate is evaluated; the gate owns champion selection.
@@ -250,10 +294,27 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
         evaluate_step(start_step)
     if start_step >= steps:
         return True
+    base_lr = float(config['lr'])
+    warmup_steps = min(500, max(10, steps // 20)) if steps >= 100 else 0
+    priority_table = _priority_sampling_table(train) if steps >= 100 else None
     for step in range(start_step + 1, steps + 1):
+        if steps >= 100:
+            if step <= warmup_steps:
+                current_lr = base_lr * (step / warmup_steps)
+            else:
+                progress = (step - warmup_steps) / max(1, steps - warmup_steps)
+                current_lr = base_lr * (0.1 + 0.45 * (1.0 + math.cos(math.pi * progress)))
+            for group in optimizer.param_groups:
+                group['lr'] = current_lr
         model.train()
-        indices = torch.randint(len(train), (batch_size,), generator=generator).tolist()
+        if priority_table is not None:
+            draws = torch.randint(len(priority_table), (batch_size,), generator=generator).tolist()
+            indices = [priority_table[d] for d in draws]
+        else:
+            indices = torch.randint(len(train), (batch_size,), generator=generator).tolist()
         batch = dataset.batch(indices, device)
+        if steps >= 100:
+            batch = (_apply_history_mask(batch[0], step, config['seed']), batch[1], batch[2], batch[3])
         optimizer.zero_grad(set_to_none=True)
         loss, policy_loss, value_loss = supervised_loss(model, batch)
         if not bool(torch.isfinite(loss)):

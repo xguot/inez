@@ -72,7 +72,9 @@ class GeometryBias(nn.Module):
 
     def forward(self, tokens: Tensor) -> Tensor:
         relative = self.relative[:, self.relative_indices]
-        dynamic = self.dynamic(tokens.mean(dim=1)).reshape(-1, self.heads, 64, 64)
+        # Apply non-linearity before spatial pooling so piece-square conjunctions are preserved.
+        spatial = F.gelu(tokens).mean(dim=1)
+        dynamic = self.dynamic(spatial).reshape(-1, self.heads, 64, 64)
         return dynamic + relative.unsqueeze(0)
 
 
@@ -132,20 +134,30 @@ class ChessTransformer(nn.Module):
             raise ValueError("features must be finite floating-point values")
         tokens = self.input_projection(features) + self.square_embedding
         geometry = self.geometry(tokens)
-        for block in self.blocks:
+        mid_layer = max(1, len(self.blocks) // 2)
+        for index, block in enumerate(self.blocks):
+            if index == mid_layer:
+                geometry = 0.5 * geometry + 0.5 * self.geometry(tokens)
             tokens = block(tokens, geometry)
         tokens = self.final_norm(tokens)
         query = self.policy_from(tokens)
         key = self.policy_to(tokens)
         from_to = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.config.policy_width)
-        occupied = features[:, :, :12].sum(dim=-1, keepdim=True)
+        our_occ = features[:, :, :6].sum(dim=-1, keepdim=True)
+        opp_occ = features[:, :, 6:12].sum(dim=-1, keepdim=True)
+        occupied = our_occ + opp_occ
         occupied_mean = (tokens * occupied).sum(dim=1) / occupied.sum(dim=1).clamp(min=1.0)
+        our_mean = (tokens * our_occ).sum(dim=1) / our_occ.sum(dim=1).clamp(min=1.0)
+        opp_mean = (tokens * opp_occ).sum(dim=1) / opp_occ.sum(dim=1).clamp(min=1.0)
         piece_diff = features[:, :, :6].sum(dim=1) - features[:, :, 6:12].sum(dim=1)
+        piece_scale = features.new_tensor((0.25, 2.25, 1.5, 1.5, 1.5, 0.0))
         piece_weights = self.input_projection.weight[:, :6] - self.input_projection.weight[:, 6:12]
-        piece_balance = F.linear(piece_diff, piece_weights) * 4.0
-        pooled = tokens.mean(dim=1) + occupied_mean + piece_balance
+        piece_balance = F.linear(piece_diff * piece_scale, piece_weights) * 4.0
+        pooled = tokens.mean(dim=1) + occupied_mean + 0.35 * (our_mean - opp_mean) + piece_balance
         promotion_pooled = pooled + tokens[:, 48:64].mean(dim=1)
-        policy = torch.cat((from_to.flatten(start_dim=1), self.underpromotions(promotion_pooled)), dim=1)
+        promo_base = from_to[:, 48:56, 56:64].reshape(-1, 1, 64)
+        underpromo = (self.underpromotions(promotion_pooled).reshape(-1, 3, 64) + promo_base).flatten(start_dim=1)
+        policy = torch.cat((from_to.flatten(start_dim=1), underpromo), dim=1)
         return policy, self.value_head(pooled)
 
     def metadata(self):

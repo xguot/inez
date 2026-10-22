@@ -17,3 +17,7 @@ __pycache__/
 /inez_prepare_*.err
 /inez_train_*.out
 /inez_train_*.err
+/inezita_prepare_*.out
+/inezita_prepare_*.err
+/inezita_train_*.out
+/inezita_train_*.err

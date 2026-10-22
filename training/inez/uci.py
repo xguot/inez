@@ -18,7 +18,9 @@ from .model import load_checkpoint
 from .puct import NeuralEvaluator, choose_move, search
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_MODEL = ROOT / 'results/training/inez-29m-pilot'
+DEFAULT_MODEL = (ROOT / 'results/training/inezita'
+                 if (ROOT / 'results/training/inezita/accepted.json').is_file()
+                 else ROOT / 'results/training/inez-29m-pilot')
 DEFAULT_THREADS = min(4, os.cpu_count() or 1)
 GO_NUMBERS = {'nodes', 'movetime', 'wtime', 'btime', 'winc', 'binc', 'movestogo', 'depth'}
 GO_FLAGS = {'infinite', 'ponder', 'mate', 'searchmoves'}

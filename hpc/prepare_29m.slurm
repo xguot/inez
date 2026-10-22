@@ -6,9 +6,9 @@
 #SBATCH --error=inez_prepare_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=standard
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
-#SBATCH --time=01:30:00
+#SBATCH --time=06:00:00
 
 set -Eeuo pipefail
 trap 'rc=$?; echo "Preparation failed at line ${LINENO}; exit=${rc}" >&2' ERR
@@ -37,9 +37,9 @@ else
     fi
 fi
 export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
-export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-16}"
 export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
 "${PY}" -u tools/train_inez.py prepare \
-    --config "${TRAIN_CONFIG:-configs/train/inez-29m.json}" \
-    --data-dir "${DATA_DIR:-data/processed/elite-29m-pilot}" \
+    --config "${TRAIN_CONFIG:-configs/train/inezita.json}" \
+    --data-dir "${DATA_DIR:-data/processed/inezita}" \
     --stockfish "${INEZ_STOCKFISH:-stockfish}" --threads "${OMP_NUM_THREADS}"

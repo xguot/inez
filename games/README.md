@@ -38,6 +38,18 @@ PUCT simulations. A short Stockfish analysis preferred `8.Bb3`. This is a
 diagnostic of the current checkpoint, not proof that the unpinned PGN used
 identical weights or a calibrated rating measurement.
 
+The third game in `xiyuan.pgn`, also dated October 21, identifies White as
+`Inez 0.1.1` against `Player` (`600+0.001`, result `*` after `6.d3`). After
+`1.Nc3 d5 2.Nf3 d4 3.Nb5 Nc6`, White played `4.Nbxd4??`, losing a knight for a
+pawn after `4...Nxd4 5.Nxd4 Qxd4`. Replaying the position with the accepted
+pilot checkpoint (`teacher/candidate-0002000`) reproduced `4.Nbxd4` (`b5d4` had
+50.0% policy prior vs. 1.89% for Black's `4...Nxd4` recapture, and the raw
+value head evaluated the post-exchange knight-down board as `+0.2375` for
+White), motivating the opening-ply (`min_ply: 0`), off-policy blunder
+relabeling, MCO opening book, decoupled material value pooling, and PUCT
+first-play urgency fixes.
+
 `xiyuan.pgn` uses the player-specific filename requested for this record. New
 dated records should continue to follow the naming convention above. Recorded
 games are not automatically added to the training corpus or acceptance gates.
+
