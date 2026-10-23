@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Benchmark integrity checks: frozen weights, opening diversity and paired results."""
 
+from argparse import Namespace
 import io
 import json
 from pathlib import Path
@@ -18,8 +19,9 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import chess
 import chess.pgn
 
-from benchmark_inezita import (artifact_record, audit_games, previous_artifact,
-    position_key, select_openings, sha256, wait_for_tournament)
+from benchmark_inezita import (artifact_record, audit_games, external_opponent_record,
+    fastchess_command, parse_uci_options, previous_artifact, position_key,
+    select_openings, sha256, verify_external_opponent_unchanged, wait_for_tournament)
 from inez.device import validate_cuda_runtime
 
 
@@ -189,6 +191,72 @@ class BenchmarkTests(unittest.TestCase):
             path.write_text(str(game))
             summary = audit_games(path, [book])
             self.assertEqual((summary['unfinished'], summary['draws'], summary['pairs']), (1, 0, 0))
+
+    def test_external_opponent_record_and_fastchess_command_isolate_engine_options(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sf_bin = root / 'stockfish'
+            sf_bin.write_bytes(b'stockfish-binary')
+            lc0_bin = root / 'lc0'
+            lc0_bin.write_bytes(b'lc0-binary')
+            lc0_weights = root / 'net.pb.gz'
+            lc0_weights.write_bytes(b'lc0-weights')
+
+            with patch('benchmark_inezita.resolve_stockfish', return_value=str(sf_bin)):
+                sf_args = Namespace(
+                    opponent=None, reference='stockfish-elo-1320', opponent_engine=None,
+                    opponent_name=None, opponent_arg=[], opponent_option=['UCI_Elo=1400'],
+                    opponent_nodes=None, lc0_weights=None, binary=root / 'inezita',
+                    fastchess=root / 'fastchess', device='cuda', threads=4,
+                    nodes=None, time_control='60+0.6', pairs=10,
+                )
+                sf_rec = external_opponent_record(sf_args)
+            self.assertEqual(sf_rec['kind'], 'external_uci')
+            self.assertEqual(sf_rec['name'], 'stockfish-17.1-elo1320')
+            self.assertEqual(sf_rec['options']['UCI_Elo'], '1400')
+            self.assertEqual(sf_rec['options']['UCI_LimitStrength'], 'true')
+
+            cmd = fastchess_command(sf_args, root, {'path': '/model'}, sf_rec)
+            self.assertIn('name=stockfish-17.1-elo1320', cmd)
+            self.assertIn('option.UCI_LimitStrength=true', cmd)
+            self.assertIn('option.UCI_Elo=1400', cmd)
+
+            lc0_args = Namespace(
+                opponent=None, reference='lc0', opponent_engine=lc0_bin,
+                opponent_name=None, opponent_arg=[], opponent_option=[],
+                opponent_nodes=128, lc0_weights=lc0_weights, binary=root / 'inezita',
+                fastchess=root / 'fastchess', device='cuda', threads=4,
+                nodes=128, time_control='60+0.6', pairs=10,
+            )
+            lc0_rec = external_opponent_record(lc0_args)
+            self.assertEqual(lc0_rec['weights_sha256'], sha256(lc0_weights))
+            verify_external_opponent_unchanged(lc0_rec)
+            lc0_weights.write_bytes(b'tampered')
+            with self.assertRaisesRegex(ValueError, 'weights changed'):
+                verify_external_opponent_unchanged(lc0_rec)
+
+            book = opening('e2e4 e7e5')
+            games = []
+            for white in ('inezita-candidate', 'stockfish-17.1-elo1320'):
+                game = opening('e2e4 e7e5 g1f3')
+                game.headers.update(
+                    Round='1', White=white,
+                    Black='stockfish-17.1-elo1320' if white == 'inezita-candidate' else 'inezita-candidate',
+                    Result='1-0' if white == 'inezita-candidate' else '0-1',
+                    Termination='normal',
+                )
+                games.append(game)
+            pgn_path = root / 'games.pgn'
+            pgn_path.write_text('\n\n'.join(str(g) for g in games))
+            summary = audit_games(pgn_path, [book], opponent_name='stockfish-17.1-elo1320')
+            self.assertEqual((summary['wins'], summary['losses'], summary['pairs']), (2, 0, 1))
+            self.assertEqual(summary['pentanomial'], [0, 0, 0, 0, 1])
+
+    def test_parse_uci_options_rejects_malformed_entries(self):
+        self.assertEqual(parse_uci_options(['Hash=64', 'UCI_LimitStrength=true']),
+                         {'Hash': '64', 'UCI_LimitStrength': 'true'})
+        with self.assertRaisesRegex(ValueError, 'NAME=VALUE'):
+            parse_uci_options(['invalid_option'])
 
 
 if __name__ == '__main__':

@@ -187,16 +187,40 @@ a fresh opening slice and `180+1.8`. An interrupted tournament remains incomplet
 automatic resume is not implemented by this wrapper. Its Fastchess state is
 retained for an explicitly audited recovery rather than silently starting over.
 
-Overrides: `BENCH_MODEL` and `BENCH_OPPONENT` (artifact/run paths), `OPENINGS_PGN`
-(a curated alternative PGN book), `FASTCHESS` (absolute executable path),
-`BENCH_THREADS`, `BENCH_DEVICE`, `BENCH_PAIRS`, `BENCH_START` (zero-based eligible
-opening offset), `BENCH_TC`, `BENCH_NODES` (an additional simulations cap), and
-`BENCH_OUTPUT` (a fresh directory). When supplying a direct `BENCH_MODEL` artifact,
-also supply `BENCH_OPPONENT`; automatic previous-opponent selection needs a run's
-`accepted.json`. Keep production CUDA results separate from CPU validation runs. With `BENCH_NODES`,
-the clock also applies; this is an equal-cap test unless actual per-move node
-counts demonstrate that clocks did not bind. Pure equal-simulation experiments
-need a generous clock and a separate node-budget audit.
+For the external reference gauntlet (Stockfish 17.1 at `Skill Level=0` / `128`
+nodes, `UCI_Elo=1320`, and `UCI_Elo=1600`, plus `lc0` when `LC0_BINARY` and
+`LC0_WEIGHTS` are supplied), submit the dedicated gauntlet job:
+
+```sh
+sbatch hpc/gauntlet_inezita.slurm
+```
+
+By default this runs a 20-game pilot (ten opening pairs) against each reference
+under `results/evaluation/inezita-0.1.2/gauntlet-pilot-<jobid>/<reference>/` and
+writes an aggregated `summary.json`. To include Lc0 in the pilot gauntlet, export
+`LC0_BINARY` and `LC0_WEIGHTS` (and optional `BENCH_OPPONENT_NODES=128` for an
+equal-simulation track) before submitting. After reviewing the pilot gauntlet,
+run the 1,000-game (`500`-pair) reference matches with:
+
+```sh
+export PILOT_GAUNTLET_DIR="$PWD/results/evaluation/inezita-0.1.2/gauntlet-pilot-<jobid>"
+sbatch --time=<wall-time-from-pilot> hpc/gauntlet_inezita.slurm gauntlet
+```
+
+Overrides: `BENCH_MODEL` and `BENCH_OPPONENT` (artifact/run paths), `BENCH_REFERENCE`
+(`stockfish-skill-0-n128`, `stockfish-elo-1320`, `stockfish-elo-1600`,
+`inezita-material`, `lc0`), `BENCH_OPPONENT_ENGINE`, `BENCH_OPPONENT_NAME`,
+`BENCH_OPPONENT_NODES`, `LC0_BINARY`, `LC0_WEIGHTS`, `GAUNTLET_REFERENCES`,
+`OPENINGS_PGN` (a curated alternative PGN book), `FASTCHESS` (absolute executable
+path), `BENCH_THREADS`, `BENCH_DEVICE`, `BENCH_PAIRS`, `BENCH_START` (zero-based
+eligible opening offset), `BENCH_TC`, `BENCH_NODES` (an additional simulations
+cap), and `BENCH_OUTPUT` (a fresh directory). When supplying a direct `BENCH_MODEL`
+artifact for a checkpoint match, also supply `BENCH_OPPONENT`; automatic
+previous-opponent selection needs a run's `accepted.json`. Keep production CUDA
+results separate from CPU validation runs. With `BENCH_NODES`, the clock also
+applies; this is an equal-cap test unless actual per-move node counts demonstrate
+that clocks did not bind. Pure equal-simulation experiments need a generous clock
+and a separate node-budget audit.
 
 ## GPU and signal troubleshooting
 

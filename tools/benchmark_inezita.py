@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Pinned two-checkpoint Fastchess pilot/baseline, with audited PGNs and artifacts."""
+"""Pinned two-checkpoint or external reference Fastchess benchmark, with audited PGNs and artifacts."""
 
 import argparse
 from collections import Counter, defaultdict
@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import shutil
 import signal
 import subprocess
 import sys
@@ -21,6 +22,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'training'))
+sys.path.insert(0, str(ROOT / 'tools'))
 
 import chess
 import chess.engine
@@ -30,12 +32,50 @@ import torch
 from inez.curriculum import atomic_json, sha256
 from inez.device import validate_cuda_runtime
 from inez.uci import DEFAULT_MODEL, resolve_artifact
+from train_inezita import resolve_stockfish
 
 BOOK_REVISION = 'a804a97e709f40aa75a00f9d19e84915b7a3a45c'
 BOOK_URL = f'https://raw.githubusercontent.com/official-stockfish/books/{BOOK_REVISION}/8moves_v3.pgn.zip'
 BOOK_SHA256 = '7e1e9dd118b4bb97d8a8b5b8a790c86e21f8509d59a27d2883767d94477be02e'
 STAGES = {'pilot': (10, 0, '60+0.6'), 'baseline': (1000, 10, '60+0.6'),
-          'confirmation': (1000, 1010, '180+1.8')}
+          'gauntlet': (500, 10, '60+0.6'), 'confirmation': (1000, 1010, '180+1.8')}
+REFERENCE_PRESETS = {
+    'stockfish-skill-0-n128': {
+        'engine': 'stockfish',
+        'name': 'stockfish-17.1-skill0-n128',
+        'args': [],
+        'options': {'Threads': 1, 'Hash': 16, 'Skill Level': 0, 'Move Overhead': 50},
+        'nodes': 128,
+    },
+    'stockfish-elo-1320': {
+        'engine': 'stockfish',
+        'name': 'stockfish-17.1-elo1320',
+        'args': [],
+        'options': {'Threads': 1, 'Hash': 64, 'UCI_LimitStrength': 'true', 'UCI_Elo': 1320, 'Move Overhead': 50},
+        'nodes': None,
+    },
+    'stockfish-elo-1600': {
+        'engine': 'stockfish',
+        'name': 'stockfish-17.1-elo1600',
+        'args': [],
+        'options': {'Threads': 1, 'Hash': 64, 'UCI_LimitStrength': 'true', 'UCI_Elo': 1600, 'Move Overhead': 50},
+        'nodes': None,
+    },
+    'inezita-material': {
+        'engine': 'inezita-baseline',
+        'name': 'inezita-material-n128',
+        'args': ['--baseline'],
+        'options': {'Evaluator': 'material', 'BatchSize': 4},
+        'nodes': 128,
+    },
+    'lc0': {
+        'engine': 'lc0',
+        'name': 'lc0-reference',
+        'args': [],
+        'options': {'Threads': 2, 'MinibatchSize': 1, 'MaxPrefetch': 0, 'NNCacheSize': 200000},
+        'nodes': None,
+    },
+}
 
 
 def utc_now():
@@ -69,6 +109,116 @@ def artifact_record(path):
         raise ValueError(f'weight checksum mismatch: {path}')
     return {'path': str(path), 'weights_sha256': digest,
             'manifest_sha256': sha256(path / 'manifest.json'), 'config': manifest['config']}
+
+
+def parse_uci_options(items):
+    options = {}
+    for item in items or ():
+        if '=' not in item:
+            raise ValueError(f'UCI option must be NAME=VALUE: {item}')
+        name, value = item.split('=', 1)
+        name = name.strip()
+        if not name:
+            raise ValueError(f'empty UCI option name: {item}')
+        options[name] = value
+    return options
+
+
+def _resolve_executable(spec):
+    candidate = Path(spec).expanduser()
+    if candidate.is_file():
+        return candidate.resolve()
+    found = shutil.which(str(spec))
+    if found:
+        return Path(found).resolve()
+    raise ValueError(f'external engine executable not found: {spec}')
+
+
+def external_opponent_record(args):
+    if getattr(args, 'opponent', None) is not None:
+        raise ValueError('cannot combine checkpoint --opponent with --reference or --opponent-engine')
+    reference = getattr(args, 'reference', None)
+    preset = REFERENCE_PRESETS.get(reference, {}) if reference else {}
+    engine_kind = preset.get('engine')
+    opponent_engine = getattr(args, 'opponent_engine', None)
+    if opponent_engine is not None:
+        binary = _resolve_executable(opponent_engine)
+    elif engine_kind == 'stockfish':
+        binary = Path(resolve_stockfish(os.environ.get('INEZ_STOCKFISH', 'stockfish'))).resolve()
+    elif engine_kind == 'inezita-baseline':
+        binary = Path(args.binary).expanduser().resolve()
+    elif engine_kind == 'lc0':
+        env_lc0 = os.environ.get('LC0_BINARY')
+        if not env_lc0 and shutil.which('lc0') is None:
+            raise ValueError('supply --opponent-engine or set LC0_BINARY for the lc0 reference')
+        binary = _resolve_executable(env_lc0 or 'lc0')
+    else:
+        raise ValueError('external opponent requires --reference or --opponent-engine')
+
+    options = {str(k): str(v) for k, v in preset.get('options', {}).items()}
+    options.update(parse_uci_options(getattr(args, 'opponent_option', ())))
+    opponent_arg = getattr(args, 'opponent_arg', None)
+    extra_args = list(opponent_arg) if opponent_arg else list(preset.get('args', ()))
+
+    weights_spec = getattr(args, 'lc0_weights', None) or (os.environ.get('LC0_WEIGHTS') if engine_kind == 'lc0' else None)
+    if weights_spec:
+        weights_path = Path(weights_spec).expanduser().resolve()
+        if not weights_path.is_file():
+            raise ValueError(f'external opponent weights file not found: {weights_path}')
+        options['WeightsFile'] = str(weights_path)
+    elif 'WeightsFile' in options:
+        weights_path = Path(options['WeightsFile']).expanduser().resolve()
+        if not weights_path.is_file():
+            raise ValueError(f'external opponent weights file not found: {weights_path}')
+        options['WeightsFile'] = str(weights_path)
+    else:
+        weights_path = None
+    if engine_kind == 'lc0' and weights_path is None:
+        raise ValueError('lc0 reference requires --lc0-weights, LC0_WEIGHTS, or --opponent-option WeightsFile=...')
+
+    opponent_nodes = getattr(args, 'opponent_nodes', None)
+    if opponent_nodes is None:
+        opponent_nodes = preset.get('nodes')
+    opponent_name = getattr(args, 'opponent_name', None) or preset.get('name') or 'inezita-reference'
+    if opponent_name == 'inezita-candidate':
+        raise ValueError('opponent name must be distinct from inezita-candidate')
+
+    record = {
+        'kind': 'external_uci',
+        'reference': reference,
+        'name': opponent_name,
+        'binary': str(binary),
+        'binary_sha256': sha256(binary),
+        'args': extra_args,
+        'options': options,
+        'nodes': opponent_nodes,
+    }
+    if weights_path is not None:
+        record['weights_path'] = str(weights_path)
+        record['weights_sha256'] = sha256(weights_path)
+    return record
+
+
+def verify_external_opponent_unchanged(opponent):
+    if sha256(opponent['binary']) != opponent['binary_sha256']:
+        raise ValueError('external opponent binary changed during the tournament')
+    if 'weights_path' in opponent and sha256(opponent['weights_path']) != opponent['weights_sha256']:
+        raise ValueError('external opponent weights changed during the tournament')
+
+
+def _configure_value(option, raw_value):
+    if option.type == 'check':
+        if isinstance(raw_value, bool):
+            return raw_value
+        lowered = str(raw_value).strip().lower()
+        if lowered in ('true', '1', 'yes', 'on'):
+            return True
+        if lowered in ('false', '0', 'no', 'off'):
+            return False
+        raise ValueError(f'invalid boolean value for UCI option {option.name}: {raw_value}')
+    if option.type == 'spin':
+        return int(raw_value)
+    return str(raw_value)
 
 
 def source_record():
@@ -149,7 +299,7 @@ def select_openings(text, start, pairs, excluded):
     raise ValueError(f'opening book lacks {start + pairs} unique eligible positions')
 
 
-def audit_games(path, openings):
+def audit_games(path, openings, opponent_name='inezita-incumbent'):
     summary = {'games': 0, 'wins': 0, 'draws': 0, 'losses': 0,
                'unfinished': 0, 'faults': {}, 'pairs': 0, 'pentanomial': [0] * 5}
     groups, faults = defaultdict(list), Counter()
@@ -169,7 +319,7 @@ def audit_games(path, openings):
             if game.board().fen() != opening.board().fen() or moves[:len(prefix)] != prefix:
                 raise ValueError('output PGN opening/history differs from the scheduled pair')
             white, black = game.headers['White'], game.headers['Black']
-            if {white, black} != {'inezita-candidate', 'inezita-incumbent'}:
+            if {white, black} != {'inezita-candidate', opponent_name}:
                 raise ValueError('unexpected player identities in output PGN')
             termination = game.headers.get('Termination', 'missing')
             if termination != 'normal':
@@ -195,11 +345,24 @@ def audit_games(path, openings):
 def fastchess_command(args, output, candidate, opponent):
     command = [str(args.fastchess), '-engine', f'cmd={args.binary}', 'name=inezita-candidate',
         f'option.ModelPath={candidate["path"]}', f'option.Device={args.device}',
-        f'option.Threads={args.threads}', '-engine', f'cmd={args.binary}', 'name=inezita-incumbent',
-        f'option.ModelPath={opponent["path"]}', f'option.Device={args.device}',
-        f'option.Threads={args.threads}', '-each', 'proto=uci', f'tc={args.time_control}']
-    if args.nodes:
-        command.append(f'nodes={args.nodes}')
+        f'option.Threads={args.threads}']
+    if opponent.get('kind') == 'external_uci':
+        if args.nodes:
+            command.append(f'nodes={args.nodes}')
+        command += ['-engine', f'cmd={opponent["binary"]}', f'name={opponent["name"]}']
+        if opponent.get('args'):
+            command.append(f'args={" ".join(opponent["args"])}')
+        for key, value in opponent.get('options', {}).items():
+            command.append(f'option.{key}={value}')
+        if opponent.get('nodes'):
+            command.append(f'nodes={opponent["nodes"]}')
+        command += ['-each', 'proto=uci', f'tc={args.time_control}']
+    else:
+        command += ['-engine', f'cmd={args.binary}', 'name=inezita-incumbent',
+            f'option.ModelPath={opponent["path"]}', f'option.Device={args.device}',
+            f'option.Threads={args.threads}', '-each', 'proto=uci', f'tc={args.time_control}']
+        if args.nodes:
+            command.append(f'nodes={args.nodes}')
     command += ['-openings', f'file={output / "openings.pgn"}', 'format=pgn', 'order=sequential',
         '-rounds', str(args.pairs), '-repeat', '-concurrency', '1', '-report', 'penta=true',
         '-pgnout', f'file={output / "games.pgn"}', 'append=false', 'nodes=true', 'timeleft=true',
@@ -247,14 +410,21 @@ def wait_for_tournament(child):
 def execute(args, report):
     report['cuda_preflight'] = validate_cuda_runtime(args.device)
     candidate = artifact_record(args.model)
-    opponent = artifact_record(args.opponent or previous_artifact(args.model))
-    if candidate['weights_sha256'] == opponent['weights_sha256']:
-        raise ValueError('candidate and opponent have identical weights')
+    external_mode = bool(getattr(args, 'reference', None) or getattr(args, 'opponent_engine', None))
+    if external_mode:
+        opponent = external_opponent_record(args)
+        opponent_name = opponent['name']
+    else:
+        opponent = artifact_record(args.opponent or previous_artifact(args.model))
+        if candidate['weights_sha256'] == opponent['weights_sha256']:
+            raise ValueError('candidate and opponent have identical weights')
+        opponent_name = 'inezita-incumbent'
+    git_env = {**os.environ, 'GIT_CONFIG_GLOBAL': '/dev/null', 'GIT_CONFIG_NOSYSTEM': '1'}
     report.update(candidate=candidate, opponent=opponent, sources=source_record(),
         binary_sha256=sha256(args.binary), fastchess_sha256=sha256(args.fastchess),
         fastchess_version=subprocess.check_output([str(args.fastchess), '-version'], text=True).strip(),
-        git_revision=subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip(),
-        git_status=subprocess.check_output(['git', '-C', str(ROOT), 'status', '--short'], text=True),
+        git_revision=subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True, env=git_env).strip(),
+        git_status=subprocess.check_output(['git', '-C', str(ROOT), 'status', '--short'], text=True, env=git_env),
         python=platform.python_version(), torch=str(torch.__version__), chess=chess.__version__,
         cuda_runtime=torch.version.cuda, precision='float32',
         host=platform.node(), platform=platform.platform(), device=args.device, threads=args.threads,
@@ -272,6 +442,42 @@ def execute(args, report):
     report.update(book={**book, 'excluded_sources': exclusions, 'eligible_start': args.start,
                        'selected_sha256': sha256(args.output / 'openings.pgn')},
                   stage=args.stage, pairs=args.pairs, time_control=args.time_control, nodes=args.nodes)
+    env = {**os.environ, 'INEZ_PYTHON': sys.executable, 'PYTHONDONTWRITEBYTECODE': '1'}
+    env.pop('INEZ_BASELINE', None)
+    with chess.engine.SimpleEngine.popen_uci(str(args.binary), env=env, timeout=120) as engine:
+        if engine.id.get('name') != 'Inezita 0.1.2' or 'ModelPath' not in engine.options:
+            raise ValueError('benchmark requires the Inezita 0.1.2 neural UCI launcher')
+        engine.configure({'ModelPath': candidate['path'], 'Device': args.device, 'Threads': args.threads})
+        engine.ping()
+        # Loading weights alone did not expose the V100/cu130 mismatch.
+        # Run the actual neural forward/search path before a tournament.
+        result = engine.play(chess.Board(), chess.engine.Limit(nodes=1))
+        if result.move not in chess.Board().legal_moves:
+            raise RuntimeError('neural preflight returned an illegal move')
+    if external_mode:
+        cmd = [opponent['binary'], *opponent.get('args', ())]
+        with chess.engine.SimpleEngine.popen_uci(cmd, env=env, timeout=120) as engine:
+            opponent['uci_id'] = dict(engine.id)
+            configured = {}
+            for key, raw_value in opponent.get('options', {}).items():
+                if key not in engine.options:
+                    raise ValueError(f'external opponent {opponent["name"]} does not support UCI option: {key}')
+                configured[key] = _configure_value(engine.options[key], raw_value)
+            if configured:
+                engine.configure(configured)
+            engine.ping()
+            result = engine.play(chess.Board(), chess.engine.Limit(nodes=1))
+            if result.move not in chess.Board().legal_moves:
+                raise RuntimeError('external opponent preflight returned an illegal move')
+    else:
+        with chess.engine.SimpleEngine.popen_uci(str(args.binary), env=env, timeout=120) as engine:
+            if engine.id.get('name') != 'Inezita 0.1.2' or 'ModelPath' not in engine.options:
+                raise ValueError('benchmark requires the Inezita 0.1.2 neural UCI launcher')
+            engine.configure({'ModelPath': opponent['path'], 'Device': args.device, 'Threads': args.threads})
+            engine.ping()
+            result = engine.play(chess.Board(), chess.engine.Limit(nodes=1))
+            if result.move not in chess.Board().legal_moves:
+                raise RuntimeError('neural preflight returned an illegal move')
     if args.stage != 'pilot':
         if args.pilot_dir is None:
             raise ValueError('supply --pilot-dir from a completed 20-game pilot before a larger run')
@@ -286,22 +492,9 @@ def execute(args, report):
             raise ValueError('opening source differs from the pilot')
         if args.start < pilot['book']['eligible_start'] + pilot['pairs']:
             raise ValueError('larger run overlaps the pilot opening slice')
-        if args.stage == 'baseline' and args.time_control != pilot['time_control']:
-            raise ValueError('baseline clock differs from the pilot')
+        if args.stage in ('baseline', 'gauntlet') and args.time_control != pilot['time_control']:
+            raise ValueError(f'{args.stage} clock differs from the pilot')
         report['pilot_manifest_sha256'] = sha256(args.pilot_dir / 'manifest.json')
-    env = {**os.environ, 'INEZ_PYTHON': sys.executable, 'PYTHONDONTWRITEBYTECODE': '1'}
-    env.pop('INEZ_BASELINE', None)
-    for artifact in (candidate, opponent):
-        with chess.engine.SimpleEngine.popen_uci(str(args.binary), env=env, timeout=120) as engine:
-            if engine.id.get('name') != 'Inezita 0.1.2' or 'ModelPath' not in engine.options:
-                raise ValueError('benchmark requires the Inezita 0.1.2 neural UCI launcher')
-            engine.configure({'ModelPath': artifact['path'], 'Device': args.device, 'Threads': args.threads})
-            engine.ping()
-            # Loading weights alone did not expose the V100/cu130 mismatch.
-            # Run the actual neural forward/search path before a tournament.
-            result = engine.play(chess.Board(), chess.engine.Limit(nodes=1))
-            if result.move not in chess.Board().legal_moves:
-                raise RuntimeError('neural preflight returned an illegal move')
     command = fastchess_command(args, args.output, candidate, opponent)
     report.update(command=command, status='running', match_started_utc=utc_now())
     atomic_json(args.output / 'manifest.json', report)
@@ -312,8 +505,12 @@ def execute(args, report):
         try:
             report['returncode'] = wait_for_tournament(child)
         finally:
-            report['summary'] = audit_games(args.output / 'games.pgn', openings)
-    if artifact_record(candidate['path']) != candidate or artifact_record(opponent['path']) != opponent:
+            report['summary'] = audit_games(args.output / 'games.pgn', openings, opponent_name=opponent_name)
+    if artifact_record(candidate['path']) != candidate:
+        raise ValueError('model artifacts changed during the tournament')
+    if external_mode:
+        verify_external_opponent_unchanged(opponent)
+    elif artifact_record(opponent['path']) != opponent:
         raise ValueError('model artifacts changed during the tournament')
     if source_record() != report['sources'] or sha256(args.binary) != report['binary_sha256']:
         raise ValueError('engine sources or launcher changed during the tournament')
@@ -324,6 +521,7 @@ def execute(args, report):
             and summary['pairs'] == args.pairs and not summary['faults'] and not summary['unfinished'])
     report['status'] = 'complete' if good else 'incomplete_or_faulted'
     report['elapsed_seconds'] = time.monotonic() - args.started
+    report['projected_1000_game_hours'] = report['elapsed_seconds'] / max(1, summary['games']) * 1000 / 3600
     report['projected_2000_game_hours'] = report['elapsed_seconds'] / max(1, summary['games']) * 2000 / 3600
     print(json.dumps(report['summary'], indent=2), flush=True)
     return 0 if good else 2
@@ -334,6 +532,19 @@ def main():
     parser.add_argument('--stage', choices=STAGES, default='pilot')
     parser.add_argument('--model', type=Path, default=DEFAULT_MODEL)
     parser.add_argument('--opponent', type=Path)
+    parser.add_argument('--reference', choices=tuple(REFERENCE_PRESETS),
+                        help='named external reference preset (e.g. stockfish-elo-1320, lc0)')
+    parser.add_argument('--opponent-engine', type=Path,
+                        help='external UCI engine binary path when not using a checkpoint opponent')
+    parser.add_argument('--opponent-name', help='player name in PGN/Fastchess for external opponent')
+    parser.add_argument('--opponent-arg', action='append', default=[],
+                        help='CLI argument passed to external opponent binary (repeatable)')
+    parser.add_argument('--opponent-option', action='append', default=[],
+                        help='UCI option NAME=VALUE for external opponent (repeatable)')
+    parser.add_argument('--opponent-nodes', type=int,
+                        help='optional per-move node/simulation cap for external opponent only')
+    parser.add_argument('--lc0-weights', type=Path,
+                        help='network weights file for lc0 reference opponent')
     parser.add_argument('--fastchess', type=Path, required=True)
     parser.add_argument('--binary', type=Path, default=ROOT / 'build/inezita')
     parser.add_argument('--openings', type=Path)
@@ -351,9 +562,13 @@ def main():
     args.pairs = pairs if args.pairs is None else args.pairs
     args.start = start if args.start is None else args.start
     args.time_control = args.time_control or clock
-    if args.pairs < 1 or args.start < 0 or not 1 <= args.threads <= 64 or args.nodes is not None and args.nodes < 1:
+    if (args.pairs < 1 or args.start < 0 or not 1 <= args.threads <= 64
+            or args.nodes is not None and args.nodes < 1
+            or args.opponent_nodes is not None and args.opponent_nodes < 1):
         parser.error('invalid pair count, opening offset, threads or simulation budget')
-    for name in ('model', 'opponent', 'fastchess', 'binary', 'openings', 'cache', 'output', 'pilot_dir'):
+    if args.opponent is not None and (args.reference is not None or args.opponent_engine is not None):
+        parser.error('cannot combine checkpoint --opponent with --reference or --opponent-engine')
+    for name in ('model', 'opponent', 'opponent_engine', 'lc0_weights', 'fastchess', 'binary', 'openings', 'cache', 'output', 'pilot_dir'):
         value = getattr(args, name)
         if value is not None:
             setattr(args, name, value.expanduser().resolve())

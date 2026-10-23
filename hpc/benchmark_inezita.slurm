@@ -19,7 +19,7 @@ trap 'rc=$?; echo "Benchmark failed at line ${LINENO}; exit=${rc}" >&2' ERR
 ROOT_DIR="${INEZ_ROOT:-${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}}"
 cd "${ROOT_DIR}"
 STAGE="${1:-pilot}"
-case "${STAGE}" in pilot|baseline|confirmation) ;; *) echo "Use pilot, baseline, or confirmation" >&2; exit 1 ;; esac
+case "${STAGE}" in pilot|baseline|gauntlet|confirmation) ;; *) echo "Use pilot, baseline, gauntlet, or confirmation" >&2; exit 1 ;; esac
 if [[ "${STAGE}" != pilot && -z "${PILOT_DIR:-}" ]]; then
     echo "Set PILOT_DIR to the output directory of a completed 20-game pilot." >&2
     exit 1
@@ -70,6 +70,11 @@ ARGS=(--stage "${STAGE}" --fastchess "${FASTCHESS}" --binary "${BUILD_DIR}/inezi
       --output "${OUT_DIR}" --device "${BENCH_DEVICE:-cuda}" --threads "${BENCH_THREADS:-4}")
 if [[ -n "${BENCH_MODEL:-}" ]]; then ARGS+=(--model "${BENCH_MODEL}"); fi
 if [[ -n "${BENCH_OPPONENT:-}" ]]; then ARGS+=(--opponent "${BENCH_OPPONENT}"); fi
+if [[ -n "${BENCH_REFERENCE:-}" ]]; then ARGS+=(--reference "${BENCH_REFERENCE}"); fi
+if [[ -n "${BENCH_OPPONENT_ENGINE:-}" ]]; then ARGS+=(--opponent-engine "${BENCH_OPPONENT_ENGINE}"); fi
+if [[ -n "${BENCH_OPPONENT_NAME:-}" ]]; then ARGS+=(--opponent-name "${BENCH_OPPONENT_NAME}"); fi
+if [[ -n "${BENCH_OPPONENT_NODES:-}" ]]; then ARGS+=(--opponent-nodes "${BENCH_OPPONENT_NODES}"); fi
+if [[ -n "${LC0_WEIGHTS:-}" ]]; then ARGS+=(--lc0-weights "${LC0_WEIGHTS}"); fi
 if [[ -n "${OPENINGS_PGN:-}" ]]; then ARGS+=(--openings "${OPENINGS_PGN}"); fi
 if [[ -n "${PILOT_DIR:-}" ]]; then ARGS+=(--pilot-dir "${PILOT_DIR}"); fi
 if [[ -n "${BENCH_PAIRS:-}" ]]; then ARGS+=(--pairs "${BENCH_PAIRS}"); fi
