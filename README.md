@@ -23,6 +23,9 @@ Play against the trained neural engine (`build/inezita`) in a UCI client, or eva
 ```
 
 See [`docs/`](docs/) for rules, search, training, and neural UCI documentation.
+The [benchmark protocol](docs/benchmarking.md) defines paired engine matches,
+game counts, model-size comparisons, and Slurm execution. On Rivanna, start with
+`sbatch hpc/benchmark_inezita.slurm` for the 20-game pilot.
 
 ## License
 

@@ -17,7 +17,6 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'training'))
-sys.path.insert(0, str(ROOT / 'tools'))
 
 import chess
 import chess.engine
@@ -26,7 +25,7 @@ import torch
 from inez.model import ChessTransformer, ModelConfig, save_checkpoint
 from inez.puct import search
 from inez.uci import NeuralUci, parse_go, parse_position, resolve_artifact
-from match import EngineSpec, UciProcess
+from uci_client import UciClient
 
 
 def uniform(board):
@@ -169,10 +168,8 @@ class ProtocolTests(unittest.TestCase):
 
     def raw_client(self):
         binary = os.environ.get('INEZ_BINARY', str(ROOT / 'build/inezita'))
-        spec = EngineSpec('neural', binary,
-                          {'ModelPath': str(self.artifact), 'Threads': '1'})
-        with patch.dict(os.environ, {'INEZ_PYTHON': sys.executable}):
-            client = UciProcess(spec)
+        client = UciClient([binary], {'ModelPath': str(self.artifact), 'Threads': '1'},
+                           env={**os.environ, 'INEZ_PYTHON': sys.executable})
         self.addCleanup(client.close)
         client.initialize(timeout=15)
         return client

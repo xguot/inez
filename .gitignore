@@ -25,3 +25,5 @@ __pycache__/
 /docs/papers/
 /inezita_smoke_*.out
 /inezita_smoke_*.err
+/inezita_bench_*.out
+/inezita_bench_*.err

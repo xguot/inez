@@ -61,37 +61,16 @@ and warnings/errors exclusively to `stderr` (`log`). Supported commands:
 - `go [nodes N] [movetime MS] [wtime MS] [btime MS] [winc MS] [binc MS] [movestogo N] [infinite]`
 - `stop`
 
-## Automated match runner and baseline report
+## Integration checks and strength evaluation
 
-`tools/match.py` pairs two UCI configurations (`inezita-material` vs.
-`inezita-uniform`) across 8 balanced openings with reversed colors, validates every
-move with `python-chess`, tracks crashes/illegal moves/timeouts, computes 95%
-Elo confidence bounds and SPRT log-likelihood ratios, runs a 6-position
-tactical/endgame suite, and benchmarks fixed-node and timed runs:
+The native material/uniform evaluators remain explicit test/reference modes.
+`tests/baseline_uci_tests.py` exercises both through an independent python-chess
+client, with reversed colors and legal-move checks. A smoke-test ply cap does not
+supply a game result or strength estimate. It runs under CTest when
+`INEZ_DIFFERENTIAL_TESTS=ON`.
 
-```sh
-.venv/bin/python tools/match.py build/inezita --pairs 4 --nodes 64 --batch-size 4
-```
-
-### Baseline verification results (Release build)
-
-- **Paired-opening match (`4` pairs / `8` games, `64` nodes/move, `BatchSize=4`)**:
-  `inezita-material` vs. `inezita-uniform` scored **+8 =0 -0** (`100.0%`, all 8 won by
-  checkmate across `startpos`, `italian`, `sicilian_open`, and `french_advance`
-  with colors reversed), `0` crashes, `0` illegal moves, `0` timeouts, and
-  `SPRT(0, 50)` `LLR = +5.31 > +2.94` (`H1_accepted`).
-- **Tactical & endgame suite (`6/6` solved, `100%`)**:
-  Solved `back_rank_mate_1` (`d1d8`), `queen_mate_1` (`g5g7`),
-  `smothered_mate_1` (`h6f7`), `free_queen_capture` (`c3d5`),
-  `promote_with_mate` (`e7e8q`), and `avoid_stalemate_mate_1` (`g4g7`).
-- **Throughput, batch utilization & leaf latency diagnostics (`startpos`)**:
-  - `fixed_nodes_serial` (`128` nodes, `BatchSize=1`): `~120k nodes/sec`,
-    `128` batches, `avg_batch_size = 1.00`, `batch_utilization = 1.00`,
-    `avg_eval_latency = 0.71 us`.
-  - `fixed_nodes_batched` (`128` nodes, `BatchSize=4`): `~128k nodes/sec`,
-    `33` batches (`1` root + `32` batches of `4`), `avg_batch_size = 3.88`,
-    `batch_utilization = 0.97`, `avg_eval_latency = 2.76 us`.
-  - `timed_movetime_batched` (`40 ms`, `BatchSize=4`): `4,033` nodes
-    (`max_depth = 8`, `~101k nodes/sec`), `1,009` batches,
-    `avg_batch_size = 4.00`, `batch_utilization = 1.00`,
-    `avg_eval_latency = 2.54 us`.
+Use [the benchmark protocol](benchmarking.md) for neural checkpoint comparisons,
+reference-engine matches, sample sizes, paired statistics and Slurm execution.
+The earlier handcrafted-only match runner and its approximate strength
+statistics have been removed. Its [historical report](evaluation/handcrafted-baseline.md)
+is retained for engineering context.

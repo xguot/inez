@@ -92,10 +92,10 @@ if(BUILD_TESTING)
               "$<TARGET_FILE:inezita-rules>")
     set_tests_properties(differential PROPERTIES TIMEOUT 180)
 
-    add_test(NAME match
-      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/match.py"
-              "$<TARGET_FILE:inezita>" --pairs 2 --nodes 48 --max-plies 100)
-    set_tests_properties(match PROPERTIES TIMEOUT 180)
+    add_test(NAME baseline-uci
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline_uci_tests.py"
+              "$<TARGET_FILE:inezita>")
+    set_tests_properties(baseline-uci PROPERTIES TIMEOUT 180)
 
     add_test(NAME contracts
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/contracts_tests.py"
@@ -116,6 +116,8 @@ if(BUILD_TESTING)
               "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/neural_uci_tests.py")
     add_test(NAME neural-diagnostics
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/diagnostics_tests.py")
-    set_tests_properties(model training neural-uci neural-diagnostics PROPERTIES TIMEOUT 180)
+    add_test(NAME benchmark-integrity
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/benchmark_tests.py")
+    set_tests_properties(model training neural-uci neural-diagnostics benchmark-integrity PROPERTIES TIMEOUT 180)
   endif()
 endif()
