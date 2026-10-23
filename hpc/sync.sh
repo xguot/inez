@@ -62,6 +62,12 @@ rsync "${RSYNC_FLAGS[@]}" \
     --include='/inez_train_*.err' \
     --include='/inez_prepare_*.out' \
     --include='/inez_prepare_*.err' \
+    --include='/inezita_smoke_*.out' \
+    --include='/inezita_smoke_*.err' \
+    --include='/inezita_train_*.out' \
+    --include='/inezita_train_*.err' \
+    --include='/inezita_prepare_*.out' \
+    --include='/inezita_prepare_*.err' \
     --exclude='*' \
     "${REMOTE_HOST}:${REMOTE_PATH}/" "${ROOT_DIR}/hpc/logs/"
 echo "  Job logs synced into hpc/logs/"

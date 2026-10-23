@@ -4,11 +4,11 @@
 # Builds the C++20 engine, runs CTest contract/model checks, verifies CUDA
 # overfit on a small diagnostic batch, and exports a verified v1 model artifact.
 # Run from the repository root: sbatch hpc/run_smoke.slurm
-#SBATCH --job-name=inez_smoke
+#SBATCH --job-name=inezita_smoke
 # Keep bootstrap logs in the existing submission directory: Slurm opens these
 # before the script runs, so a missing log subdirectory prevents startup.
-#SBATCH --output=inez_smoke_%j.out
-#SBATCH --error=inez_smoke_%j.err
+#SBATCH --output=inezita_smoke_%j.out
+#SBATCH --error=inezita_smoke_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -38,7 +38,7 @@ cleanup() {
     # Start logging before Python selection, mktemp, or module initialization.
     JOB_TMP=""
     trap cleanup EXIT
-    echo "Inez Slurm GPU smoke test; job=${JOB_ID} host=$(hostname)"
+    echo "Inezita Slurm GPU smoke test; job=${JOB_ID} host=$(hostname)"
     echo "Output: ${OUT_DIR}"
 
     if [[ -n "${INEZ_PYTHON:-}" ]]; then
@@ -57,7 +57,7 @@ cleanup() {
         fi
     fi
 
-    JOB_TMP="$(mktemp -d "${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/inez-smoke.XXXXXX")"
+    JOB_TMP="$(mktemp -d "${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/inezita-smoke.XXXXXX")"
     export TMPDIR="${JOB_TMP}"
     export XDG_CACHE_HOME="${JOB_TMP}/cache"
     export PYTHONDONTWRITEBYTECODE=1

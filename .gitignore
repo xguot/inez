@@ -23,3 +23,5 @@ __pycache__/
 /inezita_train_*.err
 /*.pdf
 /docs/papers/
+/inezita_smoke_*.out
+/inezita_smoke_*.err

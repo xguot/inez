@@ -88,7 +88,7 @@ std::string snapshot(const inez::Position &position)
 
 void usage(std::ostream &out)
 {
-	out << "Inez versioned neural encoding inspector\n"
+	out << "Inezita versioned neural encoding inspector\n"
 	       "Read commands from stdin; each response is one JSON line.\n"
 	       "Commands: start, fen <FEN>, push <UCI move>, pop, encode, quit.\n";
 }

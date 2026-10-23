@@ -36,7 +36,7 @@ compressed data with `zstd -dc` or a streaming Zstandard reader.
 
 ## Preparation before training
 
-`tools/train_inez.py prepare` imports Elite PGNs into version-1 records and
+`tools/train_inezita.py prepare` imports Elite PGNs into version-1 records and
 generates separate Stockfish labels. `tools/dataset.py` validates and splits
 existing records. Import retains game history, rejects invalid/unfinished games,
 records selection/label provenance, and excludes tactical and cross-split board

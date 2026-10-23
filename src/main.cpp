@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 	    env_py != nullptr && env_py[0] != '\0') {
 		python_bin = env_py;
 		if (!is_executable(python_bin)) {
-			std::cerr << "Inez: set INEZ_PYTHON to Python with training/requirements.txt installed.\n";
+			std::cerr << "Inezita: set INEZ_PYTHON to Python with training/requirements.txt installed.\n";
 			return 1;
 		}
 	} else if (is_executable(root_dir + "/.venv-model/bin/python")) {
@@ -76,6 +76,6 @@ int main(int argc, char* argv[])
 	else
 		::execv(python_bin.c_str(), args.data());
 
-	std::cerr << "Inez: set INEZ_PYTHON to Python with training/requirements.txt installed.\n";
+	std::cerr << "Inezita: set INEZ_PYTHON to Python with training/requirements.txt installed.\n";
 	return 1;
 }

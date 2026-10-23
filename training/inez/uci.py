@@ -18,9 +18,7 @@ from .model import load_checkpoint
 from .puct import NeuralEvaluator, choose_move, search
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_MODEL = (ROOT / 'results/training/inezita'
-                 if (ROOT / 'results/training/inezita/accepted.json').is_file()
-                 else ROOT / 'results/training/inez-29m-pilot')
+DEFAULT_MODEL = ROOT / 'results/training/inezita'
 DEFAULT_THREADS = min(4, os.cpu_count() or 1)
 GO_NUMBERS = {'nodes', 'movetime', 'wtime', 'btime', 'winc', 'binc', 'movestogo', 'depth'}
 GO_FLAGS = {'infinite', 'ponder', 'mate', 'searchmoves'}
@@ -153,7 +151,7 @@ class NeuralUci:
             print(line, file=self.output, flush=True)
 
     def diagnostic(self, message):
-        print(f'Inez: {message}', file=self.log, flush=True)
+        print(f'Inezita: {message}', file=self.log, flush=True)
 
     def ensure_model(self):
         if self.evaluator is not None:
@@ -180,7 +178,7 @@ class NeuralUci:
         self.ensure_model()
         board = self.board.copy(stack=True)
         self.cancel.clear()
-        self.worker = threading.Thread(target=self.think, args=(board, limits), name='inez-search')
+        self.worker = threading.Thread(target=self.think, args=(board, limits), name='inezita-search')
         self.worker.start()
 
     def think(self, board, limits):
@@ -263,8 +261,8 @@ class NeuralUci:
             return True
         command, args = tokens[0], tokens[1:]
         if command == 'uci':
-            self.write('id name Inez 0.1.1')
-            self.write('id author Inez Developers')
+            self.write('id name Inezita 0.1.1')
+            self.write('id author Inezita Developers')
             self.write(f'option name ModelPath type string default {self.model_path}')
             self.write(f'option name Device type combo default {self.device} var cpu var mps var cuda')
             self.write(f'option name Threads type spin default {self.threads} min 1 max 64')

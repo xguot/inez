@@ -317,7 +317,7 @@ void uci_protocol_and_stream_separation()
 	const std::string out_text = output.str();
 	const std::string log_text = diagnostics.str();
 
-	REQUIRE(out_text.find("id name Inez") != std::string::npos);
+	REQUIRE(out_text.find("id name Inezita") != std::string::npos);
 	REQUIRE(out_text.find("uciok\n") != std::string::npos);
 	REQUIRE(out_text.find("readyok\n") != std::string::npos);
 	REQUIRE(out_text.find("bestmove e1e8\n") != std::string::npos);

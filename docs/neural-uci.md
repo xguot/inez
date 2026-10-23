@@ -1,36 +1,35 @@
-# Play the trained Inez in En Croissant
+# Play the trained Inezita in En Croissant
 
-Select the executable **`build/inez`** when adding a local UCI engine to your
+Select the executable **`build/inezita`** when adding a local UCI engine to your
 chess GUI. It launches the trained neural model and the same reference PUCT
 search used for training gates. Pulling updated weights does not require
-rebuilding `build/inez` or retraining the model.
+rebuilding `build/inezita` or retraining the model.
 
 The binary finds Python in `.venv-model`, then `.venv`, then `PATH`. Install
 `training/requirements.txt` in that interpreter first if necessary. Set
 `INEZ_PYTHON=/absolute/path/to/python` to select another interpreter. The engine
 works when the GUI starts it from another working directory. Keep the checkout
-intact; it needs the Python sources and a model artifact alongside `build/inez`.
+intact; it needs the Python sources and a model artifact alongside `build/inezita`.
 
-The default **ModelPath** is `results/training/inezita` (falling back to
-`results/training/inez-29m-pilot` if `inezita` has not yet been pulled locally).
+The default **ModelPath** is `results/training/inezita`.
 The engine reads that run's `accepted.json` and loads the selected artifact.
 Absolute cluster paths in copied results resolve against the local copy of the
 same run, without editing any training metadata. If you renamed a copied run,
 select the artifact directory directly in ModelPath. Copy both `manifest.json`
 and `weights.pt`.
 
-The engine appears as **Inez 0.1.1**. Its stderr log records the actual
+The engine appears as **Inezita 0.1.1**. Its stderr log records the actual
 artifact path, parameter count and device when loaded. The manifest, encoding
 contract and weight checksum are validated before playing. Missing, corrupt or
 incompatible artifacts cause an explicit error; there is no heuristic fallback.
-For C++ baseline search regression tests, `build/inez --baseline` (or
+For C++ baseline search regression tests, `build/inezita --baseline` (or
 `INEZ_BASELINE=1`) runs the handcrafted material/uniform evaluator.
 
 ## Settings
 
 | UCI option | Default | Meaning |
 | --- | --- | --- |
-| ModelPath | Original pilot run | Run directory, `accepted.json`, or an artifact directory |
+| ModelPath | `results/training/inezita` | Run directory, `accepted.json`, or an artifact directory |
 | Device | `cpu` | `cpu`, Apple `mps`, or NVIDIA `cuda`; explicit device availability is checked |
 | Threads | Up to 4 | PyTorch CPU threads, 1–64 |
 | Simulations | 128 | PUCT simulations when `go` supplies no search limits |
@@ -77,14 +76,14 @@ the engine unusable for subsequent searches rather than selecting another evalua
 To run from a terminal:
 
 ```sh
-./build/inez
+./build/inezita
 # Then enter: uci, isready, position startpos, go movetime 3000, quit
 ```
 
 Or choose another model/device:
 
 ```sh
-./build/inez --model results/training/inez-29m-continue --device cpu --threads 4
+./build/inezita --model results/training/inezita-continue --device cpu --threads 4
 ```
 
 Protocol tests, including independent python-chess client integration:

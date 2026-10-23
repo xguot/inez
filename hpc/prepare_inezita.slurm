@@ -44,7 +44,7 @@ fi
 export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-16}"
 export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
-"${PY}" -u tools/train_inez.py prepare \
+"${PY}" -u tools/train_inezita.py prepare \
     --config "${TRAIN_CONFIG:-configs/train/inezita.json}" \
     --data-dir "${DATA_DIR:-data/processed/inezita}" \
     --stockfish "${INEZ_STOCKFISH:-stockfish}" --threads "${OMP_NUM_THREADS}"

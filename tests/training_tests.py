@@ -257,9 +257,9 @@ class CurriculumTests(unittest.TestCase):
 
     def test_pipeline_portable_resume_skips_completed_stages_and_reuses_selfplay(self):
         sys.path.insert(0, str(ROOT / 'tools'))
-        from train_inez import pipeline
+        from train_inezita import pipeline
         model_config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4)
-        config = json.loads((ROOT / 'configs/train/inez-29m.json').read_text())
+        config = json.loads((ROOT / 'configs/train/inezita.json').read_text())
         config['training'].update(human_steps=1, teacher_steps=1, selfplay_steps=2,
                                   batch_size=1, checkpoint_every=2, selfplay_lr=0.00003)
         config['selfplay']['rounds'] = 2
@@ -299,10 +299,10 @@ class CurriculumTests(unittest.TestCase):
                                    data_dir=str(data), resume_mode='exact')
             def dataset(directory, split):
                 return [teacher if Path(directory).name == 'teacher' else example()]
-            with patch('train_inez.dataset_records', side_effect=dataset), \
-                 patch('train_inez.ChampionGate', return_value=lambda *args: None), \
-                 patch('train_inez.selfplay_records', return_value=([search_record], {})) as generate:
-                with patch('train_inez.train_stage', side_effect=interrupt_selfplay):
+            with patch('train_inezita.dataset_records', side_effect=dataset), \
+                 patch('train_inezita.ChampionGate', return_value=lambda *args: None), \
+                 patch('train_inezita.selfplay_records', return_value=([search_record], {})) as generate:
+                with patch('train_inezita.train_stage', side_effect=interrupt_selfplay):
                     with self.assertRaises(InterruptedError):
                         pipeline(args, config, model_config)
                 self.assertEqual(json.loads((run / 'curriculum.json').read_text())['completed'],
@@ -314,7 +314,7 @@ class CurriculumTests(unittest.TestCase):
                     state['context']['torch'] = 'old-build'
                     torch.save(state, path)
                 args.resume_mode = 'portable'
-                with patch('train_inez.train_stage', side_effect=check_initialization) as stages:
+                with patch('train_inezita.train_stage', side_effect=check_initialization) as stages:
                     pipeline(args, config, model_config)
                 self.assertEqual(stages.call_count, 2)
                 self.assertEqual(stages.call_args.kwargs['stage'], 'selfplay')
@@ -328,14 +328,14 @@ class CurriculumTests(unittest.TestCase):
                 final = torch.load(run / 'selfplay-001/last.pt', weights_only=True)
                 self.assertEqual(final['step'], 2)
                 self.assertEqual(final['resume_history'][0]['step'], 1)
-                with patch('train_inez.train_stage') as stages:
+                with patch('train_inezita.train_stage') as stages:
                     pipeline(args, config, model_config)
                 stages.assert_not_called()
                 self.assertEqual(generate.call_count, 2)
 
     def test_gate_summary_explains_rejection_from_existing_reports(self):
         sys.path.insert(0, str(ROOT / 'tools'))
-        from train_inez import gate_summary
+        from train_inezita import gate_summary
         result = {'passed': False, 'opponents': [{'opponent': '/accepted', 'passed': False,
             'score': 0.5, 'score_lower_bound': 0.1, 'completed_games': 2,
             'games': [{'candidate_score': 1.0}, {'candidate_score': 0.0}, {'candidate_score': None}],
@@ -368,7 +368,7 @@ class CurriculumTests(unittest.TestCase):
                  'score_lower_bound': 0.25, 'completed_games': 2, 'tactical_regressions': [],
                  'games': [{'candidate_score': 0.5}, {'candidate_score': 0.5}]}]})
             before = {str(path): sha256(path) for path in root.rglob('*') if path.is_file()}
-            proc = subprocess.run([sys.executable, str(ROOT / 'tools/train_inez.py'), 'status',
+            proc = subprocess.run([sys.executable, str(ROOT / 'tools/train_inezita.py'), 'status',
                 '--run-dir', str(root), '--config', str(root / 'missing-config.json'), '--device', 'cuda'],
                 env={**os.environ, 'CUDA_VISIBLE_DEVICES': ''}, capture_output=True, text=True, timeout=30)
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
@@ -428,7 +428,7 @@ while True:
             fake.chmod(0o755)
             env = {**os.environ, 'INEZ_ROOT': str(root), 'INEZ_PYTHON': str(fake),
                    'RUN_DIR': str(root / 'run'), 'RESUME_MODE': 'portable'}
-            proc = subprocess.Popen(['bash', str(ROOT / 'hpc/train_29m.slurm')], env=env,
+            proc = subprocess.Popen(['bash', str(ROOT / 'hpc/train_inezita.slurm')], env=env,
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             try:
                 deadline = time.monotonic() + 10
@@ -455,7 +455,7 @@ while True:
 
     def test_rejected_candidate_cannot_replace_accepted_model(self):
         sys.path.insert(0, str(ROOT / 'tools'))
-        from train_inez import ChampionGate
+        from train_inezita import ChampionGate
         model_config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4)
         class Stop:
             requested = False
@@ -470,12 +470,12 @@ while True:
                       'gate': {'historical_opponents': 2, 'openings': [[]], 'pairs': 1,
                                'simulations': 1, 'max_plies': 8, 'minimum_score': 0.55}}
             gate = ChampionGate(root, config, model_config, torch.device('cpu'), Stop())
-            with patch('train_inez.evaluate_candidate', return_value={'passed': True, 'games': []}):
+            with patch('train_inezita.evaluate_candidate', return_value={'passed': True, 'games': []}):
                 gate(root / 'good', root / 'good-report.json')
             good = json.loads((root / 'accepted.json').read_text())
             self.assertEqual(good['artifact'], str((root / 'good').resolve()))
             self.assertEqual(len(good['history']), 2)
-            with patch('train_inez.evaluate_candidate', return_value={'passed': False, 'games': []}):
+            with patch('train_inezita.evaluate_candidate', return_value={'passed': False, 'games': []}):
                 gate(root / 'bad', root / 'bad-report.json')
             self.assertEqual(json.loads((root / 'accepted.json').read_text()), good)
             # Simulate a crash after the promotion report, before its pointer.

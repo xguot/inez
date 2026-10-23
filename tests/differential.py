@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare the streaming rules CLI with an independent python-chess oracle.
 
-Usage: python3 tests/differential.py /path/to/inez-rules
+Usage: python3 tests/differential.py /path/to/inezita-rules
 The pinned oracle is a test dependency, not an engine dependency.
 """
 
@@ -211,7 +211,7 @@ class DifferentialTests:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("executable", help="path to inez-rules")
+    parser.add_argument("executable", help="path to inezita-rules")
     parser.add_argument("--seed", type=int, default=20261018)
     parser.add_argument("--games", type=int, default=12)
     parser.add_argument("--plies", type=int, default=80)

@@ -4,7 +4,7 @@ The search layer (`include/inez/search.hpp`, `src/search.cpp`) and UCI engine
 (`include/inez/uci.hpp`, `src/uci.cpp`, `src/main.cpp`) provide a playable,
 measurable MCTS/PUCT baseline on top of the rules core.
 
-To play trained neural weights in a GUI, use `build/inez` in its default
+To play trained neural weights in a GUI, use `build/inezita` in its default
 [neural UCI mode](neural-uci.md); pass `--baseline` (or `INEZ_BASELINE=1`) for
 the C++ heuristic baseline.
 
@@ -46,7 +46,7 @@ During tree traversal, `Search` selects edges maximizing `Q + U`:
 
 ## UCI protocol and stream separation
 
-The `inez` executable speaks UCI on `stdin`/`stdout` and writes diagnostic
+The `inezita` executable speaks UCI on `stdin`/`stdout` and writes diagnostic
 telemetry (`diag nodes=... batches=... avg_batch=... batch_util=... eval_us=...`)
 and warnings/errors exclusively to `stderr` (`log`). Supported commands:
 
@@ -63,20 +63,20 @@ and warnings/errors exclusively to `stderr` (`log`). Supported commands:
 
 ## Automated match runner and baseline report
 
-`tools/match.py` pairs two UCI configurations (`inez-material` vs.
-`inez-uniform`) across 8 balanced openings with reversed colors, validates every
+`tools/match.py` pairs two UCI configurations (`inezita-material` vs.
+`inezita-uniform`) across 8 balanced openings with reversed colors, validates every
 move with `python-chess`, tracks crashes/illegal moves/timeouts, computes 95%
 Elo confidence bounds and SPRT log-likelihood ratios, runs a 6-position
 tactical/endgame suite, and benchmarks fixed-node and timed runs:
 
 ```sh
-.venv/bin/python tools/match.py build/inez --pairs 4 --nodes 64 --batch-size 4
+.venv/bin/python tools/match.py build/inezita --pairs 4 --nodes 64 --batch-size 4
 ```
 
 ### Baseline verification results (Release build)
 
 - **Paired-opening match (`4` pairs / `8` games, `64` nodes/move, `BatchSize=4`)**:
-  `inez-material` vs. `inez-uniform` scored **+8 =0 -0** (`100.0%`, all 8 won by
+  `inezita-material` vs. `inezita-uniform` scored **+8 =0 -0** (`100.0%`, all 8 won by
   checkmate across `startpos`, `italian`, `sicilian_open`, and `french_advance`
   with colors reversed), `0` crashes, `0` illegal moves, `0` timeouts, and
   `SPRT(0, 50)` `LLR = +5.31 > +2.94` (`H1_accepted`).

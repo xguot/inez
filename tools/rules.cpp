@@ -99,7 +99,7 @@ void require_no_arguments(std::string_view arguments)
 
 void usage(std::ostream &out)
 {
-	out << "Inez standard-chess rules inspector\n"
+	out << "Inezita standard-chess rules inspector\n"
 	       "Read commands from stdin; each response is one JSON line.\n"
 	       "Commands: start, fen <FEN>, push <UCI move>, pop, state,\n"
 	       "          perft <nonnegative depth>, quit.\n";

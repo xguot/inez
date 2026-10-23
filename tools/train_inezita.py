@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Prepare Elite/Stockfish data and run gated 29M Inez learning stages."""
+"""Prepare Elite/Stockfish data and run gated 29M Inezita learning stages."""
 
 import argparse
 from contextlib import contextmanager
@@ -86,7 +86,7 @@ def download_archive(path, url):
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + '.part')
-    request = urllib.request.Request(url, headers={'User-Agent': 'InezTraining/1.0'})
+    request = urllib.request.Request(url, headers={'User-Agent': 'InezitaTraining/1.0'})
     try:
         with urllib.request.urlopen(request, timeout=60) as response, temporary.open('wb') as stream:
             size = 0
@@ -131,7 +131,7 @@ def resolve_stockfish(value):
     url = 'https://github.com/official-stockfish/Stockfish/releases/download/sf_17.1/' + asset + '.tar'
     archive = destination / (asset + '.tar')
     temporary = archive.with_suffix('.part')
-    request = urllib.request.Request(url, headers={'User-Agent': 'InezTraining/1.0'})
+    request = urllib.request.Request(url, headers={'User-Agent': 'InezitaTraining/1.0'})
     if not archive.exists():
         with urllib.request.urlopen(request, timeout=60) as response, temporary.open('wb') as stream:
             shutil.copyfileobj(response, stream)

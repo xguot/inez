@@ -63,7 +63,7 @@ export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 CONFIG="${TRAIN_CONFIG:-configs/train/inezita.json}"
-"${PY}" -u tools/train_inez.py preflight --config "${CONFIG}" --device cuda
+"${PY}" -u tools/train_inezita.py preflight --config "${CONFIG}" --device cuda
 if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 fi
@@ -84,7 +84,7 @@ request_checkpoint() {
     fi
 }
 trap request_checkpoint USR1 TERM
-"${PY}" -u tools/train_inez.py "${ARGS[@]}" &
+"${PY}" -u tools/train_inezita.py "${ARGS[@]}" &
 TRAIN_PID=$!
 if [[ "${STOP_PENDING}" == 1 ]]; then request_checkpoint; fi
 # wait is interrupted by the Slurm warning signal; keep waiting for the child

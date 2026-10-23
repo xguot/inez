@@ -1,7 +1,7 @@
 # Staged learning and Inezita (~29M) training on Rivanna
 
-Human games initialize **Inezita** (`inezita`, our ~29.2M model; the bare name
-**`inez`** is reserved for the future ~229M grand model). Later stages use
+Human games initialize **Inezita** (`inezita`, our ~29.2M model; the name
+**`inze`** is reserved for the future ~229M grand model). Later stages use
 independent Stockfish targets and neural PUCT self-play. This reduces dependence
 on human mistakes; it does not guarantee monotonic true playing strength.
 Promotion requires game results and tactical regression checks.
@@ -102,7 +102,7 @@ Every exported candidate is tested with the **Python neural PUCT reference**
 against up to two previously accepted versions. The native UCI engine still
 uses heuristic evaluators; native neural inference integration is future work.
 The trained Python player is available to chess GUIs through the
-[`build/inez` UCI engine](neural-uci.md).
+[`build/inezita` UCI engine](neural-uci.md).
 Both models receive equal search budgets and paired openings with colors
 reversed.
 
@@ -132,7 +132,7 @@ the score lower bound did not exceed 50%, even if the raw score was sufficient.
 Inspect an existing run on a login node without allocating a GPU:
 
 ```sh
-"${INEZ_PYTHON:-$HOME/.conda/envs/inez/bin/python}" tools/train_inez.py status \
+"${INEZ_PYTHON:-$HOME/.conda/envs/inez/bin/python}" tools/train_inezita.py status \
     --run-dir results/training/inezita
 ```
 
@@ -195,10 +195,10 @@ reuses the prepared data and keeps the same gate. It runs 15,000 teacher steps a
 3e-5, then two rounds of 3,000 self-play steps at a separate 1e-5 learning rate,
 with 75% teacher replay and evaluation every 3,000 steps.
 
-For a run whose accepted model is `teacher/candidate-0002000`:
+For a run whose accepted model is `teacher/candidate-0020000`:
 
 ```sh
-export INIT_ARTIFACT="$PWD/results/training/inez-29m-pilot/teacher/candidate-0002000"
+export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
 export RUN_DIR="$PWD/results/training/inezita-continue"
 export TRAIN_CONFIG=configs/train/inezita-continue.json
 export RESUME_MODE=portable

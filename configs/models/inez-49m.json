@@ -1,9 +1,0 @@
-{
-  "width": 768,
-  "layers": 11,
-  "heads": 24,
-  "ffn_ratio": 1.5,
-  "dynamic_rank": 32,
-  "policy_width": 64,
-  "dropout": 0.0
-}

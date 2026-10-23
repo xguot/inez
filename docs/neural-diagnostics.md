@@ -1,18 +1,18 @@
-# Neural Inez diagnostics
+# Neural Inezita diagnostics
 
 Run the accepted model through the actual Python UCI adapter, with fixed search
 budgets and no training or promotion changes:
 
 ```sh
 .venv-model/bin/python tools/evaluate_neural.py \
-  --model results/training/inez-29m-pilot \
+  --model results/training/inezita \
   --simulations 32 128 512 --threads 4 \
   --output results/evaluation/neural-diagnostics/my-run.json
 ```
 
 The interpreter needs `training/requirements.txt`. CPU is the default;
 `--device mps` and `--device cuda` require an available compatible accelerator.
-Model selection uses the same strict artifact loader as `build/inez`, including
+Model selection uses the same strict artifact loader as `build/inezita`, including
 the accepted checkpoint pointer and weight checksum verification. The runner
 starts a separate UCI process using the same interpreter, model and device.
 It checks legal moves, legal principal variations and completion of the requested
@@ -67,18 +67,18 @@ separately and must not inflate the learned model's tactical score.
 ## Independent label verification
 
 Optionally require a local Stockfish executable to confirm move labels and value
-ordering before testing Inez:
+ordering before testing Inezita:
 
 ```sh
 .venv-model/bin/python tools/evaluate_neural.py \
-  --model results/training/inez-29m-pilot --simulations 32 128 512 \
+  --model results/training/inezita --simulations 32 128 512 \
   --stockfish /absolute/path/to/stockfish --reference-nodes 100000 \
   --output results/evaluation/neural-diagnostics/verified-run.json
 ```
 
 Reference analysis uses one thread, 64 MiB hash and full strength, with a fixed
 node budget. A disagreement aborts evaluation instead of relabeling the case to
-match Inez. The reference binary checksum, identity, options and returned scores
+match Inezita. The reference binary checksum, identity, options and returned scores
 are recorded. Finite search is supporting evidence; mate, stalemate, promotion
 outcomes and history controls also have direct rule-based tests.
 

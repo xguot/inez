@@ -113,6 +113,6 @@ class ContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit("Usage: contracts_tests.py /path/to/inez-encode")
+        sys.exit("Usage: contracts_tests.py /path/to/inezita-encode")
     BINARY = sys.argv[1]
     unittest.main(argv=[sys.argv[0]])

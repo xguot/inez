@@ -89,7 +89,7 @@ CI runs both suites in release and sanitized debug builds on Linux.
 For a longer local differential run:
 
 ```sh
-.venv/bin/python tests/differential.py build/inez-rules \
+.venv/bin/python tests/differential.py build/inezita-rules \
   --seed 42 --games 100 --plies 160
 ```
 

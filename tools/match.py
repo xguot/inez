@@ -436,7 +436,7 @@ def run_diagnostics_benchmark(executable: str, nodes: int, movetime_ms: int, bat
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("executable", help="path to inez UCI executable")
+    parser.add_argument("executable", help="path to inezita UCI executable")
     parser.add_argument("--pairs", type=int, default=4, help="number of paired openings (2 games per pair)")
     parser.add_argument("--nodes", type=int, default=64, help="fixed nodes per move in match games")
     parser.add_argument("--movetime-ms", type=int, default=None, help="optional fixed movetime (ms) instead of nodes")
@@ -454,12 +454,12 @@ def main() -> None:
         parser.error("--pairs must be at least 1")
 
     candidate_spec = EngineSpec(
-        name="inez-material",
+        name="inezita-material",
         executable=args.executable,
         options={"Evaluator": "material", "BatchSize": str(args.batch_size)},
     )
     baseline_spec = EngineSpec(
-        name="inez-uniform",
+        name="inezita-uniform",
         executable=args.executable,
         options={"Evaluator": "uniform", "BatchSize": "1"},
     )
