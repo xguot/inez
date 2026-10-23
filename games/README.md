@@ -15,7 +15,7 @@ October 19, 2026. Xiyuan played Black and won by checkmate, 0-1.
 This PGN does not include time controls or engine search settings. Preserve
 those settings with future games when they are available.
 
-[Games against Xiyuan](recorded/xiyuan.pgn) includes the October 20 game with Inez winning as
+[Games against Xiyuan](recorded/Xiyuan.pgn) includes the October 20 game with Inez winning as
 White, 1-0, after `13.Nxa8`. The supplied En Croissant headers retain Black's
 display name `Player`, the time control `600+0.001`, and all move clocks. The
 final board is not checkmate; the record does not specify the termination reason.
@@ -38,7 +38,7 @@ PUCT simulations. A short Stockfish analysis preferred `8.Bb3`. This is a
 diagnostic of the current checkpoint, not proof that the unpinned PGN used
 identical weights or a calibrated rating measurement.
 
-The third game in `xiyuan.pgn`, also dated October 21, identifies White as
+The third game in `Xiyuan.pgn`, also dated October 21, identifies White as
 `Inez 0.1.1` against `Player` (`600+0.001`, result `*` after `6.d3`). After
 `1.Nc3 d5 2.Nf3 d4 3.Nb5 Nc6`, White played `4.Nbxd4??`, losing a knight for a
 pawn after `4...Nxd4 5.Nxd4 Qxd4`. Replaying the position with the accepted
@@ -49,7 +49,13 @@ White), motivating the opening-ply (`min_ply: 0`), off-policy blunder
 relabeling, MCO opening book, decoupled material value pooling, and PUCT
 first-play urgency fixes.
 
-`xiyuan.pgn` uses the player-specific filename requested for this record. New
+`Xiyuan.pgn` uses the player-specific filename requested for this record. New
 dated records should continue to follow the naming convention above. Recorded
 games are not automatically added to the training corpus or acceptance gates.
 
+The fourth game, dated October 23, records **Inezita 0.1.2's first win against
+Xiyuan**, as reported by Xiyuan. Inezita played White and won 1-0 after
+`21.Rxc7`. The original En Croissant headers, `600+0.001` time control, and
+all move clocks are preserved. The final position is not checkmate; the supplied
+record does not specify the termination reason. This is the first reported win
+by the trained neural model, distinct from the older handcrafted engine's win.
