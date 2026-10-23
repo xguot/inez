@@ -28,6 +28,7 @@ import chess.pgn
 import torch
 
 from inez.curriculum import atomic_json, sha256
+from inez.device import validate_cuda_runtime
 from inez.uci import DEFAULT_MODEL, resolve_artifact
 
 BOOK_REVISION = 'a804a97e709f40aa75a00f9d19e84915b7a3a45c'
@@ -207,7 +208,44 @@ def fastchess_command(args, output, candidate, opponent):
     return command
 
 
+def wait_for_tournament(child):
+    """Forward interrupts and always reap the child before restoring handlers."""
+    previous = {}
+
+    def interrupted(signum, frame):
+        if child.poll() is None:
+            try:
+                child.send_signal(signal.SIGINT)
+            except ProcessLookupError:
+                pass
+        raise InterruptedError(f'benchmark interrupted by signal {signum}')
+
+    try:
+        for signum in (signal.SIGTERM, signal.SIGINT):
+            previous[signum] = signal.getsignal(signum)
+            signal.signal(signum, interrupted)
+        return child.wait()
+    finally:
+        try:
+            if child.poll() is None:
+                try:
+                    child.send_signal(signal.SIGINT)
+                except ProcessLookupError:
+                    pass
+                try:
+                    child.wait(timeout=20)
+                except subprocess.TimeoutExpired:
+                    child.kill()
+                    child.wait()
+        finally:
+            for signum, handler in previous.items():
+                # Native libraries may install C handlers represented by None.
+                # None is a valid getsignal result but not a signal() argument.
+                signal.signal(signum, signal.SIG_DFL if handler is None else handler)
+
+
 def execute(args, report):
+    report['cuda_preflight'] = validate_cuda_runtime(args.device)
     candidate = artifact_record(args.model)
     opponent = artifact_record(args.opponent or previous_artifact(args.model))
     if candidate['weights_sha256'] == opponent['weights_sha256']:
@@ -221,8 +259,6 @@ def execute(args, report):
         cuda_runtime=torch.version.cuda, precision='float32',
         host=platform.node(), platform=platform.platform(), device=args.device, threads=args.threads,
         slurm_job_id=os.environ.get('SLURM_JOB_ID'), cuda_visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES'))
-    if args.device == 'cuda' and not torch.cuda.is_available():
-        raise ValueError('CUDA requested but unavailable')
     report['device_name'] = torch.cuda.get_device_name(0) if args.device == 'cuda' else platform.processor()
     if args.openings:
         text = args.openings.read_text(encoding='utf-8-sig')
@@ -260,7 +296,12 @@ def execute(args, report):
             if engine.id.get('name') != 'Inezita 0.1.2' or 'ModelPath' not in engine.options:
                 raise ValueError('benchmark requires the Inezita 0.1.2 neural UCI launcher')
             engine.configure({'ModelPath': artifact['path'], 'Device': args.device, 'Threads': args.threads})
-            engine.ping()  # Strict model/architecture/encoding/device validation.
+            engine.ping()
+            # Loading weights alone did not expose the V100/cu130 mismatch.
+            # Run the actual neural forward/search path before a tournament.
+            result = engine.play(chess.Board(), chess.engine.Limit(nodes=1))
+            if result.move not in chess.Board().legal_moves:
+                raise RuntimeError('neural preflight returned an illegal move')
     command = fastchess_command(args, args.output, candidate, opponent)
     report.update(command=command, status='running', match_started_utc=utc_now())
     atomic_json(args.output / 'manifest.json', report)
@@ -268,22 +309,9 @@ def execute(args, report):
     print('Output:', args.output, flush=True)
     with (args.output / 'tournament.out').open('w') as out:
         child = subprocess.Popen(command, cwd=args.output, env=env, stdout=out, stderr=subprocess.STDOUT)
-        def interrupted(signum, frame):
-            child.send_signal(signal.SIGINT)
-            raise InterruptedError(f'benchmark interrupted by signal {signum}')
-        prior = {sig: signal.signal(sig, interrupted) for sig in (signal.SIGTERM, signal.SIGINT)}
         try:
-            report['returncode'] = child.wait()
+            report['returncode'] = wait_for_tournament(child)
         finally:
-            for sig, handler in prior.items():
-                signal.signal(sig, handler)
-            if child.poll() is None:
-                child.send_signal(signal.SIGINT)
-                try:
-                    child.wait(timeout=20)
-                except subprocess.TimeoutExpired:
-                    child.kill()
-                    child.wait()
             report['summary'] = audit_games(args.output / 'games.pgn', openings)
     if artifact_record(candidate['path']) != candidate or artifact_record(opponent['path']) != opponent:
         raise ValueError('model artifacts changed during the tournament')

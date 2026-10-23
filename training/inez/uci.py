@@ -15,6 +15,7 @@ import chess
 import torch
 
 from .model import load_checkpoint
+from .device import validate_cuda_runtime
 from .puct import NeuralEvaluator, choose_move, search
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -156,8 +157,7 @@ class NeuralUci:
     def ensure_model(self):
         if self.evaluator is not None:
             return
-        if self.device == 'cuda' and not torch.cuda.is_available():
-            raise RuntimeError('CUDA requested but unavailable')
+        validate_cuda_runtime(self.device)
         if self.device == 'mps' and not torch.backends.mps.is_available():
             raise RuntimeError('MPS requested but unavailable')
         torch.set_num_threads(self.threads)

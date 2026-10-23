@@ -8,6 +8,7 @@
 #SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
+#SBATCH --constraint=a100_40gb
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
 #SBATCH --time=04:00:00
@@ -43,10 +44,14 @@ export PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS="${BENCH_THREADS:-4}" MKL_NUM_THREADS="${BENCH_THREADS:-4}"
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 
+# Fail before compiling/downloading if the selected card cannot execute kernels.
+PYTHONPATH="${ROOT_DIR}/training:${PYTHONPATH:-}" "${PY}" -m inez.device --device "${BENCH_DEVICE:-cuda}"
+
 # Pin the tournament engine instead of following a moving branch.
 FASTCHESS_REV=f618e34540f94f4719ad3817950618dabe441318
 if [[ -z "${FASTCHESS:-}" ]]; then
-    FASTCHESS_DIR="${ROOT_DIR}/data/raw/benchmarks/fastchess-${FASTCHESS_REV}"
+    # Separate portable objects from older builds made with -march=native.
+    FASTCHESS_DIR="${ROOT_DIR}/data/raw/benchmarks/fastchess-${FASTCHESS_REV}-portable"
     if [[ ! -d "${FASTCHESS_DIR}" ]]; then
         mkdir -p "$(dirname "${FASTCHESS_DIR}")"
         git clone --depth 1 --branch v1.8.2-alpha https://github.com/Disservin/fastchess.git "${FASTCHESS_DIR}"
@@ -54,7 +59,7 @@ if [[ -z "${FASTCHESS:-}" ]]; then
     [[ "$(git -C "${FASTCHESS_DIR}" rev-parse HEAD)" == "${FASTCHESS_REV}" ]] || {
         echo "Cached Fastchess source revision differs from the pin." >&2; exit 1;
     }
-    make -C "${FASTCHESS_DIR}" -j "${SLURM_CPUS_PER_TASK:-8}" CXX="${CXX:-g++}"
+    make -C "${FASTCHESS_DIR}" -j "${SLURM_CPUS_PER_TASK:-8}" CXX="${CXX:-g++}" NATIVE=
     FASTCHESS="${FASTCHESS_DIR}/fastchess"
 fi
 BUILD_DIR="${ROOT_DIR}/build/benchmark"

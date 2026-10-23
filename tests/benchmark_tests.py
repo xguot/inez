@@ -5,9 +5,12 @@
 import io
 import json
 from pathlib import Path
+import signal
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -16,7 +19,8 @@ import chess
 import chess.pgn
 
 from benchmark_inezita import (artifact_record, audit_games, previous_artifact,
-    position_key, select_openings, sha256)
+    position_key, select_openings, sha256, wait_for_tournament)
+from inez.device import validate_cuda_runtime
 
 
 def opening(moves):
@@ -27,6 +31,90 @@ def opening(moves):
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_native_signal_handlers_are_restored_as_default(self):
+        child = MagicMock()
+        child.wait.return_value = 0
+        child.poll.return_value = 0
+        with patch('benchmark_inezita.signal.getsignal', return_value=None), \
+             patch('benchmark_inezita.signal.signal') as install:
+            def validate_handler(signum, handler):
+                if handler is None:
+                    raise TypeError('handler must be callable, SIG_DFL or SIG_IGN')
+            install.side_effect = validate_handler
+            self.assertEqual(wait_for_tournament(child), 0)
+            self.assertEqual(install.call_args_list[-2].args, (signal.SIGTERM, signal.SIG_DFL))
+            self.assertEqual(install.call_args_list[-1].args, (signal.SIGINT, signal.SIG_DFL))
+        child.send_signal.assert_not_called()
+
+    def test_interrupted_child_is_reaped_and_original_error_preserved(self):
+        child = MagicMock()
+        child.poll.return_value = None
+        child.wait.side_effect = [InterruptedError('scheduler stop'), 0]
+        with patch('benchmark_inezita.signal.getsignal', return_value=signal.SIG_IGN), \
+             patch('benchmark_inezita.signal.signal') as install:
+            with self.assertRaisesRegex(InterruptedError, 'scheduler stop'):
+                wait_for_tournament(child)
+            self.assertEqual(install.call_args_list[-1].args, (signal.SIGINT, signal.SIG_IGN))
+        child.send_signal.assert_called_once_with(signal.SIGINT)
+        self.assertEqual(child.wait.call_args.kwargs, {'timeout': 20})
+
+    def test_unresponsive_child_is_killed_during_cleanup(self):
+        child = MagicMock()
+        child.poll.return_value = None
+        child.wait.side_effect = [InterruptedError('scheduler stop'),
+                                 subprocess.TimeoutExpired('fastchess', 20), -9]
+        with patch('benchmark_inezita.signal.getsignal', return_value=None), \
+             patch('benchmark_inezita.signal.signal'):
+            with self.assertRaisesRegex(InterruptedError, 'scheduler stop'):
+                wait_for_tournament(child)
+        child.kill.assert_called_once()
+        self.assertEqual(child.wait.call_count, 3)
+
+    def test_partial_signal_install_failure_still_reaps_child(self):
+        child = MagicMock()
+        child.poll.return_value = None
+        def install(signum, handler):
+            if signum == signal.SIGINT and callable(handler):
+                raise OSError('cannot install')
+        with patch('benchmark_inezita.signal.getsignal', return_value=None), \
+             patch('benchmark_inezita.signal.signal', side_effect=install):
+            with self.assertRaisesRegex(OSError, 'cannot install'):
+                wait_for_tournament(child)
+        child.send_signal.assert_called_once_with(signal.SIGINT)
+        child.wait.assert_called_once_with(timeout=20)
+
+    def test_cpu_preflight_does_not_touch_cuda(self):
+        with patch('inez.device.torch.cuda.is_available') as available, \
+             patch('inez.device.torch.ones') as allocate:
+            self.assertEqual(validate_cuda_runtime('cpu')['device'], 'cpu')
+        available.assert_not_called()
+        allocate.assert_not_called()
+
+    def test_cuda_preflight_detects_v100_kernel_mismatch_before_model_load(self):
+        with patch('inez.device.torch.cuda.is_available', return_value=True), \
+             patch('inez.device.torch.cuda.get_device_name', return_value='Tesla V100-SXM2-32GB'), \
+             patch('inez.device.torch.cuda.get_device_capability', return_value=(7, 0)), \
+             patch('inez.device.torch.cuda.get_arch_list', return_value=['sm_75', 'sm_80']), \
+             patch('inez.device.torch.version.cuda', '13.0'), \
+             patch('inez.device.torch.ones', side_effect=RuntimeError('no kernel image is available')) as allocate:
+            with self.assertRaisesRegex(RuntimeError, 'V100.*sm_70.*a100_40gb.*cu126.*no kernel image'):
+                validate_cuda_runtime('cuda')
+        self.assertEqual(str(allocate.call_args.kwargs['device']), 'cuda')
+
+    def test_cuda_preflight_executes_math_and_synchronizes_supported_device(self):
+        tensor = MagicMock()
+        tensor.__matmul__.return_value.sum.return_value.item.return_value = 4096
+        with patch('inez.device.torch.cuda.is_available', return_value=True), \
+             patch('inez.device.torch.cuda.get_device_name', return_value='NVIDIA A100-SXM4-40GB'), \
+             patch('inez.device.torch.cuda.get_device_capability', return_value=(8, 0)), \
+             patch('inez.device.torch.cuda.get_arch_list', return_value=['sm_80']), \
+             patch('inez.device.torch.ones', return_value=tensor), \
+             patch('inez.device.torch.cuda.synchronize') as synchronize:
+            info = validate_cuda_runtime('cuda')
+        self.assertEqual(info['kernel_probe'], 'passed')
+        self.assertEqual(info['compute_capability'], [8, 0])
+        synchronize.assert_called_once()
+
     def test_opening_slice_is_unique_disjoint_and_preserves_history(self):
         first = opening('e2e4 e7e5 g1f3 b8c6')
         second = opening('d2d4 d7d5 c2c4 e7e6')

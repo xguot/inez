@@ -28,6 +28,7 @@ import torch
 from inez.curriculum import (atomic_json, evaluate_candidate, import_games,
     position_key, read_tactics, relabel_dataset, selfplay_records, sha256)
 from inez.model import ChessTransformer, ModelConfig, load_checkpoint, save_checkpoint
+from inez.device import validate_cuda_runtime
 from inez.records import load_records, validate_record
 from inez.trainer import StopRequested, dataset_records, restore_checkpoint_rng, train_stage
 
@@ -340,8 +341,7 @@ class ChampionGate:
 
 def pipeline(args, config, model_config):
     device = torch.device(args.device)
-    if device.type == 'cuda' and not torch.cuda.is_available():
-        raise ValueError('CUDA requested but unavailable; refusing CPU fallback')
+    validate_cuda_runtime(device)
     if args.init_artifact:
         initial = Path(args.init_artifact).resolve()
         accepted = False
@@ -495,12 +495,11 @@ def main():
         with exclusive_run(args.run_dir, '.train.lock'):
             pipeline(args, config, model_config)
     else:
-        if args.device.startswith('cuda') and not torch.cuda.is_available():
-            parser.error('CUDA is unavailable in this interpreter')
+        runtime = validate_cuda_runtime(args.device)
         with torch.device('meta'):
             model = ChessTransformer(model_config)
         print(json.dumps({'parameters': sum(p.numel() for p in model.parameters()),
-                          'device': args.device, 'torch': str(torch.__version__)}))
+                          'device': args.device, 'torch': str(torch.__version__), 'runtime': runtime}))
 
 
 if __name__ == '__main__':

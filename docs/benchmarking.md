@@ -136,11 +136,16 @@ From the updated checkout on Rivanna, submit the pilot first:
 sbatch hpc/benchmark_inezita.slurm
 ```
 
-This is a 20-game, ten-opening-pair, CUDA comparison of the current accepted
+The job requests one A100 40GB (`--constraint=a100_40gb`) so the installed
+CUDA 13 PyTorch build can execute its kernels. This is a 20-game, ten-opening-pair, CUDA comparison of the current accepted
 Inezita artifact with the previous accepted artifact in the same run history.
 For the pulled run, these are `teacher/candidate-0020000` and
 `teacher/candidate-0005000`. Both use the same current search code. This is a
 checkpoint comparison; the external reference gauntlet is a subsequent experiment.
+
+Before downloads or builds, the job executes a CUDA tensor/matrix probe; merely
+checking `torch.cuda.is_available()` does not establish kernel compatibility.
+Each model also performs a real neural search before the tournament.
 
 The job builds the Linux launcher in `build/benchmark`, builds Fastchess from
 pinned commit `f618e34540f94f4719ad3817950618dabe441318` (v1.8.2-alpha), and downloads
@@ -150,7 +155,9 @@ retains opening histories, filters duplicate final positions and exact matches
 with known MCO/gate positions, and uses separate eligible opening slices for
 pilot, baseline and confirmation. Full human-training overlap has not been
 audited; the manifest explicitly labels this a fixed public evaluation book,
-not a verified held-out set.
+not a verified held-out set. Fastchess is built with `NATIVE=` in a separate
+`-portable` cache so moving from V100 nodes to A100 nodes does not reuse
+CPU-specific `-march=native` objects.
 
 The first run needs network access for the public source/book downloads, or the
 pinned resources must already be cached under `data/raw/benchmarks/`. It needs
@@ -190,6 +197,30 @@ also supply `BENCH_OPPONENT`; automatic previous-opponent selection needs a run'
 the clock also applies; this is an equal-cap test unless actual per-move node
 counts demonstrate that clocks did not bind. Pure equal-simulation experiments
 need a generous clock and a separate node-budget audit.
+
+## GPU and signal troubleshooting
+
+CUDA 13 PyTorch builds do not support Volta/V100 (`sm_70`). A V100 can still
+appear available and accept copied model weights before the first kernel fails.
+The benchmark defaults to an A100 40GB; resubmit the normal pilot command with
+that default and a fresh output directory. The job does not reinstall packages
+or alter the training environment.
+
+If V100 execution is specifically required, use a separate environment with the
+same PyTorch release's CUDA 12.6 build from
+`https://download.pytorch.org/whl/cu126`, then explicitly select that interpreter
+with `INEZ_PYTHON` and override `--constraint=v100`. Installing the same public
+version over a `+cu130` build requires `--force-reinstall` (or an explicit
+`+cu126` version); otherwise pip can consider the requirement already satisfied.
+Run a fresh pilot after changing hardware or libraries. See
+[PyTorch's CUDA support matrix](https://dev-discuss.pytorch.org/t/introducing-cuda-13-2-and-deprecating-cuda-12-8-release-2-12/3337).
+
+Native libraries can register signal handlers that Python represents as `None`.
+The benchmark restores those to `SIG_DFL`, and always stops/reaps Fastchess
+before restoring handlers. Cleanup must not hide a CUDA failure behind a
+`signal handler must be ... callable` exception. Interrupted/failed PGNs are
+retained, with their faults or incomplete state recorded. Do not resume the
+failed V100 run as if it were a successful A100 pilot.
 
 ## Running the matches
 
