@@ -202,7 +202,7 @@ class ProtocolTests(unittest.TestCase):
         with chess.engine.SimpleEngine.popen_uci(
                 [sys.executable, str(ROOT / 'tools/neural_uci.py'), '--model', str(self.artifact),
                  '--threads', '1'], timeout=15) as engine:
-            self.assertEqual(engine.id['name'], 'Inezita 0.1.1')
+            self.assertEqual(engine.id['name'], 'Inezita 0.1.2')
             self.assertNotIn('Evaluator', engine.options)
             board = chess.Board()
             for move in ('e2e4', 'c7c5'):
