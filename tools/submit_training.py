@@ -30,8 +30,7 @@ def absolute(value):
 
 def new_job(mode='scratch', *, prepare=False, dry_run=False, environment=None):
     env = dict(os.environ if environment is None else environment)
-    config_path = absolute(env.get('TRAIN_CONFIG') or
-        ('configs/train/inezita-0.1.3.json' if mode == 'continue' else 'configs/train/inezita.json'))
+    config_path = absolute(env.get('TRAIN_CONFIG') or 'configs/train/inezita.json')
     config, model_config = read_config(config_path)
     artifact = env.get('INIT_ARTIFACT')
     if mode == 'scratch' and artifact:

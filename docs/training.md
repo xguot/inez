@@ -6,68 +6,61 @@ independent Stockfish targets and neural PUCT self-play. This reduces dependence
 on human mistakes; it does not guarantee monotonic true playing strength.
 Promotion requires game results and tactical regression checks.
 
-## Inezita 0.1.3 continuation
+## Inezita 0.1.3 training
 
-Use [the 0.1.3 development and submission guide](inezita-0.1.3.md) for the new
-full-corpus replay, EMA validation, curated 2400+ data filters, and paired
-promotion protocol targeting the 2200–2400 reference range. Old accepted
-artifacts and results remain intact.
+Use [the 0.1.3 training guide](inezita-0.1.3.md) for the Classical FIDE OTB
+Broadcast + TCEC Championship corpus (`>= 1200s` per side), 25k-node Stockfish
+distillation, EMA validation, full-corpus replay, and paired promotion protocol
+targeting the 2200–2400 reference range.
 
 ## Submit
 
 Use Python 3.12 or newer with `training/requirements.txt` installed. On Rivanna,
-use the frozen submission entry point (`bash hpc/submit_inezita.sh`, backed by
-`tools/submit_training.py`) with an explicit mode (`continue`, `scratch`, or
-`resume`):
+use the single-command submission entry point (`bash hpc/submit_inezita.sh`,
+backed by `tools/submit_training.py`):
 
 ```sh
-export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
-export TRAIN_CONFIG=configs/train/inezita-0.1.3.json
-export DATA_DIR="$PWD/data/processed/inezita-0.1.3"
-export RUN_DIR="$PWD/results/training/inezita-0.1.3"
-bash hpc/submit_inezita.sh continue --prepare
+bash hpc/submit_inezita.sh
 ```
+
+Running `bash hpc/submit_inezita.sh` with no arguments automatically launches
+the full scratch + preparation pipeline (`configs/train/inezita.json`) when
+`results/training/inezita-0.1.3/job.json` does not yet exist, or resumes the
+frozen experiment when `job.json` is already present.
 
 The submitter snapshots all training sources and configurations under
 `RUN_DIR/source/`, writes a pinned `RUN_DIR/job.json`, and schedules CPU
-preparation (`hpc/prepare_inezita.slurm`, when `--prepare` is passed) followed
-by a dependent single-GPU training job (`hpc/train_inezita.slurm`) under
-`nssac_students`. Set `INEZ_ACCOUNT` to override the account. Training requests
-one A100 40GB GPU, 16 CPU cores, 96 GiB host memory and eight hours. CUDA is
-required; there is no automatic CPU fallback.
+preparation (`hpc/prepare_inezita.slurm`, 32 CPU cores, 96 GiB host memory, 12
+hours) followed by a dependent single-GPU training job (`hpc/train_inezita.slurm`,
+1 A100 40GB GPU, 16 CPU cores, 96 GiB host memory, 12 hours) under
+`nssac_students`. Set `INEZ_ACCOUNT` to override the account. CUDA is required;
+there is no automatic CPU fallback.
 
-Preparation reads the September, October, and November 2025 Lichess Elite
-archives. The 0.1.3 configurations (`configs/train/inezita-0.1.3.json` and
-`configs/train/inezita.json`) import 100,000 completed 2400+ standard games with
-`Normal` termination and `base_seconds + 40 * increment_seconds >= 260`
-(excluding zero-increment blitz and time forfeits, while sampling up to 16
-positions plus 2 off-policy tactical blunder/recapture counterfactual pairs per
-training game from ply 0), and merge all 5,607 unique positions from the
-3,871-line Modern Chess Openings corpus (`data/openings/mco_openings.tsv`,
-covering ECO Volumes A–E) into the training split. Validation and evaluation
-splits remain strictly disjoint and post-opening so common opening positions are
-never excluded from training or self-play. If Stockfish is unavailable, it
-caches the official 17.1 release for Linux x86-64 or Apple Silicon. Set
-`INEZ_STOCKFISH=/absolute/path/to/stockfish` to use an existing engine;
-`INEZ_STOCKFISH_MODULE` can load a site module first. If an Ubuntu release
-binary cannot run against the cluster's older libc, the preparer rebuilds the
-bundled release source using `make` and the loaded GCC. The Makefile downloads
-the release's NNUE files when needed. Offline clusters need the archives and
-engine copied into place beforehand. Downloads stay in ignored `data/raw/`.
-Observed SHA256 hashes are recorded; the Elite publisher provides no archive
-checksum here.
+Preparation reads the [TCEC Season 29 Final archive](https://github.com/TCEC-Chess/tcecgames/releases/tag/S29-final)
+(`data/raw/tcec/TCEC-all-in-one-compact.zip`) and 15 monthly
+[Lichess FIDE OTB Broadcast](https://database.lichess.org/broadcast/) archives
+(`data/raw/broadcast/lichess_db_broadcast_2025-07.pgn.zst` ..
+`2026-09.pgn.zst`). `configs/train/inezita.json` imports 50,000 completed 2400+
+Classical games with `min_time_control_seconds: 1200` (at least 20 minutes per
+side, excluding all blitz and rapid games) and `require_normal_termination: true`
+(excluding time forfeits and abandoned games), sampling up to 16 positions plus
+2 off-policy tactical blunder/recapture counterfactual pairs per training game
+from ply 0, and merges all 5,607 unique positions from the 3,871-line Modern
+Chess Openings corpus (`data/openings/mco_openings.tsv`, covering ECO Volumes
+A–E) into the training split. Validation and evaluation splits remain strictly
+disjoint and post-opening so common opening positions are never excluded from
+training or self-play.
 
-Sources: [Lichess Elite](https://database.nikonoel.fr/), underlying
-[Lichess standard games and CC0 terms](https://database.lichess.org/#standard_games),
+Sources: [TCEC Games Archive](https://github.com/TCEC-Chess/tcecgames/releases/tag/S29-final),
+[Lichess FIDE OTB Broadcasts (CC0)](https://database.lichess.org/broadcast/),
 [Lichess ECO/MCO chess-openings (CC0)](https://github.com/lichess-org/chess-openings),
 [Stockfish 17.1 release/source](https://github.com/official-stockfish/Stockfish/releases/tag/sf_17.1).
 
 Overrides exported before submission:
 
-- `TRAIN_CONFIG`: default `configs/train/inezita-0.1.3.json` (`continue`) or `configs/train/inezita.json` (`scratch`).
+- `TRAIN_CONFIG`: default `configs/train/inezita.json`.
 - `DATA_DIR`: default `data/processed/inezita-0.1.3`.
-- `RUN_DIR`: default `results/training/inezita-0.1.3` (`continue`) or `results/training/inezita-0.1.3-scratch` (`scratch`).
-- `INIT_ARTIFACT`: accepted Inezita artifact to improve; required for `continue` and forbidden for `scratch`.
+- `RUN_DIR`: default `results/training/inezita-0.1.3`.
 - `RESUME_MODE`: `exact` (default) or `portable` to continue across GPU/PyTorch changes.
 
 Use a fresh data/run directory when changing the experiment. Inezita
@@ -78,8 +71,8 @@ weights have different tensor shapes and cannot initialize her.
 
 1. **Human + MCO + tactical initialization:** played-move policy, MCO opening
    repertoire distributions, off-policy blunder/recapture counterfactuals, and
-   side-to-move game-result WDL, for 20,000 AdamW steps (batch size 128) at
-   learning rate 3e-4.
+   side-to-move game-result WDL, for 16,000 AdamW steps (batch size 128, ~2.2
+   epochs) at learning rate 3e-4.
 2. **Stockfish correction:** replace human targets, including bad moves and
    off-policy blunder counterfactuals, with fresh analysis (`label_contract: 2`,
    issuing a fresh `ucinewgame` token per position) across a parallel worker
@@ -88,23 +81,24 @@ weights have different tensor shapes and cannot initialize her.
    native `UCI_ShowWDL`. Policy is a softmax over each line's
    centipawn-tiebroken `(win-loss)/temperature`, with temperature 0.15 (blended
    with MCO book priors on `mco-*` opening records). Value is the best line's
-   full WDL. Defaults: 12,000 steps (batch size 128) at learning rate 2e-5.
-   Engine version, binary checksum, analysis budget and target transformation
-   are recorded.
+   full WDL. Defaults: 24,000 steps (batch size 128, ~3.3 epochs) at learning
+   rate 1e-4 for scratch (`12,000` steps at `2e-5` for continuation). Engine
+   version, binary checksum, analysis budget and target transformation are
+   recorded.
 3. **Self-play:** the accepted model plays complete games with neural PUCT
    equipped with the MCO opening book, exact Static Exchange Evaluation (SEE)
    piece-safety priors, and bare-king endgame conversion shaping. Policy
    targets are normalized root visits; WDL comes from actual outcomes (filtering
    out any botched decisive-material draw). Defaults: four rounds of 256 games,
    256 simulations per move, and 1,000 training steps per round at learning rate
-   5e-6 with 80% teacher replay drawn from the complete verified teacher
-   training pool. Human imitation labels are never reintroduced. Root Dirichlet
-   noise and early-game move sampling add exploration. Subsequent runs with
-   `INIT_ARTIFACT` skip human initialization. Each new self-play round
-   initializes optimization from the accepted model recorded in that round's
-   frozen source metadata. A rejected tail checkpoint from teacher training or a
-   previous round cannot initialize a new round. An interrupted round continues
-   from its own optimizer checkpoint.
+   1.5e-5 (`5e-6` for continuation) with 80% teacher replay drawn from the
+   complete verified teacher training pool. Human imitation labels are never
+   reintroduced. Root Dirichlet noise and early-game move sampling add
+   exploration. Subsequent runs with `INIT_ARTIFACT` skip human initialization.
+   Each new self-play round initializes optimization from the accepted model
+   recorded in that round's frozen source metadata. A rejected tail checkpoint
+   from teacher training or a previous round cannot initialize a new round. An
+   interrupted round continues from its own optimizer checkpoint.
 
 Games are split 80/10/10 by trajectory. Duplicate trajectories stay together.
 Positions overlapping held-out tactical boards or another split are removed
@@ -184,8 +178,7 @@ consumes the same examples.
 Resume an interrupted 0.1.3 run using its frozen `RUN_DIR/job.json` specification:
 
 ```sh
-export RUN_DIR="$PWD/results/training/inezita-0.1.3"
-bash hpc/submit_inezita.sh resume
+bash hpc/submit_inezita.sh
 ```
 
 Configuration or data changes require a fresh directory. Exact resume requires
@@ -196,7 +189,6 @@ requeue or schedule indefinite training.
 If Slurm allocates a different GPU model, continue the **same run** explicitly:
 
 ```sh
-export RUN_DIR="$PWD/results/training/inezita-0.1.3"
 export RESUME_MODE=portable
 bash hpc/submit_inezita.sh resume
 ```

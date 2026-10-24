@@ -30,7 +30,7 @@ class JobTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def fixture(self, folder):
-        config = json.loads((ROOT / 'configs/train/inezita-0.1.3.json').read_text())
+        config = json.loads((ROOT / 'configs/train/inezita.json').read_text())
         model_config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4)
         model_json = folder / 'model.json'
         atomic_json(model_json, vars(model_config))
@@ -65,12 +65,12 @@ class JobTests(unittest.TestCase):
         tm = copy.deepcopy(manifest)
         for split in ('train','validation','evaluation'):
             rec = json.loads((human / (split + '.jsonl')).read_text())
-            rec.update(label_kind='teacher_wdl', teacher={'name':'Stockfish','version':'fixture','limits':{'nodes':50000}})
+            rec.update(label_kind='teacher_wdl', teacher={'name':'Stockfish','version':'fixture','limits':{'nodes':config['preparation']['teacher_nodes']}})
             path = teacher / (split + '.jsonl')
             path.write_text(json.dumps(rec) + '\n')
             tm['splits'][split] = {'records': 1, 'sha256': sha256(path)}
         tm['teacher'] = {'human_manifest_sha256': sha256(human / 'manifest.json'),
-            'nodes':50000,'multipv':4,'temperature':0.15,'label_contract':2,'binary_sha256':'fixture'}
+            'nodes':config['preparation']['teacher_nodes'],'multipv':4,'temperature':0.15,'label_contract':2,'binary_sha256':'fixture'}
         atomic_json(teacher / 'manifest.json', tm)
         env = {'INIT_ARTIFACT':str(artifact),'RUN_DIR':str(folder/'run'),
                'DATA_DIR':str(data),'TRAIN_CONFIG':str(config_path)}

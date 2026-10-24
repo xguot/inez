@@ -79,7 +79,8 @@ class ReplayTests(unittest.TestCase):
         from train_inezita import read_config, promotion_budget, pipeline
         from types import SimpleNamespace
         root = Path(__file__).resolve().parents[1]
-        config, model_config = read_config(root / 'configs/train/inezita-0.1.3.json')
+        config, model_config = read_config(root / 'configs/train/inezita.json')
+        config['requires_init_artifact'] = True
         budget = promotion_budget(config)
         self.assertEqual(budget['planned_candidates'], 10)
         self.assertAlmostEqual(budget['candidate_alpha'] * 10, 0.05)

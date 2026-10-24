@@ -7,11 +7,13 @@ import copy
 import hashlib
 import io
 import json
+import logging
 import math
 import os
 from pathlib import Path
 import queue
 import random
+import re
 import subprocess
 import tempfile
 import threading
@@ -82,14 +84,22 @@ def pgn_stream(path):
             with archive.open(names[0]) as raw, io.TextIOWrapper(raw, encoding='utf-8-sig') as stream:
                 yield stream
     elif path.suffix == '.zst':
-        with subprocess.Popen(['zstd', '-dc', str(path)], stdout=subprocess.PIPE,
-                              stderr=subprocess.DEVNULL) as process:
-            try:
-                with io.TextIOWrapper(process.stdout, encoding='utf-8-sig') as stream:
-                    yield stream
-            finally:
-                process.terminate() if process.poll() is None else None
-                process.wait()
+        try:
+            from compression import zstd as _py_zstd
+        except ImportError:
+            _py_zstd = None
+        if _py_zstd is not None:
+            with _py_zstd.open(path, 'rt', encoding='utf-8-sig') as stream:
+                yield stream
+        else:
+            with subprocess.Popen(['zstd', '-dc', str(path)], stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL) as process:
+                try:
+                    with io.TextIOWrapper(process.stdout, encoding='utf-8-sig') as stream:
+                        yield stream
+                finally:
+                    process.terminate() if process.poll() is None else None
+                    process.wait()
     else:
         with path.open(encoding='utf-8-sig') as stream:
             yield stream
@@ -217,20 +227,53 @@ def _blunder_counterfactuals(initial, moves, source, seed, rng, excluded, max_br
     return generated
 
 
-def _estimated_game_seconds(header):
-    """Estimate initial + 40-move increment time budget in seconds from a PGN TimeControl header."""
+def _is_normal_termination(header):
+    """Verify a game ended by standard chess rules or tablebase/engine adjudication, not time forfeit or abandonment."""
+    if not isinstance(header, str):
+        return False
+    low = header.strip().lower()
+    if not low:
+        return True
+    if any(bad in low for bad in ('forfeit', 'abandoned', 'unplayed', 'stalled',
+                                  'infraction', 'unterminated', 'emergency', 'disconnect', 'timeout')):
+        return False
+    return low in ('normal', 'adjudication', 'gui adjudication', 'gui tb adjudication',
+                   'adjudication - tcec draw rule', 'white mates', 'black mates',
+                   '3-fold rep', '3-fold repetition', '50-move rule', 'fifty moves rule',
+                   'insufficient material')
+
+
+def _estimated_game_seconds(header, game_headers=None):
+    """Estimate initial + 40-move increment time budget in seconds across PGN, FIDE OTB broadcast, and TCEC formats."""
+    headers = game_headers or {}
+    event_text = ' '.join(str(headers.get(k, '')) for k in ('Event', 'BroadcastName', 'Site')).lower()
+    if any(tag in event_text for tag in ('blitz', 'bullet', 'rapid', 'armageddon',
+                                         'hyperbullet', 'ultrabullet', 'titled tuesday')):
+        return 0
     if not isinstance(header, str):
         return 0
-    parts = header.strip().split('+')
-    if len(parts) != 2:
+    tc = header.strip().lower()
+    if not tc or tc == '-':
+        if 'tcec' in event_text or 'lichess.org/broadcast/' in event_text:
+            return 1800
         return 0
-    try:
-        base, increment = int(parts[0]), int(parts[1])
-    except ValueError:
-        return 0
-    if base < 0 or increment < 0:
-        return 0
-    return base + 40 * increment
+    match_moves = re.match(r'^(\d+)/(\d+)', tc)
+    if match_moves:
+        return int(match_moves.group(2))
+    match_desc = re.search(r'(\d+)\s*(?:minutes|minute|min|m\b)', tc)
+    if match_desc:
+        return int(match_desc.group(1)) * 60
+    match_plus = re.match(r'^(\d+)\+(\d+(?:\.\d+)?)$', tc)
+    if match_plus:
+        base = int(match_plus.group(1))
+        increment = float(match_plus.group(2))
+        if base < 0 or increment < 0:
+            return 0
+        # Official FIDE OTB broadcasts record classical controls as minutes+seconds (e.g. 90+30, 60+30, 45+30).
+        if 40 <= base <= 180 and increment >= 10:
+            return base * 60 + int(40 * increment)
+        return int(base + 40 * increment)
+    return 0
 
 
 def import_games(path, output, *, uri, license_name, tactics, max_games=1000,
@@ -276,6 +319,7 @@ def import_games(path, output, *, uri, license_name, tactics, max_games=1000,
         'mco_opening_records': len(mco_records),
         'blunder_counterfactual_records': 0,
     }
+    logging.getLogger('chess.pgn').setLevel(logging.CRITICAL)
     with ExitStack() as stack:
         streams = [
             (stack.enter_context(pgn_stream(archive_path)), source_id)
@@ -298,9 +342,9 @@ def import_games(path, output, *, uri, license_name, tactics, max_games=1000,
                 if (game.errors or initial.chess960 or not initial.is_valid()
                         or game.headers.get('Variant', 'Standard') != 'Standard'
                         or min(ratings) < min_rating
-                        or (require_normal_termination and termination != 'Normal')
+                        or (require_normal_termination and not _is_normal_termination(termination))
                         or (min_time_control_seconds > 0
-                            and _estimated_game_seconds(game.headers.get('TimeControl', '')) < min_time_control_seconds)):
+                            and _estimated_game_seconds(game.headers.get('TimeControl', ''), game.headers) < min_time_control_seconds)):
                     raise ValueError('filtered game')
                 result = game.headers.get('Result')
                 if result not in ('1-0', '0-1', '1/2-1/2'):
@@ -528,8 +572,8 @@ def relabel_dataset(source, output, stockfish, *, nodes=10000, multipv=4, temper
         raise ValueError('invalid teacher settings')
     source_manifest = verify_dataset(source)
     output.parent.mkdir(parents=True, exist_ok=True)
-    num_workers = min(threads, 16)
-    hash_per_worker = max(32, 512 // num_workers)
+    num_workers = min(threads, 32)
+    hash_per_worker = max(32, 1024 // num_workers)
     chunk_size = 32
     work = output.with_name(output.name + '.work')
     work.mkdir(exist_ok=True)

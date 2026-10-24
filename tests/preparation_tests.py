@@ -69,23 +69,29 @@ class PreparationTests(unittest.TestCase):
         binary.write_bytes(b'fixture binary')
         return source, binary
 
-    def test_cached_archives_require_intact_zip_and_matching_provenance(self):
+    def test_cached_archives_require_intact_zip_or_zst_and_matching_provenance(self):
         with tempfile.TemporaryDirectory() as directory:
             archive = Path(directory) / 'games.zip'
             with zipfile.ZipFile(archive, 'w') as bundle:
                 bundle.writestr('games.pgn', '[Event "Fixture"]\n*\n')
+            zst_archive = Path(directory) / 'broadcast.pgn.zst'
+            zst_archive.write_bytes(b'\x28\xb5\x2f\xfdpayload')
             with patch.object(cli.urllib.request, 'urlopen') as network:
                 cli.download_archive(archive, 'fixture://archive')
                 cli.download_archive(archive, 'fixture://archive')
+                cli.download_archive(zst_archive, 'fixture://broadcast')
                 network.assert_not_called()
             with self.assertRaisesRegex(ValueError, 'provenance'):
                 cli.download_archive(archive, 'fixture://different-archive')
             archive.write_bytes(b'broken')
             with self.assertRaisesRegex(ValueError, 'corrupt'):
                 cli.download_archive(archive, 'fixture://archive')
+            zst_archive.write_bytes(b'broken')
+            with self.assertRaisesRegex(ValueError, 'corrupt'):
+                cli.download_archive(zst_archive, 'fixture://broadcast')
 
     def test_config_rejects_misaligned_archives_missing_openings_and_invalid_bounds(self):
-        base = json.loads((ROOT / 'configs/train/inezita-0.1.3.json').read_text())
+        base = json.loads((ROOT / 'configs/train/inezita.json').read_text())
         changes = [('archives', ['one']), ('max_games', 0), ('teacher_nodes', True),
                    ('teacher_temperature', float('nan')), ('openings', '/missing/openings.tsv'),
                    ('min_time_control_seconds', -1), ('min_time_control_seconds', True),
@@ -195,7 +201,7 @@ class PreparationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source, binary = self.fixture(root, counts=(1, 1, 1))
-            config = json.loads((ROOT / 'configs/train/inezita-0.1.3.json').read_text())
+            config = json.loads((ROOT / 'configs/train/inezita.json').read_text())
             config['preparation']['teacher_nodes'] = 10000
             human = json.loads((source / 'manifest.json').read_text())
             settings = config['preparation']
@@ -225,36 +231,44 @@ class PreparationTests(unittest.TestCase):
         from inez.curriculum import import_games
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            pgn = root / 'elite.pgn'
+            pgn = root / 'classical.pgn'
             games = []
             # 1: Time forfeit (should be filtered when require_normal_termination=True)
             games.append(
-                '[Event "Rated Blitz game"]\n[WhiteElo "2550"]\n[BlackElo "2500"]\n'
-                '[TimeControl "180+2"]\n[Termination "Time forfeit"]\n[Result "1-0"]\n\n'
+                '[Event "Classical OTB"]\n[WhiteElo "2550"]\n[BlackElo "2500"]\n'
+                '[TimeControl "90+30"]\n[Termination "Time forfeit"]\n[Result "1-0"]\n\n'
                 '1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. Nf3 O-O 1-0\n'
             )
-            # 2: Zero-increment fast blitz 180+0 (should be filtered when min_time_control_seconds=260)
+            # 2: Blitz 3+2 and Rapid 600+0 (should be filtered when min_time_control_seconds=1200)
             games.append(
-                '[Event "Rated Blitz game"]\n[WhiteElo "2550"]\n[BlackElo "2500"]\n'
-                '[TimeControl "180+0"]\n[Termination "Normal"]\n[Result "1-0"]\n\n'
+                '[Event "Broadcast Blitz"]\n[WhiteElo "2550"]\n[BlackElo "2500"]\n'
+                '[TimeControl "3+2"]\n[Termination "Normal"]\n[Result "1-0"]\n\n'
                 '1. c4 e5 2. Nc3 Nf6 3. Nf3 Nc6 4. g3 Bb4 5. Bg2 O-O 1-0\n'
+            )
+            games.append(
+                '[Event "Rated Rapid game"]\n[WhiteElo "2550"]\n[BlackElo "2500"]\n'
+                '[TimeControl "600+0"]\n[Termination "Normal"]\n[Result "1-0"]\n\n'
+                '1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 1-0\n'
             )
             # 3: Rating below 2400 (should be filtered when min_rating=2400)
             games.append(
-                '[Event "Rated Blitz game"]\n[WhiteElo "2390"]\n[BlackElo "2500"]\n'
-                '[TimeControl "300+0"]\n[Termination "Normal"]\n[Result "1-0"]\n\n'
+                '[Event "FIDE Classical Open"]\n[WhiteElo "2390"]\n[BlackElo "2500"]\n'
+                '[TimeControl "90+30"]\n[Termination "Normal"]\n[Result "1-0"]\n\n'
                 '1. Nf3 d5 2. g3 Nf6 3. Bg2 c6 4. O-O Bf5 5. d3 e6 1-0\n'
             )
-            # Add valid 2400+ Normal games (>=14 plies) with 180+2 / 600+0 to populate all 3 splits
+            # Add valid 2400+ Classical OTB ("90+30" / "40/7200:20/3600:900+30") and TCEC ("1800+5" with "adjudication") games
             import random
             rng = random.Random(11)
             for idx in range(40):
                 board = chess.Board()
                 game = chess.pgn.Game()
                 game.headers.update(
-                    Event='Rated Rapid game', WhiteElo='2450', BlackElo='2420',
-                    TimeControl='180+2' if idx % 2 == 0 else '600+0',
-                    Termination='Normal', Result='1/2-1/2',
+                    Event='TCEC Season 29' if idx % 2 == 0 else 'FIDE Classical Broadcast',
+                    WhiteElo='3550' if idx % 2 == 0 else '2620',
+                    BlackElo='3520' if idx % 2 == 0 else '2580',
+                    TimeControl='1800+5' if idx % 2 == 0 else ('90+30' if idx % 4 == 1 else '40/7200:20/3600:900+30'),
+                    Termination='adjudication' if idx % 2 == 0 else 'Normal',
+                    Result='1/2-1/2',
                 )
                 node = game
                 for _ in range(18):
@@ -269,17 +283,17 @@ class PreparationTests(unittest.TestCase):
                 games.append(str(game))
             pgn.write_text('\n\n'.join(games) + '\n')
             manifest = import_games(
-                pgn, root / 'human', uri='fixture://elite', license_name='CC0-1.0',
+                pgn, root / 'human', uri='fixture://classical', license_name='CC0-1.0',
                 tactics=ROOT / 'tests/fixtures/independent_tactics.json',
                 max_games=50, samples_per_game=1, min_ply=6, min_rating=2400,
-                min_time_control_seconds=260, require_normal_termination=True, seed=20261024,
+                min_time_control_seconds=1200, require_normal_termination=True, seed=20261024,
             )
             prep = manifest['preparation']
-            self.assertEqual(prep['read_games'], 43)
+            self.assertEqual(prep['read_games'], 44)
             self.assertEqual(prep['accepted_games'], 40)
-            self.assertEqual(prep['invalid_or_filtered_games'], 3)
+            self.assertEqual(prep['invalid_or_filtered_games'], 4)
             self.assertEqual(prep['min_rating'], 2400)
-            self.assertEqual(prep['min_time_control_seconds'], 260)
+            self.assertEqual(prep['min_time_control_seconds'], 1200)
             self.assertTrue(prep['require_normal_termination'])
 
 

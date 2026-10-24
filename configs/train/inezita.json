@@ -3,28 +3,54 @@
   "seed": 20261024,
   "tactics": "tests/fixtures/independent_tactics.json",
   "preparation": {
-    "url": "https://database.nikonoel.fr/lichess_elite_2025-11.zip",
-    "archive": "data/raw/lichess/lichess_elite_2025-11.zip",
+    "url": "https://github.com/TCEC-Chess/tcecgames/releases/download/S29-final/TCEC-all-in-one-compact.zip",
+    "archive": "data/raw/tcec/TCEC-all-in-one-compact.zip",
     "urls": [
-      "https://database.nikonoel.fr/lichess_elite_2025-11.zip",
-      "https://database.nikonoel.fr/lichess_elite_2025-10.zip",
-      "https://database.nikonoel.fr/lichess_elite_2025-09.zip"
+      "https://github.com/TCEC-Chess/tcecgames/releases/download/S29-final/TCEC-all-in-one-compact.zip",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-09.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-08.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-07.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-06.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-05.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-04.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-03.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-02.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2026-01.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2025-12.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2025-11.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2025-10.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2025-09.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2025-08.pgn.zst",
+      "https://database.lichess.org/broadcast/lichess_db_broadcast_2025-07.pgn.zst"
     ],
     "archives": [
-      "data/raw/lichess/lichess_elite_2025-11.zip",
-      "data/raw/lichess/lichess_elite_2025-10.zip",
-      "data/raw/lichess/lichess_elite_2025-09.zip"
+      "data/raw/tcec/TCEC-all-in-one-compact.zip",
+      "data/raw/broadcast/lichess_db_broadcast_2026-09.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-08.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-07.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-06.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-05.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-04.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-03.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-02.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2026-01.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2025-12.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2025-11.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2025-10.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2025-09.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2025-08.pgn.zst",
+      "data/raw/broadcast/lichess_db_broadcast_2025-07.pgn.zst"
     ],
     "openings": "data/openings/mco_openings.tsv",
-    "license": "CC0-1.0 (underlying Lichess standard games and ECO/MCO openings)",
-    "max_games": 100000,
+    "license": "CC-BY-SA-3.0 (TCEC Games Archive) and CC0-1.0 (Lichess FIDE OTB Broadcasts and ECO/MCO openings)",
+    "max_games": 50000,
     "samples_per_game": 16,
     "blunder_samples_per_game": 2,
     "min_ply": 0,
     "min_rating": 2400,
-    "min_time_control_seconds": 260,
+    "min_time_control_seconds": 1200,
     "require_normal_termination": true,
-    "teacher_nodes": 50000,
+    "teacher_nodes": 25000,
     "teacher_multipv": 4,
     "teacher_temperature": 0.15,
     "teacher_label_contract": 2
@@ -303,6 +329,5 @@
       ]
     ],
     "familywise_alpha": 0.05
-  },
-  "requires_init_artifact": false
+  }
 }

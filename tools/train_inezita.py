@@ -127,13 +127,24 @@ def read_config(path):
 
 
 def _validate_archive(path):
+    path = Path(path)
+    if path.name.endswith('.zst') or path.name.endswith('.zst.part'):
+        try:
+            with path.open('rb') as raw:
+                magic = raw.read(4)
+            magic_int = int.from_bytes(magic, 'little') if len(magic) == 4 else 0
+            if magic != b'\x28\xb5\x2f\xfd' and not (0x184D2A50 <= magic_int <= 0x184D2A5F):
+                raise ValueError(f'corrupt zstd archive: {path}')
+        except OSError as error:
+            raise ValueError(f'corrupt archive: {path}') from error
+        return
     try:
         with zipfile.ZipFile(path) as archive:
             names = [name for name in archive.namelist() if name.endswith('.pgn')]
             if len(names) != 1 or archive.testzip() is not None:
-                raise ValueError('Elite archive must contain exactly one intact PGN')
+                raise ValueError('archive must contain exactly one intact PGN')
     except (zipfile.BadZipFile, OSError) as error:
-        raise ValueError(f'corrupt Elite archive: {path}') from error
+        raise ValueError(f'corrupt archive: {path}') from error
 
 
 def download_archive(path, url):
