@@ -32,7 +32,7 @@ relabeled by a parallel pool of independent Stockfish 17.1 workers at **25,000
 nodes per position** (`MultiPV 4`, native `UCI_ShowWDL`, `label_contract: 2`).
 
 - **TCEC Games Archive (Season 29 Final)**: https://github.com/TCEC-Chess/tcecgames/releases/tag/S29-final (`TCEC-all-in-one-compact.zip`, CC-BY-SA-3.0)
-- **Official FIDE OTB Broadcasts**: https://database.lichess.org/broadcast/ (`lichess_db_broadcast_2025-07.pgn.zst` .. `lichess_db_broadcast_2026-09.pgn.zst`, CC0-1.0)
+- **Official FIDE OTB Broadcasts**: https://database.lichess.org/broadcast/ (`lichess_db_broadcast_2025-07.pgn.zst` .. `lichess_db_broadcast_2026-09.pgn.zst`, CC-BY-SA-4.0)
 - **ECO / Modern Chess Openings corpus**: `data/openings/mco_openings.tsv` (CC0-1.0, derived from https://github.com/lichess-org/chess-openings)
 - **Teacher oracle**: [Stockfish 17.1](https://github.com/official-stockfish/Stockfish/releases/tag/sf_17.1) (`data/raw/stockfish-17.1/`, GPL-3.0)
 

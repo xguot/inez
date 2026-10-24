@@ -65,7 +65,7 @@ export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 CONFIG="${TRAIN_CONFIG:-configs/train/inezita.json}"
-"${PY}" -u tools/train_inezita.py preflight --config "${CONFIG}" --device cuda --job-spec "${INEZ_JOB_SPEC}"
+"${PY}" -u tools/train_inezita.py preflight --config "${CONFIG}" --device cuda --job-spec "${INEZ_JOB_SPEC}" --resume-mode "${RESUME_MODE:-exact}"
 if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 fi
@@ -103,6 +103,6 @@ while true; do
 done
 echo "Training process finished; exit=${STATUS}"
 if [[ "${STATUS}" == 75 ]]; then
-    echo "Checkpoint saved. Resubmit with the same RUN_DIR, DATA_DIR, configuration, INIT_ARTIFACT and RESUME_MODE."
+    echo "Checkpoint saved. Resume: RUN_DIR=\"${OUT_DIR}\" bash \"${INEZ_DATA_ROOT:-${ROOT_DIR}}/hpc/submit_inezita.sh\" resume"
 fi
 exit "${STATUS}"

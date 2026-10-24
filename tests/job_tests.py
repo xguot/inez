@@ -143,6 +143,7 @@ class JobTests(unittest.TestCase):
     def test_prepare_dependency_and_failed_submission_are_recorded(self):
         with tempfile.TemporaryDirectory() as tmp:
             env, _, _ = self.fixture(Path(tmp))
+            env['DATA_DIR'] = str(Path(tmp) / 'fresh-data')
             calls, run = self.scheduler()
             with patch.object(jobs.subprocess,'run',side_effect=run):
                 spec = jobs.new_job('continue',prepare=True,environment=env)
@@ -182,7 +183,7 @@ class JobTests(unittest.TestCase):
             scratch_path = Path(tmp) / 'scratch.json'
             atomic_json(scratch_path, scratch_cfg)
             env['TRAIN_CONFIG'] = str(scratch_path)
-            # Even if an incomplete RUN_DIR and stale INIT_ARTIFACT exist, auto mode cleans up and launches scratch+prepare.
+            # An empty RUN_DIR is usable; auto mode starts scratch without inheriting old weights.
             Path(env['RUN_DIR']).mkdir(parents=True)
             calls, run = self.scheduler()
             with patch.dict(os.environ, env, clear=False), patch.object(jobs.subprocess, 'run', side_effect=run):
@@ -196,7 +197,65 @@ class JobTests(unittest.TestCase):
             with patch.dict(os.environ, env, clear=False), patch.object(jobs.subprocess, 'run', side_effect=run):
                 self.assertEqual(jobs.main([]), 0)
             submitted = [command for command, _ in calls if command[0] == 'sbatch']
-            self.assertEqual(len(submitted), 2)
+            self.assertEqual(len(submitted), 1)  # Verified ready data needs only the GPU job.
+
+    def test_nonempty_incomplete_and_overlapping_run_are_never_deleted(self):
+        for dry_run in (False, True):
+            with self.subTest(dry_run=dry_run), tempfile.TemporaryDirectory() as tmp:
+                env, _, _ = self.fixture(Path(tmp))
+                run = Path(env['RUN_DIR'])
+                run.mkdir()
+                sentinel = run / 'valuable-checkpoint.bin'
+                sentinel.write_bytes(b'keep-this')
+                with patch.object(jobs.subprocess, 'run') as submit:
+                    with self.assertRaisesRegex(ValueError, 'not empty'):
+                        jobs.new_job('continue', dry_run=dry_run, environment=env)
+                self.assertEqual(sentinel.read_bytes(), b'keep-this')
+                submit.assert_not_called()
+                env['RUN_DIR'] = env['DATA_DIR']
+                before = Path(env['DATA_DIR'], 'human/train.jsonl').read_bytes()
+                with self.assertRaisesRegex(ValueError, 'must be separate'):
+                    jobs.new_job('continue', dry_run=dry_run, environment=env)
+                self.assertEqual(Path(env['DATA_DIR'], 'human/train.jsonl').read_bytes(), before)
+
+    def test_completed_experiment_never_submits_another_job(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env, recipe, _ = self.fixture(Path(tmp))
+            calls,run = self.scheduler()
+            with patch.object(jobs.subprocess, 'run', side_effect=run):
+                jobs.new_job('continue', environment=env)
+            run_dir=Path(env['RUN_DIR'])
+            atomic_json(run_dir/'request.json', {'config':json.loads(recipe.read_text()),
+                'initial_artifact':env['INIT_ARTIFACT']})
+            atomic_json(run_dir/'curriculum.json', {'completed':['teacher',
+                'selfplay-001','selfplay-002','selfplay-003','selfplay-004']})
+            with patch.object(jobs.subprocess, 'run') as submit:
+                result=jobs.dispatch(run_dir/'job.json', environment=env)
+            self.assertEqual(result['status'],'complete')
+            self.assertIsNone(result['submission'])
+            submit.assert_not_called()
+
+    def test_frozen_preflight_executes_from_snapshot_and_accepts_portable_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env, _, _ = self.fixture(Path(tmp))
+            calls, run = self.scheduler()
+            with patch.object(jobs.subprocess, 'run', side_effect=run):
+                spec = jobs.new_job('continue', environment=env)
+            cmd=[sys.executable, str(Path(spec['source_root'])/'tools/train_inezita.py'),
+                'preflight','--config',spec['config'],'--job-spec',str(Path(env['RUN_DIR'])/'job.json'),
+                '--device','cpu','--threads','1']
+            proc=subprocess.run(cmd, cwd=spec['source_root'],capture_output=True,text=True,
+                env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'},timeout=30)
+            self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
+            self.assertIn('"parameters":',proc.stdout)
+            job_path=Path(env['RUN_DIR'])/'job.json'
+            changed=json.loads(job_path.read_text())
+            changed['runtime']['torch']='different-build'
+            atomic_json(job_path,changed)
+            proc=subprocess.run(cmd+['--resume-mode','portable'],cwd=spec['source_root'],
+                capture_output=True,text=True,env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'},timeout=30)
+            self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
+
 
 
 if __name__=='__main__':

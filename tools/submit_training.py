@@ -9,16 +9,15 @@ import os
 import platform
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'training'))
-from inez.curriculum import atomic_json, sha256
+from inez.curriculum import atomic_json, sha256, verify_zstd_runtime
 from inez.experiment import create_snapshot, verify_accepted_artifact, verify_snapshot
 from inez.jobs import verify_job_spec
-from train_inezita import exclusive_run, read_config, verify_prepared_data
+from train_inezita import exclusive_run, read_config, run_status, verify_prepared_data
 import chess
 import torch
 
@@ -42,15 +41,16 @@ def new_job(mode='scratch', *, prepare=False, dry_run=False, environment=None):
     initial = verify_accepted_artifact(absolute(artifact), expected_config=model_config) if artifact else None
     run = absolute(env.get('RUN_DIR') or 'results/training/inezita-0.1.3')
     data = absolute(env.get('DATA_DIR') or 'data/processed/inezita-0.1.3')
-    if run.exists():
-        # Clean up an empty or incomplete run directory that never wrote job.json
-        if not (run / 'job.json').exists() and not (run / 'request.json').exists():
-            shutil.rmtree(run)
-        else:
-            raise ValueError(f'RUN_DIR already exists: {run}; use resume for its frozen experiment or choose a fresh directory')
+    # Validate paths before touching either directory. A dry run never removes
+    # user files; incomplete experiments remain available for inspection.
     if run == data or run.is_relative_to(data) or data.is_relative_to(run):
         raise ValueError('data and run directories must be separate')
+    if run.exists() and (not run.is_dir() or any(run.iterdir())):
+        raise ValueError(f'RUN_DIR already exists and is not empty: {run}; use resume for its frozen experiment or choose a fresh directory')
     if prepare:
+        archives = config['preparation'].get('archives') or [config['preparation']['archive']]
+        if any(str(path).endswith('.zst') for path in archives):
+            verify_zstd_runtime()
         data_identity = None
     else:
         data_identity = verify_prepared_data(data, config)
@@ -59,7 +59,7 @@ def new_job(mode='scratch', *, prepare=False, dry_run=False, environment=None):
             'prepare_data': prepare, 'data_identity': data_identity}
     if dry_run:
         return plan
-    run.mkdir(parents=True, exist_ok=False)
+    run.mkdir(parents=True, exist_ok=True)
     source = create_snapshot(ROOT, run / 'source')
     # Freeze the actual config, including explicit locations for shared raw
     # archives and snapshot-local model/tactical/opening resources.
@@ -92,6 +92,8 @@ def new_job(mode='scratch', *, prepare=False, dry_run=False, environment=None):
             'python': str(Path(sys.executable).absolute()),
             'run_id': hashlib.sha256(str(run).encode()).hexdigest()[:12],
             'runtime': {'python': platform.python_version(), 'torch': str(torch.__version__), 'chess': chess.__version__},
+            'preparation_environment': {key: env.get(key) for key in
+                ('INEZ_STOCKFISH', 'INEZ_STOCKFISH_MODULE', 'INEZ_COMPILER_MODULE', 'CXX')},
             'created_utc': datetime.now(timezone.utc).isoformat()}
     atomic_json(run / 'job.json', spec)
     return dispatch(run / 'job.json', environment=env, prepare=prepare)
@@ -107,17 +109,33 @@ def _dispatch(path, *, environment=None, prepare=None):
     spec = verify_job_spec(path)
     source = Path(spec['source_root'])
     config, _ = read_config(spec['config'])
+    state_path = Path(spec['run_dir']) / 'request.json'
+    if state_path.is_file():
+        status = run_status(spec['run_dir'])
+        if status['status'] == 'complete':
+            return {**spec, 'status': 'complete', 'submission': None,
+                    'note': 'All training stages are complete; no job was submitted.'}
     should_prepare = spec['prepare_data'] if prepare is None else prepare
-    if not should_prepare:
+    # A previous preparation job may have finished successfully before training
+    # was interrupted. Reuse only verified complete data, without another CPU job.
+    if Path(spec['data_dir'], 'teacher/manifest.json').is_file():
         actual = verify_prepared_data(spec['data_dir'], config)
         if spec['data_identity'] is not None and actual != spec['data_identity']:
             raise ValueError('prepared data changed since job submission')
+        should_prepare = False
+    elif not should_prepare:
+        verify_prepared_data(spec['data_dir'], config)
     env = dict(os.environ if environment is None else environment)
     # Explicit pinned values replace inherited settings from unrelated runs.
     env.update(INEZ_ROOT=str(source), INEZ_DATA_ROOT=spec['original_root'],
                INEZ_PYTHON=spec['python'], TRAIN_CONFIG=spec['config'],
                RUN_DIR=spec['run_dir'], DATA_DIR=spec['data_dir'],
                INEZ_JOB_SPEC=str(Path(path).resolve()))
+    for key, value in spec.get('preparation_environment', {}).items():
+        if value is None:
+            env.pop(key, None)
+        else:
+            env[key] = value
     if spec['initial_artifact']:
         env['INIT_ARTIFACT'] = spec['initial_artifact']
     else:
@@ -132,9 +150,14 @@ def _dispatch(path, *, environment=None, prepare=None):
     account = env.get('INEZ_ACCOUNT', 'nssac_students')
     event = {'submitted_utc': datetime.now(timezone.utc).isoformat(),
              'prepare_job': None, 'train_job': None, 'status': 'submitting'}
+    log_dir = Path(spec['run_dir']) / 'slurm'
+    log_dir.mkdir(exist_ok=True)
     def submit(script, *extra):
+        kind = 'prepare' if script.startswith('prepare') else 'train'
         command = ['sbatch', '--parsable', '--export=ALL', '--chdir=' + str(source),
-                   '--account=' + account, '--job-name=' + names['prepare' if script.startswith('prepare') else 'train'],
+                   '--account=' + account, '--job-name=' + names[kind],
+                   '--output=' + str(log_dir / (kind + '-%j.out')),
+                   '--error=' + str(log_dir / (kind + '-%j.err')),
                    *extra, str(source / 'hpc' / script)]
         result = subprocess.run(command, env=env, capture_output=True, text=True, check=True)
         value = result.stdout.strip().split(';')[0]

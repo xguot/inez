@@ -31,3 +31,6 @@ __pycache__/
 /inezita_gauntlet_*.err
 /.codewhale/
 /webstock.pgn
+
+/inezita_submit_*.out
+/inezita_submit_*.err

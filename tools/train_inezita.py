@@ -27,8 +27,9 @@ import chess
 import torch
 
 from inez.curriculum import (atomic_json, evaluate_candidate, import_games,
-    position_key, promotion_decision, read_tactics, relabel_dataset, selfplay_records, sha256, verify_dataset)
+    position_key, promotion_decision, read_tactics, relabel_dataset, selfplay_records, sha256, verify_dataset, zstd_stream)
 from inez.model import ChessTransformer, ModelConfig, load_checkpoint, save_checkpoint
+from inez.curriculum import verify_zstd_runtime
 from inez.device import validate_cuda_runtime
 from inez.experiment import training_sources, verify_accepted_artifact, verify_snapshot, SNAPSHOT_MANIFEST
 from inez.jobs import verify_job_spec
@@ -134,9 +135,14 @@ def _validate_archive(path):
                 magic = raw.read(4)
             magic_int = int.from_bytes(magic, 'little') if len(magic) == 4 else 0
             if magic != b'\x28\xb5\x2f\xfd' and not (0x184D2A50 <= magic_int <= 0x184D2A5F):
-                raise ValueError(f'corrupt zstd archive: {path}')
-        except OSError as error:
-            raise ValueError(f'corrupt archive: {path}') from error
+                raise ValueError('invalid zstd frame magic')
+            # Checking only magic accepts truncated downloads. Read all frames
+            # so the decoder verifies the frame boundaries and any checksums.
+            with zstd_stream(path) as stream:
+                while stream.read(1024 * 1024):
+                    pass
+        except (OSError, ValueError, EOFError) as error:
+            raise ValueError(f'corrupt zstd archive: {path}: {error}') from error
         return
     try:
         with zipfile.ZipFile(path) as archive:
@@ -345,6 +351,8 @@ def prepare(args, config):
         urls = [settings['url']]
     if len(archives) != len(urls) or not archives:
         raise ValueError('preparation archives and urls must be nonempty aligned lists')
+    if any(path.suffix == '.zst' for path in archives):
+        verify_zstd_runtime()
     openings_path = rooted(settings['openings']) if settings.get('openings') else None
     if openings_path is not None and not openings_path.is_file():
         raise ValueError('configured preparation openings file does not exist')

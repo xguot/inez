@@ -33,7 +33,12 @@ The submitter snapshots all training sources and configurations under
 preparation (`hpc/prepare_inezita.slurm`, 48 CPU cores, 96 GiB host memory, 24
 hours) followed by a dependent single-GPU training job (`hpc/train_inezita.slurm`,
 1 A100 40GB GPU, 16 CPU cores, 96 GiB host memory, 36 hours) under
-`nssac_students`. Set `INEZ_ACCOUNT` to override the account. CUDA is required;
+`nssac_students`. Set `INEZ_ACCOUNT` to override the account. Direct
+`sbatch hpc/submit_inezita.sh` also works from the checkout root: its dispatcher
+uses a ten-minute CPU allocation and then schedules the two resource-specific
+jobs. Child logs live in `RUN_DIR/slurm/`; the run manifest records their IDs.
+Existing incomplete directories are preserved. Verified prepared data is reused
+on resume, and completed curricula submit no further work. CUDA is required;
 there is no automatic CPU fallback.
 
 Preparation reads the [TCEC Season 29 Final archive](https://github.com/TCEC-Chess/tcecgames/releases/tag/S29-final)
@@ -42,7 +47,7 @@ Preparation reads the [TCEC Season 29 Final archive](https://github.com/TCEC-Che
 (`data/raw/broadcast/lichess_db_broadcast_2025-07.pgn.zst` ..
 `2026-09.pgn.zst`). `configs/train/inezita.json` imports 50,000 completed 2400+
 Classical games with `min_time_control_seconds: 1200` (at least 20 minutes per
-side, excluding all blitz and rapid games) and `require_normal_termination: true`
+side, applying the configured time-control and event filters) and `require_normal_termination: true`
 (excluding time forfeits and abandoned games), sampling up to 16 positions plus
 2 off-policy tactical blunder/recapture counterfactual pairs per training game
 from ply 0, and merges all 5,607 unique positions from the 3,871-line Modern

@@ -42,7 +42,7 @@
       "data/raw/broadcast/lichess_db_broadcast_2025-07.pgn.zst"
     ],
     "openings": "data/openings/mco_openings.tsv",
-    "license": "CC-BY-SA-3.0 (TCEC Games Archive) and CC0-1.0 (Lichess FIDE OTB Broadcasts and ECO/MCO openings)",
+    "license": "CC-BY-SA-3.0 (TCEC Games Archive), CC-BY-SA-4.0 (Lichess FIDE OTB Broadcasts), and CC0-1.0 (ECO/MCO openings)",
     "max_games": 50000,
     "samples_per_game": 16,
     "blunder_samples_per_game": 2,

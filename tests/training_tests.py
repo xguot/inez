@@ -431,10 +431,10 @@ class CurriculumTests(unittest.TestCase):
             fake = root / 'python'
             fake.write_text(f'''#!{sys.executable}
 import os, pathlib, signal, sys, time
-if 'preflight' in sys.argv:
-    raise SystemExit(0)
 expected_mode = os.environ.get('RESUME_MODE', 'exact')
 assert sys.argv[sys.argv.index('--resume-mode') + 1] == expected_mode
+if 'preflight' in sys.argv:
+    raise SystemExit(0)
 def stop(signum, frame):
     pathlib.Path(os.environ['INEZ_ROOT'], 'checkpoint-saved').write_text('saved')
     raise SystemExit(75)

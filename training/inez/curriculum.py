@@ -14,6 +14,7 @@ from pathlib import Path
 import queue
 import random
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -73,6 +74,63 @@ def read_tactics(path):
     return data
 
 
+def _stdlib_zstd():
+    try:
+        from compression import zstd
+    except ImportError:
+        return None
+    return zstd
+
+
+def _zstd_backend():
+    decoder = _stdlib_zstd()
+    if decoder is not None:
+        return 'stdlib', decoder
+    executable = shutil.which('zstd')
+    if executable is None:
+        raise ValueError('reading .pgn.zst archives requires Python 3.14 compression.zstd '
+                         'or the zstd command; install/load zstd before submitting preparation')
+    return 'external', executable
+
+
+def verify_zstd_runtime():
+    """Fail before downloads when this interpreter cannot read the configured corpus."""
+    return _zstd_backend()[0]
+
+
+@contextmanager
+def zstd_stream(path):
+    """Read every frame and report decoder failures, while allowing bounded reads."""
+    backend, decoder = _zstd_backend()
+    if backend == 'stdlib':
+        try:
+            with decoder.open(path, 'rt', encoding='utf-8-sig') as stream:
+                yield stream
+        except (decoder.ZstdError, EOFError, OSError) as error:
+            raise ValueError(f'cannot decompress zstd archive {path}: {error}') from error
+        return
+    # A file avoids pipe deadlocks if a damaged decoder emits extensive stderr.
+    with tempfile.TemporaryFile() as errors:
+        with subprocess.Popen([decoder, '-dc', str(path)], stdout=subprocess.PIPE,
+                              stderr=errors) as process:
+            exhausted = False
+            try:
+                with io.TextIOWrapper(process.stdout, encoding='utf-8-sig') as stream:
+                    yield stream
+                    # The importer can stop after max_games. A deliberate early
+                    # close is not a decompression failure; real EOF must check
+                    # the subprocess exit status before accepting the corpus.
+                    exhausted = stream.read(1) == ''
+            finally:
+                if not exhausted and process.poll() is None:
+                    process.terminate()
+                status = process.wait()
+            if exhausted and status != 0:
+                errors.seek(0)
+                detail = errors.read(4096).decode('utf-8', errors='replace').strip()
+                raise ValueError(f'cannot decompress zstd archive {path} (exit {status}): {detail}')
+
+
 @contextmanager
 def pgn_stream(path):
     path = Path(path)
@@ -84,22 +142,8 @@ def pgn_stream(path):
             with archive.open(names[0]) as raw, io.TextIOWrapper(raw, encoding='utf-8-sig') as stream:
                 yield stream
     elif path.suffix == '.zst':
-        try:
-            from compression import zstd as _py_zstd
-        except ImportError:
-            _py_zstd = None
-        if _py_zstd is not None:
-            with _py_zstd.open(path, 'rt', encoding='utf-8-sig') as stream:
-                yield stream
-        else:
-            with subprocess.Popen(['zstd', '-dc', str(path)], stdout=subprocess.PIPE,
-                                  stderr=subprocess.DEVNULL) as process:
-                try:
-                    with io.TextIOWrapper(process.stdout, encoding='utf-8-sig') as stream:
-                        yield stream
-                finally:
-                    process.terminate() if process.poll() is None else None
-                    process.wait()
+        with zstd_stream(path) as stream:
+            yield stream
     else:
         with path.open(encoding='utf-8-sig') as stream:
             yield stream

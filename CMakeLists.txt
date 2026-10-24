@@ -130,6 +130,10 @@ if(BUILD_TESTING)
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/progress_tests.py")
     add_test(NAME training-job
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/job_tests.py")
-    set_tests_properties(model training neural-uci neural-diagnostics benchmark-integrity trainer-replay promotion preparation experiment curriculum-progress training-job PROPERTIES TIMEOUT 180)
+    add_test(NAME slurm-submission
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/slurm_submission_tests.py")
+    add_test(NAME compressed-corpus
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/compressed_corpus_tests.py")
+    set_tests_properties(model training neural-uci neural-diagnostics benchmark-integrity trainer-replay promotion preparation experiment curriculum-progress training-job slurm-submission compressed-corpus PROPERTIES TIMEOUT 180)
   endif()
 endif()

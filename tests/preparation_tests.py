@@ -75,7 +75,8 @@ class PreparationTests(unittest.TestCase):
             with zipfile.ZipFile(archive, 'w') as bundle:
                 bundle.writestr('games.pgn', '[Event "Fixture"]\n*\n')
             zst_archive = Path(directory) / 'broadcast.pgn.zst'
-            zst_archive.write_bytes(b'\x28\xb5\x2f\xfdpayload')
+            zst_archive.write_bytes(bytes.fromhex(
+                '28b52ffd20242101005b4576656e74202246697874757265225d0a0a312e20653420653520312f322d312f320a'))
             with patch.object(cli.urllib.request, 'urlopen') as network:
                 cli.download_archive(archive, 'fixture://archive')
                 cli.download_archive(archive, 'fixture://archive')
