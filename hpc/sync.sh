@@ -52,9 +52,15 @@ else
     echo "  results/ not found on remote; skipped"
 fi
 
-# Slurm writes bootstrap logs to the remote submission directory (the
-# checkout root). Collect them under hpc/logs locally, off the root.
+# Scheduler logs live under hpc/logs; child training logs arrive with results/.
 mkdir -p "${ROOT_DIR}/hpc/logs"
+if ssh "$REMOTE_HOST" "test -d ${REMOTE_PATH}/hpc/logs"; then
+    rsync "${RSYNC_FLAGS[@]}" \
+        --include='/*.out' --include='/*.err' --exclude='*' \
+        "${REMOTE_HOST}:${REMOTE_PATH}/hpc/logs/" "${ROOT_DIR}/hpc/logs/"
+fi
+
+# Also collect root-level logs from jobs submitted before the log-path change.
 rsync "${RSYNC_FLAGS[@]}" \
     --include='/inezita_train_*.out' \
     --include='/inezita_train_*.err' \

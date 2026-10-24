@@ -36,7 +36,9 @@ hours) followed by a dependent single-GPU training job (`hpc/train_inezita.slurm
 `nssac_students`. Set `INEZ_ACCOUNT` to override the account. Direct
 `sbatch hpc/submit_inezita.sh` also works from the checkout root: its dispatcher
 uses a ten-minute CPU allocation and then schedules the two resource-specific
-jobs. Child logs live in `RUN_DIR/slurm/`; the run manifest records their IDs.
+jobs. Dispatcher logs live in `hpc/logs/`; child logs live in `RUN_DIR/slurm/`.
+The run manifest records their IDs. The tracked `hpc/logs/.gitkeep` creates the
+log directory before Slurm starts the job. Pull logs with `bash hpc/sync.sh`.
 Existing incomplete directories are preserved. Verified prepared data is reused
 on resume, and completed curricula submit no further work. CUDA is required;
 there is no automatic CPU fallback.

@@ -1,11 +1,12 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-only
 # Submit the frozen prepare/train pipeline from a login shell or a short CPU job.
-# With sbatch, submit from the checkout root or set INEZ_ROOT explicitly: Slurm
-# executes a copy of this script from its spool directory.
+# With sbatch, submit from the checkout root so relative log paths resolve.
+# Slurm executes a copy of this script from its spool directory; INEZ_ROOT
+# can explicitly select the checkout used by the dispatcher.
 #SBATCH --job-name=inezita_submit
-#SBATCH --output=inezita_submit_%j.out
-#SBATCH --error=inezita_submit_%j.err
+#SBATCH --output=hpc/logs/inezita_submit_%j.out
+#SBATCH --error=hpc/logs/inezita_submit_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=standard
 #SBATCH --cpus-per-task=4

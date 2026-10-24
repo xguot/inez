@@ -3,8 +3,8 @@
 # Submit from the checkout root: sbatch hpc/benchmark_inezita.slurm
 # Default is the 20-game pilot; no training is performed.
 #SBATCH --job-name=inezita_bench
-#SBATCH --output=inezita_bench_%j.out
-#SBATCH --error=inezita_bench_%j.err
+#SBATCH --output=hpc/logs/inezita_bench_%j.out
+#SBATCH --error=hpc/logs/inezita_bench_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1

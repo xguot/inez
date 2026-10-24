@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Reference neural PUCT + gated Inezita 0.1.3 training. Persistent RUN_DIR enables resume.
 #SBATCH --job-name=inezita_train
-#SBATCH --output=inezita_train_%j.out
-#SBATCH --error=inezita_train_%j.err
+#SBATCH --output=hpc/logs/inezita_train_%j.out
+#SBATCH --error=hpc/logs/inezita_train_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1

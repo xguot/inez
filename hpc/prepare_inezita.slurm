@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # CPU preparation for Inezita: download TCEC + FIDE OTB Broadcast PGNs, inject MCO openings, and generate Stockfish labels.
 #SBATCH --job-name=inezita_prepare
-#SBATCH --output=inezita_prepare_%j.out
-#SBATCH --error=inezita_prepare_%j.err
+#SBATCH --output=hpc/logs/inezita_prepare_%j.out
+#SBATCH --error=hpc/logs/inezita_prepare_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=standard
 #SBATCH --cpus-per-task=48

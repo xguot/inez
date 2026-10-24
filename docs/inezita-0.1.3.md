@@ -45,8 +45,13 @@ when possible. Queued/running jobs for the same run block duplicate submission.
 
 Child job logs are retained in `RUN_DIR/slurm/{prepare,train}-<jobid>.out/.err`;
 job IDs and submission failures are recorded in `RUN_DIR/submissions.json`.
-The dispatcher logs remain `inezita_submit_<jobid>.out/.err` in the submission
-directory. Python, configuration, source hashes and selected preparation tools
+Dispatcher logs are stored in `hpc/logs/inezita_submit_<jobid>.out/.err`.
+Directly submitted preparation, training, benchmark and gauntlet jobs also use
+`hpc/logs/`. Submit with `sbatch` from the checkout root. The tracked
+`hpc/logs/.gitkeep` ensures the directory exists before Slurm opens its logs;
+creating it inside the batch script would be too late. `bash hpc/sync.sh` pulls
+these logs along with run results. Already queued jobs retain their original paths.
+Python, configuration, source hashes and selected preparation tools
 are pinned in `job.json`. Portable resume reaches both preflight and training:
 
 ```sh

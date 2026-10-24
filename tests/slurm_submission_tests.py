@@ -15,6 +15,23 @@ WRAPPER = ROOT / 'hpc/submit_inezita.sh'
 
 
 class SlurmSubmissionTests(unittest.TestCase):
+    def test_batch_logs_use_existing_checkout_log_directory(self):
+        # Slurm opens logs before running the script, so mkdir inside it is too late.
+        self.assertTrue((ROOT / 'hpc/logs/.gitkeep').is_file())
+        scripts = [WRAPPER, *sorted((ROOT / 'hpc').glob('*.slurm'))]
+        self.assertEqual(len(scripts), 5)
+        for script in scripts:
+            with self.subTest(script=script.name):
+                directives = dict(line.removeprefix('#SBATCH --').split('=', 1)
+                                  for line in script.read_text().splitlines()
+                                  if line.startswith(('#SBATCH --output=', '#SBATCH --error=')))
+                for option, suffix in (('output', '.out'), ('error', '.err')):
+                    path = Path(directives[option])
+                    self.assertEqual(path.parent, Path('hpc/logs'))
+                    self.assertIn('%j', path.name)
+                    self.assertTrue(path.name.endswith(suffix))
+                    self.assertTrue((ROOT / path.parent).is_dir())
+
     def fixture(self, directory):
         root = directory / 'checkout with spaces'
         (root / 'tools').mkdir(parents=True)

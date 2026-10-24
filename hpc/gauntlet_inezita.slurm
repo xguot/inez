@@ -9,8 +9,8 @@
 # stockfish-elo-1320 stockfish-elo-1600 stockfish-elo-1900 stockfish-elo-2200.
 # These are opponent settings, not calibrated human ratings for Inezita.
 #SBATCH --job-name=inezita_gauntlet
-#SBATCH --output=inezita_gauntlet_%j.out
-#SBATCH --error=inezita_gauntlet_%j.err
+#SBATCH --output=hpc/logs/inezita_gauntlet_%j.out
+#SBATCH --error=hpc/logs/inezita_gauntlet_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1

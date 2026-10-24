@@ -4,7 +4,8 @@
 /data/raw/
 /data/processed/
 /artifacts/
-/hpc/logs/
+/hpc/logs/*
+!/hpc/logs/.gitkeep
 /results/
 __pycache__/
 *.pyc
