@@ -11,7 +11,7 @@
 #SBATCH --job-name=inezita_gauntlet
 #SBATCH --output=inezita_gauntlet_%j.out
 #SBATCH --error=inezita_gauntlet_%j.err
-#SBATCH --account=nassac_students
+#SBATCH --account=nssac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --constraint=a100_40gb
