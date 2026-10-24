@@ -4,7 +4,7 @@
 #SBATCH --job-name=inezita_prepare
 #SBATCH --output=inezita_prepare_%j.out
 #SBATCH --error=inezita_prepare_%j.err
-#SBATCH --account=nssac_student
+#SBATCH --account=nassac_students
 #SBATCH --partition=standard
 #SBATCH --cpus-per-task=48
 #SBATCH --mem=96G

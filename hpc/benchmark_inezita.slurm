@@ -5,7 +5,7 @@
 #SBATCH --job-name=inezita_bench
 #SBATCH --output=inezita_bench_%j.out
 #SBATCH --error=inezita_bench_%j.err
-#SBATCH --account=nssac_student
+#SBATCH --account=nassac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --constraint=a100_40gb

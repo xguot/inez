@@ -4,7 +4,7 @@
 #SBATCH --job-name=inezita_train
 #SBATCH --output=inezita_train_%j.out
 #SBATCH --error=inezita_train_%j.err
-#SBATCH --account=nssac_student
+#SBATCH --account=nassac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --constraint=a100_40gb

@@ -6,7 +6,7 @@
 #SBATCH --job-name=inezita_submit
 #SBATCH --output=inezita_submit_%j.out
 #SBATCH --error=inezita_submit_%j.err
-#SBATCH --account=nssac_student
+#SBATCH --account=nassac_students
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
