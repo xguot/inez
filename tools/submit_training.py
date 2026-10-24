@@ -129,7 +129,7 @@ def _dispatch(path, *, environment=None, prepare=None):
         env=env, capture_output=True, text=True, check=True)
     if set(queued.stdout.split()) & set(names.values()):
         raise ValueError('this run already has a queued/running job; wait for it to finish before resuming')
-    account = env.get('INEZ_ACCOUNT', 'nssac_students')
+    account = env.get('INEZ_ACCOUNT', 'nssac_student')
     event = {'submitted_utc': datetime.now(timezone.utc).isoformat(),
              'prepare_job': None, 'train_job': None, 'status': 'submitting'}
     def submit(script, *extra):
