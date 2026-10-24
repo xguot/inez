@@ -27,7 +27,7 @@ def absolute(value):
     return (path if path.is_absolute() else ROOT / path).resolve()
 
 
-DEFAULT_TIME_LIMITS = {'prepare': '24:00:00', 'train': '36:00:00'}
+DEFAULT_TIME_LIMITS = {'prepare': '08:00:00', 'train': '36:00:00'}
 
 
 def time_limits(environment, saved=None):

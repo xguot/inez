@@ -16,7 +16,7 @@ bash hpc/submit_inezita.sh
 - **First run**: Creates a frozen code/config snapshot under
   `results/training/inezita-0.1.3/source/`, writes
   `results/training/inezita-0.1.3/job.json`, and submits
-  `hpc/prepare_inezita.slurm` (48 CPU cores, 96 GiB RAM, 24h) followed
+  `hpc/prepare_inezita.slurm` (48 CPU cores, 96 GiB RAM, 8h) followed
   automatically by `hpc/train_inezita.slurm` (`--dependency=afterok`, 1 A100
   40GB GPU, 16 CPU cores, 96 GiB RAM, 36h).
 - **Automatic resume**: If the job hits the Slurm wall-clock limit and saves an
@@ -70,7 +70,7 @@ previous `job.json` was already created with an older implementation.
 
 ## Time limits and queue states
 
-The preparation `24:00:00` and GPU training `36:00:00` settings are maximum
+The preparation `08:00:00` and GPU training `36:00:00` settings are maximum
 allocation runtimes, not durations the jobs must consume or reliable estimates.
 Preparation exits as soon as it finishes. `afterok` then makes the GPU job
 eligible immediately; GPU scheduling can still add queue time. `PD (Resources)`
@@ -94,7 +94,10 @@ PREP_TIME_LIMIT=08:00:00 TRAIN_TIME_LIMIT=24:00:00 bash hpc/submit_inezita.sh
 Those values illustrate the syntax, not a promise the run fits them. New
 submissions inherit the saved ceilings unless explicitly overridden on resume.
 Changes to code or these environment variables do not alter already queued jobs.
-The default ceilings remain 24 hours and 36 hours. `--dry-run` displays the limits
+The default ceilings are 8 hours for preparation and 36 hours for training.
+The preparation budget is a scheduling choice, not a measured completion estimate.
+Previously frozen runs retain their saved limits; set `PREP_TIME_LIMIT=08:00:00`
+when resubmitting those runs to override the earlier 24-hour request. `--dry-run` displays the limits
 without submitting work.
 
 ## Dataset & Curriculum (`configs/train/inezita.json`)

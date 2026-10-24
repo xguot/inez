@@ -8,7 +8,7 @@
 #SBATCH --partition=standard
 #SBATCH --cpus-per-task=48
 #SBATCH --mem=96G
-#SBATCH --time=24:00:00
+#SBATCH --time=08:00:00
 # Maximum allocation time, not required runtime; override through PREP_TIME_LIMIT.
 
 set -Eeuo pipefail

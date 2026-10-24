@@ -257,6 +257,20 @@ class JobTests(unittest.TestCase):
             self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
 
 
+    def test_default_preparation_budget_matches_batch_script_and_submitted_job(self):
+        self.assertEqual(jobs.time_limits({}), {'prepare':'08:00:00','train':'36:00:00'})
+        self.assertIn('#SBATCH --time=08:00:00',
+                      (ROOT / 'hpc/prepare_inezita.slurm').read_text())
+        with tempfile.TemporaryDirectory() as tmp:
+            env, _, _ = self.fixture(Path(tmp))
+            env['DATA_DIR'] = str(Path(tmp) / 'fresh-data')
+            calls, run = self.scheduler()
+            with patch.object(jobs.subprocess, 'run', side_effect=run):
+                spec = jobs.new_job('continue', prepare=True, environment=env)
+            commands = [cmd for cmd, _ in calls if cmd[0] == 'sbatch']
+            self.assertIn('--time=08:00:00', commands[0])
+            self.assertEqual(spec['submission']['time_limits']['prepare'], '08:00:00')
+
     def test_time_limits_are_explicit_ceiling_overrides_on_submissions_and_resume(self):
         with tempfile.TemporaryDirectory() as tmp:
             env, _, _ = self.fixture(Path(tmp))
