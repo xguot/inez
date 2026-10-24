@@ -592,33 +592,168 @@ def tactical_report(model, tactics, simulations):
     return results
 
 
-def wilson_lower(points, games, z=1.15):
-    if games <= 0:
-        return 0.0
-    p = points / games
-    return (p + z*z/(2*games) - z*math.sqrt(p*(1-p)/games + z*z/(4*games*games))) / (1+z*z/games)
+def _validate_pair_settings(alpha, expected_pairs):
+    if isinstance(alpha, bool) or not math.isfinite(alpha) or not 0 < alpha < 0.5:
+        raise ValueError('paired gate alpha must be finite and between 0 and 0.5')
+    if expected_pairs is not None and (isinstance(expected_pairs, bool)
+            or not isinstance(expected_pairs, int) or expected_pairs < 1):
+        raise ValueError('expected gate pairs must be a positive integer')
 
 
-def promotion_decision(points, games, candidate_tactics, previous_tactics, *, minimum_score=0.55):
+def _validate_minimum_score(minimum_score):
+    if (isinstance(minimum_score, bool) or not math.isfinite(minimum_score)
+            or not 0.5 < minimum_score <= 1.0):
+        raise ValueError('minimum promotion score must be greater than 0.5 and at most 1')
+
+
+def paired_score_test(games, *, expected_pairs=None, alpha=0.05):
+    """Exact, fixed-sample, one-sided randomization test at the opening-pair level.
+
+    Under the null, swapping the engine identities within each independently
+    sampled opening pair is exchangeable. We condition on the absolute pair
+    score difference and enumerate its signs exactly by dynamic programming.
+    Both color-reversed games stay together; draws and tied pairs are retained
+    in the reported pentanomial counts. This is not an Elo confidence interval,
+    an arbitrary-mean test, or a sequential test. The opening sample and sample
+    size must be fixed before play; repeated candidates need an alpha budget.
+    """
+    _validate_pair_settings(alpha, expected_pairs)
+    result = {'method': 'exact-paired-sign-flip-v1', 'alpha': alpha,
+              'p_value': None, 'completed_pairs': 0, 'pentanomial': [0] * 5,
+              'valid': False, 'rejection_reasons': []}
+    reasons = result['rejection_reasons']
+    if not games:
+        reasons.append('missing_paired_results')
+        return result
+    groups = {}
+    for game in games:
+        pair = game.get('pair')
+        white = game.get('candidate_white')
+        score = game.get('candidate_score')
+        if (isinstance(pair, bool) or not isinstance(pair, int) or pair < 0
+                or not isinstance(white, bool)):
+            reasons.append('invalid_pair_structure')
+            return result
+        if score is not None and (isinstance(score, bool) or score not in (0.0, 0.5, 1.0)):
+            raise ValueError('candidate game scores must be 0, 0.5, 1, or None')
+        if game.get('fault') or game.get('faults'):
+            reasons.append('match_game_faults')
+        if score is None:
+            reasons.append('unfinished_match_games')
+        else:
+            expected_result = ('1/2-1/2' if score == 0.5 else
+                               '1-0' if (score == 1.0) == white else '0-1')
+            if game.get('result') != expected_result:
+                reasons.append('inconsistent_game_result')
+        groups.setdefault(pair, []).append(game)
+    if expected_pairs is not None and set(groups) != set(range(expected_pairs)):
+        reasons.append('incomplete_opening_pairs')
+    positions, differences = set(), []
+    for legs in groups.values():
+        if len(legs) != 2 or {game['candidate_white'] for game in legs} != {False, True}:
+            reasons.append('incomplete_opening_pairs')
+            continue
+        keys = {game.get('opening_position') for game in legs}
+        if len(keys) != 1 or not all(isinstance(key, str) and key for key in keys):
+            reasons.append('missing_or_inconsistent_opening_position')
+            continue
+        key = next(iter(keys))
+        if key in positions:
+            reasons.append('duplicate_opening_positions')
+        positions.add(key)
+        if any(game['candidate_score'] is None for game in legs):
+            continue
+        pair_score = sum(game['candidate_score'] for game in legs)
+        result['pentanomial'][int(pair_score * 2)] += 1
+        differences.append(int(pair_score * 2) - 2)
+    result['completed_pairs'] = len(differences)
+    result['rejection_reasons'] = list(dict.fromkeys(reasons))
+    if result['rejection_reasons']:
+        return result
+    distribution = {0: 1}
+    nonzero = [abs(difference) for difference in differences if difference]
+    for magnitude in nonzero:
+        next_distribution = {}
+        for statistic, count in distribution.items():
+            for signed in (-magnitude, magnitude):
+                target = statistic + signed
+                next_distribution[target] = next_distribution.get(target, 0) + count
+        distribution = next_distribution
+    observed = sum(differences)
+    extreme = sum(count for statistic, count in distribution.items() if statistic >= observed)
+    result.update(valid=True, p_value=extreme / (1 << len(nonzero)),
+                  nonzero_pairs=len(nonzero), observed_statistic=observed)
+    return result
+
+
+def promotion_decision(points, games, candidate_tactics, previous_tactics, *,
+                       minimum_score=0.55, match_games=None, alpha=0.05,
+                       expected_pairs=None):
+    """Require complete paired evidence, a practical score gain, and no tactical loss.
+
+    Aggregate-only reports from older runs remain readable by status tools, but
+    cannot authorize a new promotion because their independent pairs are unknown.
+    """
+    if (isinstance(games, bool) or not isinstance(games, int) or games < 0
+            or isinstance(points, bool) or not math.isfinite(points)
+            or not 0 <= points <= games):
+        raise ValueError('invalid completed-game count or match points')
+    _validate_minimum_score(minimum_score)
+    names = [item['name'] for item in previous_tactics]
+    if (names != [item['name'] for item in candidate_tactics]
+            or len(set(names)) != len(names)):
+        raise ValueError('tactical gate suites differ or contain duplicate names')
+    if any(not isinstance(item['solved'], bool) for item in previous_tactics + candidate_tactics):
+        raise ValueError('tactical outcomes must be booleans')
     regressions = [old['name'] for old, new in zip(previous_tactics, candidate_tactics)
-                   if old['name'] != new['name'] or old['solved'] and not new['solved']]
-    if len(candidate_tactics) != len(previous_tactics):
-        raise ValueError('tactical gate suites differ')
-    lower = wilson_lower(points, games)
-    # Fractional draw scores use a conservative bounded-score Wilson-style gate;
-    # this is promotion evidence, not a claim of an exact Elo confidence interval.
-    passed = games > 0 and points/games >= minimum_score and lower > 0.5 and not regressions
-    return {'passed': passed, 'score': points/games if games else None,
-            'score_lower_bound': lower, 'tactical_regressions': regressions}
+                   if old['solved'] and not new['solved']]
+    paired = paired_score_test(match_games, expected_pairs=expected_pairs, alpha=alpha)
+    reasons = list(paired['rejection_reasons'])
+    score = points / games if games else None
+    if match_games is not None:
+        completed = [game['candidate_score'] for game in match_games
+                     if game.get('candidate_score') is not None]
+        if len(completed) != games or not math.isclose(sum(completed), points, abs_tol=1e-12):
+            raise ValueError('aggregate match score disagrees with paired game records')
+    if games == 0:
+        reasons.append('no_completed_games')
+    if score is not None and score < minimum_score:
+        reasons.append('score_below_minimum')
+    if paired['valid'] and paired['p_value'] > alpha:
+        reasons.append('insufficient_paired_evidence')
+    if not names:
+        reasons.append('missing_tactical_suite')
+    if regressions:
+        reasons.append('tactical_regression')
+    return {'passed': not reasons, 'score': score, 'score_lower_bound': None,
+            'tactical_regressions': regressions, 'paired_test': paired,
+            'rejection_reasons': list(dict.fromkeys(reasons))}
 
 
-def evaluate_candidate(candidate, incumbent, *, tactics, openings, pairs, simulations, max_plies, minimum_score=0.55, stop=None):
-    if pairs < 1 or simulations < 1 or max_plies < 1:
-        raise ValueError('invalid gate limits')
+def evaluate_candidate(candidate, incumbent, *, tactics, openings, pairs, simulations,
+                       max_plies, minimum_score=0.55, alpha=0.05, stop=None):
+    if (any(isinstance(value, bool) or not isinstance(value, int) or value < 1
+            for value in (pairs, simulations, max_plies)) or not openings
+            or pairs > len(openings)):
+        raise ValueError('invalid gate limits or insufficient distinct openings')
+    # Select every opening before play. Transposed move sequences are the same
+    # experiment, so compare positions rather than only the spelling of moves.
+    selected, positions = [], set()
+    for opening in openings[:pairs]:
+        board = chess.Board()
+        for move in opening:
+            board.push_uci(move)
+        key = position_key(board)
+        if key in positions or board.outcome(claim_draw=False) is not None:
+            raise ValueError('gate requires distinct nonterminal opening positions')
+        positions.add(key)
+        selected.append((tuple(opening), key))
+    # Validate statistical options before spending time generating games.
+    _validate_pair_settings(alpha, pairs)
+    _validate_minimum_score(minimum_score)
     candidate_eval, incumbent_eval = NeuralEvaluator(candidate), NeuralEvaluator(incumbent)
     games, points = [], 0.0
-    for pair in range(pairs):
-        opening = openings[pair % len(openings)]
+    for pair, (opening, opening_position) in enumerate(selected):
         for candidate_white in (True, False):
             board = chess.Board()
             for move in opening:
@@ -631,10 +766,10 @@ def evaluate_candidate(candidate, incumbent, *, tactics, openings, pairs, simula
                 board.push_uci(choose_move(search(board, evaluate, simulations)))
                 plies += 1
             outcome = board.outcome(claim_draw=False)
-            # Truncated games carry no evidence for promotion. Record them but
-            # never fabricate a decisive result or a training draw label.
+            # Move caps are unfinished games, never fabricated draws.
             score = None if outcome is None else (0.5 if outcome.winner is None else float(outcome.winner == candidate_white))
             games.append({'pair': pair, 'candidate_white': candidate_white,
+                          'opening_position': opening_position, 'opening': list(opening),
                           'result': outcome.result() if outcome else '*', 'candidate_score': score,
                           'moves': [move.uci() for move in board.move_stack]})
             if score is not None:
@@ -643,9 +778,8 @@ def evaluate_candidate(candidate, incumbent, *, tactics, openings, pairs, simula
     candidate_tactics = tactical_report(candidate, tactics, simulations)
     incumbent_tactics = tactical_report(incumbent, tactics, simulations)
     decision = promotion_decision(points, finished, candidate_tactics, incumbent_tactics,
-                                  minimum_score=minimum_score)
-    if finished != len(games):
-        decision['passed'] = False
+                                  minimum_score=minimum_score, match_games=games,
+                                  alpha=alpha, expected_pairs=pairs)
     return {**decision, 'games': games, 'completed_games': finished,
             'candidate_tactics': candidate_tactics, 'incumbent_tactics': incumbent_tactics,
             'simulations_per_move': simulations, 'pairs': pairs}

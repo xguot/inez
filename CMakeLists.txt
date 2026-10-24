@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 cmake_minimum_required(VERSION 3.20)
-project(inezita VERSION 0.1.2 LANGUAGES CXX)
+project(inezita VERSION 0.1.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -118,6 +118,10 @@ if(BUILD_TESTING)
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/diagnostics_tests.py")
     add_test(NAME benchmark-integrity
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/benchmark_tests.py")
-    set_tests_properties(model training neural-uci neural-diagnostics benchmark-integrity PROPERTIES TIMEOUT 180)
+    add_test(NAME trainer-replay
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/trainer_replay_tests.py")
+    add_test(NAME promotion
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/promotion_tests.py")
+    set_tests_properties(model training neural-uci neural-diagnostics benchmark-integrity trainer-replay promotion PROPERTIES TIMEOUT 180)
   endif()
 endif()

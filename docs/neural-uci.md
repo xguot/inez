@@ -18,7 +18,7 @@ same run, without editing any training metadata. If you renamed a copied run,
 select the artifact directory directly in ModelPath. Copy both `manifest.json`
 and `weights.pt`.
 
-The engine appears as **Inezita 0.1.2**. Its stderr log records the actual
+The engine appears as **Inezita 0.1.3**. Its stderr log records the actual
 artifact path, parameter count and device when loaded. The manifest, encoding
 contract and weight checksum are validated before playing. Missing, corrupt or
 incompatible artifacts cause an explicit error; there is no heuristic fallback.

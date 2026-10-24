@@ -1,0 +1,1576 @@
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "1"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:42"]
+[GameStartTime "2026-10-23T21:09:45 -0400"]
+[GameEndTime "2026-10-23T21:10:31 -0400"]
+[PlyCount "57"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A07"]
+[Opening "King's Indian Attack"]
+
+1. Nf3 {book} d5 {book} 2. g3 {book} c6 {book} 3. Bg2 {book} Nf6 {book}
+4. d3 {book} Bg4 {book} 5. h3 {book} Bh5 {book} 6. b3 {book} e6 {book}
+7. Bb2 {book} Qa5+ {book} 8. Qd2 {book} Qxd2+ {book}
+9. Kxd2 {/0 3.298s, tl=57.902s, n=0} a5 {-0.09/2 0.000s, tl=61.200s, n=197}
+10. a4 {+0.35/7 2.430s, tl=56.072s, n=492}
+Na6 {-0.08/2 0.000s, tl=61.800s, n=193}
+11. Ne5 {+0.11/8 2.379s, tl=54.293s, n=488}
+Bb4+ {-0.37/2 0.000s, tl=62.400s, n=141}
+12. Kc1 {+0.05/10 2.334s, tl=52.559s, n=424}
+Bxe2 {+0.91/2 0.000s, tl=63.000s, n=301}
+13. g4 {-0.74/13 2.250s, tl=50.909s, n=408}
+Bc5 {+1.12/2 0.000s, tl=63.600s, n=191}
+14. Re1 {+5.56/9 2.207s, tl=49.302s, n=383}
+Bxg4 {-1.20/2 0.000s, tl=64.200s, n=269}
+15. hxg4 {+5.16/11 2.153s, tl=47.749s, n=392}
+O-O {-0.64/2 0.000s, tl=64.800s, n=223}
+16. Nd2 {+5.60/6 2.083s, tl=46.266s, n=424}
+Bxf2 {-0.99/2 0.000s, tl=65.400s, n=190}
+17. Rh1 {+3.82/7 2.034s, tl=44.832s, n=408}
+h6 {-1.50/2 0.000s, tl=66.000s, n=186}
+18. Ndf3 {+4.08/7 1.989s, tl=43.443s, n=416}
+Rfe8 {-1.04/2 0.000s, tl=66.600s, n=158}
+19. Kd2 {+6.01/7 1.947s, tl=42.096s, n=392}
+Nb4 {-2.18/2 0.000s, tl=67.200s, n=154}
+20. Raf1 {+6.25/9 1.900s, tl=40.796s, n=363}
+Ba7 {-2.62/2 0.000s, tl=67.800s, n=173}
+21. g5 {+7.64/8 1.859s, tl=39.537s, n=356}
+hxg5 {-3.24/2 0.000s, tl=68.400s, n=198}
+22. Nxg5 {+7.69/6 1.820s, tl=38.317s, n=336}
+Nd7 {-3.89/2 0.000s, tl=69.000s, n=147}
+23. Nxd7 {+9.59/9 1.767s, tl=37.150s, n=338}
+Rad8 {-4.23/2 0.000s, tl=69.600s, n=128}
+24. Rxf7 {+12.05/6 1.726s, tl=36.024s, n=400}
+e5 {-4.79/2 0.000s, tl=70.200s, n=147}
+25. Bxe5 {+14.42/5 1.685s, tl=34.939s, n=368}
+Be3+ {-4.67/2 0.000s, tl=70.800s, n=154}
+26. Kxe3 {+13.05/8 1.645s, tl=33.894s, n=489}
+Rxd7 {-4.52/2 0.000s, tl=71.400s, n=130}
+27. Rxd7 {+11.13/9 1.621s, tl=32.873s, n=416}
+Nxc2+ {-2.96/1 0.000s, tl=72.000s, n=115}
+28. Kf4 {+12.47/7 1.664s, tl=31.809s, n=376}
+g6 {-6.04/2 0.000s, tl=72.600s, n=142}
+29. Rh8# {+22.80/1 1.540s, tl=30.869s, n=9426, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "1"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:01:23"]
+[GameStartTime "2026-10-23T21:10:31 -0400"]
+[GameEndTime "2026-10-23T21:11:56 -0400"]
+[PlyCount "130"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A07"]
+[Opening "King's Indian Attack"]
+
+1. Nf3 {book} d5 {book} 2. g3 {book} c6 {book} 3. Bg2 {book} Nf6 {book}
+4. d3 {book} Bg4 {book} 5. h3 {book} Bh5 {book} 6. b3 {book} e6 {book}
+7. Bb2 {book} Qa5+ {book} 8. Qd2 {book} Qxd2+ {book}
+9. Kxd2 {+0.45/3 0.000s, tl=61.200s, n=128}
+Nbd7 {-0.05/6 2.525s, tl=58.675s, n=520}
+10. g4 {+0.37/2 0.000s, tl=61.800s, n=381}
+Bg6 {-0.36/7 2.464s, tl=56.811s, n=464}
+11. Nh4 {+0.09/2 0.000s, tl=62.400s, n=216}
+Be7 {-0.51/6 2.404s, tl=55.007s, n=464}
+12. f4 {+0.09/2 0.000s, tl=63.000s, n=232}
+O-O {-0.39/8 2.329s, tl=53.278s, n=458}
+13. e3 {+0.21/2 0.000s, tl=63.600s, n=260}
+a5 {-0.20/6 2.277s, tl=51.601s, n=472}
+14. g5 {+0.26/2 0.000s, tl=64.200s, n=227}
+Nh5 {+0.28/9 2.203s, tl=49.998s, n=424}
+15. Nc3 {-0.06/2 0.000s, tl=64.800s, n=159}
+a4 {+0.22/7 2.149s, tl=48.449s, n=408}
+16. Bf3 {+0.37/2 0.000s, tl=65.400s, n=332}
+axb3 {+0.53/8 2.110s, tl=46.939s, n=368}
+17. axb3 {+0.25/2 0.000s, tl=66.000s, n=422}
+Bb4 {+0.18/10 2.079s, tl=45.460s, n=360}
+18. Nxg6 {+0.07/2 0.000s, tl=66.600s, n=356}
+hxg6 {-0.33/10 2.014s, tl=44.046s, n=368}
+19. Rhb1 {-0.12/2 0.000s, tl=67.200s, n=375}
+Ng3 {+0.76/9 1.963s, tl=42.683s, n=384}
+20. Ke1 {-0.40/2 0.000s, tl=67.800s, n=306}
+e5 {+1.87/10 1.909s, tl=41.374s, n=368}
+21. Kf2 {-0.21/2 0.000s, tl=68.400s, n=341}
+exf4 {+1.39/11 1.866s, tl=40.108s, n=328}
+22. Ra4 {-0.51/2 0.000s, tl=69.000s, n=572}
+Rxa4 {+3.01/9 1.844s, tl=38.864s, n=343}
+23. bxa4 {-0.95/2 0.000s, tl=69.600s, n=187}
+Bd6 {+4.31/9 1.781s, tl=37.683s, n=392}
+24. e4 {-0.84/2 0.000s, tl=70.200s, n=241}
+Bc5+ {+3.37/9 1.747s, tl=36.536s, n=384}
+25. Kg2 {-0.56/3 0.000s, tl=70.800s, n=128}
+d4 {+2.93/9 1.708s, tl=35.428s, n=376}
+26. Na2 {-0.49/2 0.000s, tl=71.400s, n=165}
+Ne5 {+5.38/7 1.678s, tl=34.350s, n=368}
+27. Bc1 {-1.25/2 0.000s, tl=72.000s, n=165}
+Ra8 {+2.67/10 1.646s, tl=33.304s, n=360}
+28. Bxf4 {+0.63/2 0.000s, tl=72.600s, n=192}
+Nxf3 {-0.76/12 1.606s, tl=32.298s, n=325}
+29. Kxf3 {+0.63/2 0.000s, tl=73.200s, n=218}
+Nh5 {-1.74/12 1.565s, tl=31.333s, n=320}
+30. Rxb7 {+0.13/2 0.000s, tl=73.800s, n=547}
+Rxa4 {-2.03/10 1.546s, tl=30.387s, n=343}
+31. Rb8+ {+1.57/2 0.000s, tl=74.400s, n=361}
+Bf8 {-1.43/10 1.502s, tl=29.485s, n=336}
+32. Bd6 {+2.22/2 0.000s, tl=75.000s, n=516}
+Rxa2 {-2.91/10 1.479s, tl=28.606s, n=350}
+33. Bxf8 {+2.16/2 0.000s, tl=75.600s, n=156}
+Rxc2 {-0.74/9 1.436s, tl=27.770s, n=400}
+34. Bd6+ {+0.53/2 0.000s, tl=76.200s, n=133}
+Kh7 {-0.98/7 1.426s, tl=26.944s, n=383}
+35. h4 {+0.48/2 0.000s, tl=76.800s, n=137}
+Rc3 {+0.72/8 1.399s, tl=26.145s, n=392}
+36. Kf2 {-0.17/2 0.000s, tl=77.400s, n=293}
+Rxd3 {+2.13/9 1.368s, tl=25.377s, n=373}
+37. Rd8 {-0.45/1 0.000s, tl=78.000s, n=124}
+Rd1 {+3.43/8 1.341s, tl=24.636s, n=368}
+38. Rf8 {-0.35/2 0.000s, tl=78.600s, n=128}
+d3 {+2.69/7 1.309s, tl=23.927s, n=376}
+39. e5 {-0.67/2 0.000s, tl=79.200s, n=148}
+d2 {+3.57/6 1.283s, tl=23.244s, n=368}
+40. e6 {-0.68/2 0.000s, tl=79.800s, n=131}
+fxe6 {+6.39/6 1.256s, tl=22.588s, n=344}
+41. Ke2 {-1.12/2 0.000s, tl=80.400s, n=130}
+Rh1 {+5.41/8 1.239s, tl=21.949s, n=320}
+42. Kxd2 {-1.15/2 0.000s, tl=81.000s, n=269}
+Rxh4 {+4.77/6 1.234s, tl=21.315s, n=344}
+43. Rc8 {-1.26/2 0.000s, tl=81.600s, n=129}
+Rd4+ {+8.68/7 1.207s, tl=20.708s, n=352}
+44. Kc3 {-3.27/3 0.000s, tl=82.200s, n=128}
+Rxd6 {+10.56/6 1.186s, tl=20.122s, n=349}
+45. Rb8 {-2.97/2 0.000s, tl=82.800s, n=128}
+e5 {+10.93/5 1.165s, tl=19.557s, n=360}
+46. Kb4 {-2.90/1 0.000s, tl=83.400s, n=71}
+e4 {+10.76/5 1.137s, tl=19.020s, n=336}
+47. Ka4 {-3.51/2 0.000s, tl=84.000s, n=128}
+e3 {+11.01/4 1.132s, tl=18.488s, n=352}
+48. Rc8 {-4.53/2 0.000s, tl=84.600s, n=131}
+e2 {+11.95/5 1.110s, tl=17.978s, n=336}
+49. Re8 {-5.63/2 0.000s, tl=85.200s, n=131}
+Rd1 {+11.38/5 1.092s, tl=17.486s, n=323}
+50. Kb3 {-5.11/2 0.000s, tl=85.800s, n=128}
+e1=R {+11.83/6 1.073s, tl=17.013s, n=290}
+51. Rb8 {-5.66/2 0.000s, tl=86.400s, n=128}
+c5 {+12.15/5 1.061s, tl=16.552s, n=292}
+52. Kc2 {-5.39/2 0.000s, tl=87.000s, n=128}
+Re2+ {+10.47/5 1.037s, tl=16.115s, n=296}
+53. Kb3 {-3.48/3 0.000s, tl=87.600s, n=98}
+Rb1+ {+13.76/5 1.024s, tl=15.691s, n=288}
+54. Kc4 {-7.53/3 0.000s, tl=88.200s, n=130}
+Rxb8 {+13.58/6 1.016s, tl=15.275s, n=264}
+55. Kc3 {-7.44/4 0.000s, tl=88.800s, n=129}
+Rb1 {+14.07/5 0.991s, tl=14.884s, n=288}
+56. Kd3 {-7.73/5 0.000s, tl=89.400s, n=128}
+Ree1 {+14.30/5 0.993s, tl=14.491s, n=296}
+57. Kc3 {-7.27/4 0.000s, tl=90.000s, n=130}
+Re3+ {+14.20/4 0.978s, tl=14.113s, n=288}
+58. Kd2 {-6.94/5 0.000s, tl=90.600s, n=132}
+Re4 {+14.32/5 0.961s, tl=13.752s, n=264}
+59. Kd3 {-7.15/4 0.000s, tl=91.200s, n=128}
+Ra4 {+14.39/4 0.959s, tl=13.393s, n=271}
+60. Ke2 {-6.46/3 0.000s, tl=91.800s, n=130}
+c4 {+14.42/4 0.933s, tl=13.060s, n=240}
+61. Kf3 {-7.38/3 0.000s, tl=92.400s, n=131}
+c3 {+14.50/4 0.931s, tl=12.729s, n=264}
+62. Ke3 {-7.46/3 0.000s, tl=93.000s, n=131}
+c2 {+13.49/6 0.908s, tl=12.421s, n=256}
+63. Kd3 {-9.72/3 0.000s, tl=93.600s, n=128}
+c1=Q {+12.82/6 0.896s, tl=12.125s, n=232}
+64. Ke2 {-10.85/6 0.000s, tl=94.200s, n=128}
+Qc2+ {+16.03/4 0.906s, tl=11.819s, n=264}
+65. Ke3 {-M2/19 0.000s, tl=94.800s, n=122}
+Rb3# {+22.80/1 0.874s, tl=11.545s, n=3194, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "2"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:40"]
+[GameStartTime "2026-10-23T21:11:56 -0400"]
+[GameEndTime "2026-10-23T21:12:38 -0400"]
+[PlyCount "55"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "E15"]
+[Opening "Queen's Indian Defense: Fianchetto Variation, Nimzowitsch Variation, Nimzowitsch Attack"]
+
+1. d4 {book} Nf6 {book} 2. c4 {book} e6 {book} 3. Nf3 {book} b6 {book}
+4. g3 {book} Ba6 {book} 5. Qa4 {book} Bb7 {book} 6. Bg2 {book} c5 {book}
+7. dxc5 {book} Bxc5 {book} 8. O-O {book} Be7 {book}
+9. Rd1 {+1.02/6 2.512s, tl=58.688s, n=432}
+Bc6 {-0.27/2 0.000s, tl=61.200s, n=161}
+10. Qc2 {+1.79/8 2.451s, tl=56.837s, n=410}
+Qc7 {-0.36/2 0.000s, tl=61.800s, n=137}
+11. Bf4 {+2.79/8 2.383s, tl=55.054s, n=376}
+Qc8 {-0.71/2 0.000s, tl=62.400s, n=207}
+12. Nc3 {+3.52/7 2.319s, tl=53.335s, n=376}
+Bb7 {-1.03/2 0.000s, tl=63.000s, n=193}
+13. Nb5 {+3.99/7 2.277s, tl=51.658s, n=363}
+Na6 {-1.27/2 0.000s, tl=63.600s, n=189}
+14. Bd6 {+5.82/7 2.214s, tl=50.044s, n=360}
+Nc5 {-2.49/2 0.000s, tl=64.200s, n=217}
+15. Nc7+ {+7.88/10 2.177s, tl=48.467s, n=325}
+Qxc7 {-2.70/4 0.000s, tl=64.800s, n=128}
+16. Bxc7 {+9.64/8 2.136s, tl=46.931s, n=320}
+O-O {-4.65/2 0.000s, tl=65.400s, n=154}
+17. Bd6 {+9.82/8 2.073s, tl=45.458s, n=336}
+Bxf3 {-4.64/2 0.000s, tl=66.000s, n=290}
+18. Bxf3 {+10.12/8 2.003s, tl=44.055s, n=352}
+Bxd6 {-5.45/2 0.000s, tl=66.600s, n=273}
+19. Rxd6 {+10.70/7 1.977s, tl=42.678s, n=376}
+Rad8 {-5.49/2 0.000s, tl=67.200s, n=138}
+20. b4 {+9.46/6 1.926s, tl=41.352s, n=392}
+Rc8 {-6.32/2 0.000s, tl=67.800s, n=141}
+21. bxc5 {+10.19/6 1.861s, tl=40.091s, n=360}
+Rxc5 {-5.07/2 0.000s, tl=68.400s, n=128}
+22. Qa4 {+9.45/5 1.819s, tl=38.872s, n=360}
+Rfc8 {-5.92/2 0.000s, tl=69.000s, n=131}
+23. Qxa7 {+10.04/5 1.807s, tl=37.665s, n=368}
+Rxc4 {-5.88/2 0.000s, tl=69.600s, n=133}
+24. Qxb6 {+10.75/6 1.766s, tl=36.499s, n=360}
+Rc1+ {-4.13/2 0.000s, tl=70.200s, n=135}
+25. Rxc1 {+10.86/8 1.710s, tl=35.389s, n=354}
+Rxc1+ {-4.23/2 0.000s, tl=70.800s, n=139}
+26. Kg2 {+11.49/6 1.681s, tl=34.308s, n=368}
+Ra1 {-5.79/2 0.000s, tl=71.400s, n=128}
+27. Qb8+ {+15.56/5 1.625s, tl=33.283s, n=472}
+Ne8 {-M2/63 0.000s, tl=72.000s, n=126}
+28. Qxe8# {+22.80/2 1.589s, tl=32.294s, n=10701, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "2"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:47"]
+[GameStartTime "2026-10-23T21:12:38 -0400"]
+[GameEndTime "2026-10-23T21:13:26 -0400"]
+[PlyCount "66"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "E15"]
+[Opening "Queen's Indian Defense: Fianchetto Variation, Nimzowitsch Variation, Nimzowitsch Attack"]
+
+1. d4 {book} Nf6 {book} 2. c4 {book} e6 {book} 3. Nf3 {book} b6 {book}
+4. g3 {book} Ba6 {book} 5. Qa4 {book} Bb7 {book} 6. Bg2 {book} c5 {book}
+7. dxc5 {book} Bxc5 {book} 8. O-O {book} Be7 {book}
+9. Nc3 {-0.04/2 0.000s, tl=61.200s, n=203}
+O-O {-0.83/6 2.533s, tl=58.667s, n=440}
+10. a3 {0.00/2 0.000s, tl=61.800s, n=256}
+Nc6 {-0.36/6 2.468s, tl=56.799s, n=456}
+11. Rd1 {+0.21/2 0.000s, tl=62.400s, n=236}
+Rc8 {-0.13/7 2.400s, tl=54.999s, n=413}
+12. b4 {+0.24/2 0.000s, tl=63.000s, n=274}
+h6 {-0.68/11 2.315s, tl=53.284s, n=408}
+13. Bb2 {+0.27/2 0.000s, tl=63.600s, n=230}
+d5 {-1.51/11 2.265s, tl=51.619s, n=408}
+14. e4 {+1.15/2 0.000s, tl=64.200s, n=299}
+d4 {+0.59/14 2.239s, tl=49.980s, n=352}
+15. Ne2 {+0.26/2 0.000s, tl=64.800s, n=340}
+e5 {-0.07/12 2.156s, tl=48.424s, n=344}
+16. Ne1 {-0.69/2 0.000s, tl=65.400s, n=314}
+Qc7 {+5.49/7 2.106s, tl=46.918s, n=408}
+17. Qc2 {-1.06/2 0.000s, tl=66.000s, n=195}
+Rfd8 {+4.74/8 2.062s, tl=45.456s, n=416}
+18. Nd3 {-1.03/2 0.000s, tl=66.600s, n=165}
+Ng4 {+3.97/8 2.019s, tl=44.037s, n=392}
+19. Rac1 {-0.62/2 0.000s, tl=67.200s, n=216}
+Bg5 {+5.48/11 1.971s, tl=42.666s, n=360}
+20. Rb1 {-1.07/2 0.000s, tl=67.800s, n=286}
+h5 {+5.01/6 1.918s, tl=41.348s, n=370}
+21. b5 {-0.66/2 0.000s, tl=68.400s, n=223}
+Na5 {+4.68/11 1.892s, tl=40.056s, n=320}
+22. Nb4 {-2.48/2 0.000s, tl=69.000s, n=167}
+Qxc4 {+7.84/7 1.827s, tl=38.829s, n=289}
+23. Qxc4 {-2.86/2 0.000s, tl=69.600s, n=273}
+Nxc4 {+7.22/8 1.788s, tl=37.641s, n=305}
+24. h4 {-2.98/2 0.000s, tl=70.200s, n=204}
+Be7 {+6.95/8 1.761s, tl=36.480s, n=312}
+25. Bc1 {-3.48/2 0.000s, tl=70.800s, n=300}
+Bc5 {+7.63/8 1.726s, tl=35.354s, n=334}
+26. f3 {-3.27/2 0.000s, tl=71.400s, n=156}
+Nge3 {+8.10/9 1.678s, tl=34.276s, n=296}
+27. Nc6 {-3.79/2 0.000s, tl=72.000s, n=187}
+Nxd1 {+9.83/8 1.623s, tl=33.253s, n=304}
+28. Nxa7 {-4.58/2 0.000s, tl=72.600s, n=249}
+Ra8 {+10.22/9 1.610s, tl=32.243s, n=300}
+29. Nc6 {-5.00/2 0.000s, tl=73.200s, n=219}
+Bxc6 {+10.76/9 1.566s, tl=31.277s, n=313}
+30. bxc6 {-4.43/2 0.000s, tl=73.800s, n=131}
+d3+ {+11.91/7 1.544s, tl=30.333s, n=336}
+31. Kf1 {-6.47/3 0.000s, tl=74.400s, n=128}
+dxe2+ {+12.09/7 1.505s, tl=29.428s, n=384}
+32. Kxe2 {-5.91/4 0.000s, tl=75.000s, n=130}
+Nc3+ {+15.80/6 1.468s, tl=28.560s, n=432}
+33. Ke1 {-8.49/6 0.000s, tl=75.600s, n=128}
+Rd1# {+22.80/4 1.432s, tl=27.728s, n=6929, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "3"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:49"]
+[GameStartTime "2026-10-23T21:13:26 -0400"]
+[GameEndTime "2026-10-23T21:14:16 -0400"]
+[PlyCount "67"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A41"]
+[Opening "Rat Defense: English Rat"]
+
+1. d4 {book} d6 {book} 2. c4 {book} e5 {book} 3. d5 {book} f5 {book}
+4. e4 {book} fxe4 {book} 5. Nc3 {book} Nf6 {book} 6. Nge2 {book} Bf5 {book}
+7. Ng3 {book} Bg6 {book} 8. Bg5 {book} Nbd7 {book}
+9. h4 {-1.18/10 2.509s, tl=58.691s, n=440}
+Be7 {-0.18/2 0.000s, tl=61.200s, n=165}
+10. h5 {+1.33/12 2.472s, tl=56.819s, n=384}
+e3 {-0.94/2 0.000s, tl=61.800s, n=438}
+11. hxg6 {+6.61/10 2.400s, tl=55.019s, n=416}
+exf2+ {-1.53/2 0.000s, tl=62.400s, n=232}
+12. Kxf2 {+6.73/8 2.331s, tl=53.288s, n=403}
+O-O {-1.36/2 0.000s, tl=63.000s, n=167}
+13. Nf5 {+7.03/7 2.270s, tl=51.618s, n=440}
+Ne4+ {+5.88/2 0.000s, tl=63.600s, n=304}
+14. Nxe4 {+0.56/14 2.213s, tl=50.005s, n=360}
+Rxf5+ {+5.88/2 0.000s, tl=64.200s, n=184}
+15. Ke1 {+1.01/12 2.178s, tl=48.427s, n=367}
+Bxg5 {+0.22/2 0.000s, tl=64.800s, n=262}
+16. gxh7+ {+1.32/11 2.112s, tl=46.915s, n=347}
+Kh8 {+0.92/3 0.000s, tl=65.400s, n=138}
+17. Qg4 {+1.27/11 2.066s, tl=45.449s, n=360}
+Qf8 {+1.56/2 0.000s, tl=66.000s, n=294}
+18. Nxg5 {+5.62/8 2.005s, tl=44.044s, n=328}
+Qf6 {-2.53/2 0.000s, tl=66.600s, n=129}
+19. Ne4 {+7.05/7 1.969s, tl=42.675s, n=320}
+Qe7 {-3.19/2 0.000s, tl=67.200s, n=185}
+20. Qxf5 {+9.94/7 1.935s, tl=41.340s, n=336}
+Nc5 {-5.00/2 0.000s, tl=67.800s, n=128}
+21. Nxc5 {+9.52/7 1.869s, tl=40.071s, n=360}
+g6 {-4.58/2 0.000s, tl=68.400s, n=142}
+22. Qg4 {+10.86/6 1.841s, tl=38.830s, n=373}
+Qg7 {-6.70/1 0.000s, tl=69.000s, n=126}
+23. Ne6 {+12.37/6 1.782s, tl=37.648s, n=344}
+Qf6 {-7.61/2 0.000s, tl=69.600s, n=135}
+24. Rh6 {+11.68/6 1.760s, tl=36.488s, n=312}
+Rd8 {-5.84/2 0.000s, tl=70.200s, n=136}
+25. Nxd8 {+12.64/6 1.707s, tl=35.381s, n=328}
+e4 {-6.02/2 0.000s, tl=70.800s, n=131}
+26. Ne6 {+9.16/7 1.679s, tl=34.302s, n=376}
+b5 {-5.38/2 0.000s, tl=71.400s, n=133}
+27. Qxe4 {+12.41/6 1.625s, tl=33.277s, n=336}
+bxc4 {-6.29/2 0.000s, tl=72.000s, n=140}
+28. Qxc4 {+12.09/6 1.613s, tl=32.264s, n=352}
+Qxb2 {-6.58/2 0.000s, tl=72.600s, n=128}
+29. Rc1 {+12.95/7 1.567s, tl=31.297s, n=352}
+Qe5+ {-6.33/2 0.000s, tl=73.200s, n=133}
+30. Be2 {+12.63/6 1.528s, tl=30.369s, n=312}
+Qg3+ {-6.12/2 0.000s, tl=73.800s, n=128}
+31. Kf1 {+13.07/5 1.514s, tl=29.455s, n=304}
+Qe3 {-5.40/2 0.000s, tl=74.400s, n=128}
+32. Rxg6 {+12.03/7 1.482s, tl=28.573s, n=280}
+Kxh7 {-7.07/2 0.000s, tl=75.000s, n=139}
+33. Qxc7+ {+12.08/6 1.438s, tl=27.735s, n=288}
+Kh8 {-7.25/5 0.000s, tl=75.600s, n=137}
+34. Qg7# {+22.80/1 1.405s, tl=26.930s, n=8014, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "3"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:01:01"]
+[GameStartTime "2026-10-23T21:14:16 -0400"]
+[GameEndTime "2026-10-23T21:15:17 -0400"]
+[PlyCount "86"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A41"]
+[Opening "Rat Defense: English Rat"]
+
+1. d4 {book} d6 {book} 2. c4 {book} e5 {book} 3. d5 {book} f5 {book}
+4. e4 {book} fxe4 {book} 5. Nc3 {book} Nf6 {book} 6. Nge2 {book} Bf5 {book}
+7. Ng3 {book} Bg6 {book} 8. Bg5 {book} Nbd7 {book}
+9. h4 {+0.18/2 0.000s, tl=61.200s, n=326} h6 {+1.30/9 2.515s, tl=58.685s, n=442}
+10. Bxf6 {-0.04/2 0.000s, tl=61.800s, n=297}
+Nxf6 {+1.48/10 2.444s, tl=56.841s, n=472}
+11. Qc2 {+1.20/2 0.000s, tl=62.400s, n=446}
+Be7 {+1.47/8 2.404s, tl=55.037s, n=448}
+12. Be2 {+0.13/2 0.000s, tl=63.000s, n=327}
+O-O {+1.17/9 2.342s, tl=53.295s, n=430}
+13. O-O {-0.58/2 0.000s, tl=63.600s, n=207}
+Qe8 {+3.05/9 2.280s, tl=51.615s, n=424}
+14. a4 {-0.99/2 0.000s, tl=64.200s, n=282}
+e3 {+3.57/10 2.223s, tl=49.992s, n=413}
+15. Bd3 {-1.54/2 0.000s, tl=64.800s, n=252}
+e4 {+2.41/10 2.150s, tl=48.442s, n=360}
+16. Ngxe4 {-1.64/2 0.000s, tl=65.400s, n=373}
+Ng4 {+3.54/13 2.105s, tl=46.937s, n=352}
+17. f4 {-0.96/2 0.000s, tl=66.000s, n=315}
+Bxh4 {+6.53/8 2.069s, tl=45.468s, n=368}
+18. g3 {-1.77/2 0.000s, tl=66.600s, n=207}
+Bf6 {+5.25/8 2.034s, tl=44.034s, n=344}
+19. Nxf6+ {-1.37/2 0.000s, tl=67.200s, n=328}
+Rxf6 {+5.73/10 1.953s, tl=42.681s, n=336}
+20. Bxg6 {-1.97/2 0.000s, tl=67.800s, n=244}
+Rxg6 {+5.63/8 1.913s, tl=41.368s, n=376}
+21. Kg2 {-1.83/2 0.000s, tl=68.400s, n=148}
+h5 {+4.26/6 1.878s, tl=40.090s, n=368}
+22. Rf3 {-1.58/2 0.000s, tl=69.000s, n=156}
+Qf7 {+5.53/7 1.842s, tl=38.848s, n=360}
+23. Re1 {-1.71/2 0.000s, tl=69.600s, n=148}
+Re8 {+4.44/8 1.804s, tl=37.644s, n=344}
+24. Nd1 {-1.72/2 0.000s, tl=70.200s, n=166}
+h4 {+4.63/10 1.744s, tl=36.500s, n=360}
+25. b3 {-1.76/2 0.000s, tl=70.800s, n=226}
+hxg3 {+5.82/7 1.721s, tl=35.379s, n=352}
+26. f5 {-2.60/2 0.000s, tl=71.400s, n=154}
+Rh6 {+7.25/9 1.666s, tl=34.313s, n=312}
+27. Kxg3 {-3.04/2 0.000s, tl=72.000s, n=136}
+Qh5 {+7.25/9 1.649s, tl=33.264s, n=320}
+28. Nxe3 {-4.63/2 0.000s, tl=72.600s, n=158}
+Qh4+ {+8.44/10 1.606s, tl=32.258s, n=344}
+29. Kg2 {-4.23/5 0.000s, tl=73.200s, n=138}
+Qxe1 {+7.85/10 1.563s, tl=31.295s, n=296}
+30. Nxg4 {-3.62/2 0.000s, tl=73.800s, n=194}
+Rh4 {+8.15/8 1.538s, tl=30.357s, n=320}
+31. Nf6+ {-3.04/2 0.000s, tl=74.400s, n=210}
+gxf6 {+9.13/6 1.504s, tl=29.453s, n=296}
+32. Rg3+ {-1.71/2 0.000s, tl=75.000s, n=137}
+Kf8 {+9.54/5 1.463s, tl=28.590s, n=336}
+33. Rg8+ {-4.21/2 0.000s, tl=75.600s, n=139}
+Kxg8 {+12.12/7 1.449s, tl=27.741s, n=304}
+34. a5 {-7.13/2 0.000s, tl=76.200s, n=133}
+Qe5 {+13.13/5 1.406s, tl=26.935s, n=328}
+35. Qd3 {-5.37/2 0.000s, tl=76.800s, n=142}
+Re4 {+13.46/5 1.404s, tl=26.131s, n=336}
+36. Qd1 {-5.38/2 0.000s, tl=77.400s, n=132}
+Qxf5 {+13.34/5 1.376s, tl=25.355s, n=320}
+37. Qc2 {-8.14/2 0.000s, tl=78.000s, n=131}
+Qe5 {+13.61/5 1.343s, tl=24.612s, n=336}
+38. Qd3 {-5.05/2 0.000s, tl=78.600s, n=133}
+f5 {+14.12/4 1.323s, tl=23.889s, n=310}
+39. Qd1 {-7.73/2 0.000s, tl=79.200s, n=128}
+f4 {+14.27/4 1.291s, tl=23.198s, n=280}
+40. Qg4+ {-0.55/2 0.000s, tl=79.800s, n=128}
+Kf7 {+13.05/6 1.270s, tl=22.528s, n=304}
+41. Qh4 {-5.10/2 0.000s, tl=80.400s, n=129}
+Qf5 {+13.20/6 1.257s, tl=21.871s, n=304}
+42. Qh6 {-7.20/2 0.000s, tl=81.000s, n=128}
+Re2+ {+15.47/5 1.220s, tl=21.251s, n=312}
+43. Kf1 {-M2/6 0.000s, tl=81.600s, n=123}
+Qb1# {+22.80/1 1.188s, tl=20.663s, n=5856, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "4"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:45"]
+[GameStartTime "2026-10-23T21:15:17 -0400"]
+[GameEndTime "2026-10-23T21:16:03 -0400"]
+[PlyCount "61"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A45"]
+[Opening "Trompowsky Attack: Classical Defense, Big Center Variation"]
+
+1. d4 {book} Nf6 {book} 2. Bg5 {book} e6 {book} 3. e4 {book} h6 {book}
+4. Bxf6 {book} Qxf6 {book} 5. Nc3 {book} Bb4 {book} 6. Qd2 {book} d6 {book}
+7. O-O-O {book} Nd7 {book} 8. Kb1 {book} O-O {book}
+9. h4 {+1.02/10 2.529s, tl=58.671s, n=488}
+c5 {-0.22/2 0.000s, tl=61.200s, n=193}
+10. Nf3 {+0.76/9 2.450s, tl=56.821s, n=464}
+Bxc3 {+0.08/2 0.000s, tl=61.800s, n=201}
+11. Qxc3 {+1.00/11 2.391s, tl=55.030s, n=440}
+b6 {-0.47/2 0.000s, tl=62.400s, n=209}
+12. e5 {+2.32/11 2.383s, tl=53.247s, n=424}
+Qf4 {-0.79/2 0.000s, tl=63.000s, n=284}
+13. g3 {+2.63/7 2.277s, tl=51.570s, n=424}
+Qf5 {-1.63/2 0.000s, tl=63.600s, n=315}
+14. Bh3 {+3.22/10 2.217s, tl=49.953s, n=403}
+Qh5 {-1.76/2 0.000s, tl=64.200s, n=257}
+15. g4 {+4.07/9 2.155s, tl=48.398s, n=408}
+Qg6 {-2.39/2 0.000s, tl=64.800s, n=386}
+16. g5 {+4.53/8 2.124s, tl=46.874s, n=408}
+Bb7 {-2.00/2 0.000s, tl=65.400s, n=191}
+17. Rhg1 {+3.68/9 2.072s, tl=45.402s, n=366}
+dxe5 {-1.69/2 0.000s, tl=66.000s, n=348}
+18. dxe5 {+2.98/10 2.000s, tl=44.002s, n=320}
+Rfd8 {-1.95/2 0.000s, tl=66.600s, n=352}
+19. gxh6 {+3.96/9 1.976s, tl=42.626s, n=328}
+Qh5 {-1.88/2 0.000s, tl=67.200s, n=226}
+20. Ng5 {+7.45/10 1.926s, tl=41.300s, n=304}
+Qxh4 {-2.93/2 0.000s, tl=67.800s, n=163}
+21. hxg7 {+8.06/7 1.859s, tl=40.041s, n=312}
+Qf4 {-3.65/2 0.000s, tl=68.400s, n=187}
+22. Nxe6 {+7.71/12 1.837s, tl=38.804s, n=320}
+Nxe5 {-5.74/2 0.000s, tl=69.000s, n=370}
+23. Nxd8 {+10.74/8 1.845s, tl=37.559s, n=304}
+Bf3 {-4.71/2 0.000s, tl=69.600s, n=232}
+24. Rd6 {+10.52/7 1.747s, tl=36.412s, n=282}
+Nc4 {-4.49/2 0.000s, tl=70.200s, n=169}
+25. Rd3 {+9.76/7 1.730s, tl=35.282s, n=256}
+Ne5 {-3.91/2 0.000s, tl=70.800s, n=194}
+26. Rd2 {+8.84/9 1.667s, tl=34.215s, n=256}
+Nc4 {-3.43/2 0.000s, tl=71.400s, n=170}
+27. Rd7 {+8.62/9 1.648s, tl=33.167s, n=248}
+b5 {-4.15/2 0.000s, tl=72.000s, n=199}
+28. Nxf7 {+11.61/8 1.617s, tl=32.150s, n=240}
+b4 {-4.62/2 0.000s, tl=72.600s, n=189}
+29. Qd3 {+11.34/10 1.575s, tl=31.175s, n=310}
+Bc6 {-4.74/2 0.000s, tl=73.200s, n=229}
+30. Be6 {+14.13/8 1.527s, tl=30.248s, n=328}
+Qxf2 {-5.75/2 0.000s, tl=73.800s, n=258}
+31. Nh6# {+22.80/1 1.488s, tl=29.360s, n=8933, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "4"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:49"]
+[GameStartTime "2026-10-23T21:16:03 -0400"]
+[GameEndTime "2026-10-23T21:16:52 -0400"]
+[PlyCount "68"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A45"]
+[Opening "Trompowsky Attack: Classical Defense, Big Center Variation"]
+
+1. d4 {book} Nf6 {book} 2. Bg5 {book} e6 {book} 3. e4 {book} h6 {book}
+4. Bxf6 {book} Qxf6 {book} 5. Nc3 {book} Bb4 {book} 6. Qd2 {book} d6 {book}
+7. O-O-O {book} Nd7 {book} 8. Kb1 {book} O-O {book}
+9. f4 {-0.10/2 0.000s, tl=61.200s, n=262}
+Bxc3 {+0.48/10 2.517s, tl=58.683s, n=448}
+10. Qe3 {+0.02/2 0.000s, tl=61.800s, n=164}
+Ba5 {+5.53/8 2.466s, tl=56.817s, n=448}
+11. g4 {-3.81/2 0.000s, tl=62.400s, n=156}
+b5 {+5.90/8 2.401s, tl=55.016s, n=470}
+12. h4 {-2.63/2 0.000s, tl=63.000s, n=161}
+Rb8 {+5.70/9 2.338s, tl=53.278s, n=445}
+13. g5 {-1.33/2 0.000s, tl=63.600s, n=164}
+Qg6 {+4.93/8 2.283s, tl=51.595s, n=422}
+14. Bd3 {-0.50/2 0.000s, tl=64.200s, n=197}
+Bb7 {+3.45/9 2.209s, tl=49.986s, n=424}
+15. f5 {-0.28/2 0.000s, tl=64.800s, n=183}
+exf5 {+4.70/11 2.151s, tl=48.435s, n=352}
+16. exf5 {-1.31/2 0.000s, tl=65.400s, n=515}
+Qh5 {+4.25/10 2.112s, tl=46.923s, n=336}
+17. Be2 {-1.97/2 0.000s, tl=66.000s, n=347}
+Rbe8 {+6.11/11 2.067s, tl=45.456s, n=344}
+18. Qf2 {-1.97/2 0.000s, tl=66.600s, n=428}
+Bxh1 {-5.53/9 2.008s, tl=44.048s, n=360}
+19. Bxh5 {+2.69/2 0.000s, tl=67.200s, n=199}
+Be4 {-5.32/7 1.950s, tl=42.698s, n=408}
+20. Ne2 {+3.02/2 0.000s, tl=67.800s, n=163}
+hxg5 {-5.39/8 1.906s, tl=41.392s, n=376}
+21. hxg5 {+3.74/2 0.000s, tl=68.400s, n=219}
+Nb6 {-6.44/6 1.879s, tl=40.113s, n=400}
+22. Rf1 {+3.81/2 0.000s, tl=69.000s, n=144}
+Bd2 {-5.37/10 1.831s, tl=38.882s, n=370}
+23. Nf4 {+2.93/2 0.000s, tl=69.600s, n=158}
+Bxf4 {-6.43/8 1.797s, tl=37.685s, n=348}
+24. Qxf4 {+2.98/2 0.000s, tl=70.200s, n=252}
+Nd5 {-5.31/7 1.751s, tl=36.534s, n=360}
+25. Qg3 {+2.80/2 0.000s, tl=70.800s, n=135}
+b4 {-5.90/6 1.727s, tl=35.407s, n=368}
+26. Bf3 {+2.87/2 0.000s, tl=71.400s, n=163}
+Ne3 {-2.52/8 1.680s, tl=34.327s, n=325}
+27. Rc1 {+2.21/2 0.000s, tl=72.000s, n=734}
+Bxf5 {-2.56/8 1.643s, tl=33.284s, n=340}
+28. Qh4 {+1.17/2 0.000s, tl=72.600s, n=172}
+Nc4 {-1.91/7 1.592s, tl=32.292s, n=344}
+29. Bd5 {+1.81/2 0.000s, tl=73.200s, n=138}
+Nd2+ {-1.49/11 1.558s, tl=31.334s, n=304}
+30. Ka1 {+2.83/6 0.000s, tl=73.800s, n=128}
+Be4 {-1.22/9 1.548s, tl=30.386s, n=320}
+31. Bxe4 {+1.39/2 0.000s, tl=74.400s, n=420}
+Rxe4 {-1.45/8 1.501s, tl=29.485s, n=336}
+32. Qh3 {+1.38/2 0.000s, tl=75.000s, n=162}
+Rfe8 {-0.65/7 1.480s, tl=28.605s, n=331}
+33. Rh1 {+0.99/2 0.000s, tl=75.600s, n=364}
+Re1+ {+15.55/3 1.434s, tl=27.771s, n=2180}
+34. Rxe1 {-M2/63 0.000s, tl=76.200s, n=126}
+Rxe1# {+22.80/1 1.406s, tl=26.965s, n=8829, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "5"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:47"]
+[GameStartTime "2026-10-23T21:16:52 -0400"]
+[GameEndTime "2026-10-23T21:17:41 -0400"]
+[PlyCount "65"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A50"]
+[Opening "Slav Indian"]
+
+1. d4 {book} Nf6 {book} 2. c4 {book} c6 {book} 3. Nc3 {book} d5 {book}
+4. cxd5 {book} cxd5 {book} 5. Nf3 {book} Nc6 {book} 6. Bf4 {book} Qb6 {book}
+7. Na4 {book} Qa5+ {book} 8. Bd2 {book} Qd8 {book}
+9. e3 {+0.33/7 2.503s, tl=58.697s, n=488} e6 {-0.37/2 0.000s, tl=61.200s, n=205}
+10. Rc1 {+0.31/6 2.449s, tl=56.848s, n=449}
+Ne4 {-0.32/2 0.000s, tl=61.800s, n=195}
+11. Bd3 {+0.64/6 2.411s, tl=55.037s, n=384}
+Nxd2 {-0.21/2 0.000s, tl=62.400s, n=292}
+12. Qxd2 {+0.24/7 2.336s, tl=53.301s, n=408}
+Bb4 {-0.01/2 0.000s, tl=63.000s, n=244}
+13. Nc3 {+0.22/7 2.281s, tl=51.620s, n=408}
+Be7 {-0.31/2 0.000s, tl=63.600s, n=195}
+14. a3 {+0.25/6 2.229s, tl=49.991s, n=430}
+h6 {-0.36/2 0.000s, tl=64.200s, n=165}
+15. h4 {+0.49/5 2.172s, tl=48.419s, n=430}
+Bd7 {-0.36/2 0.000s, tl=64.800s, n=186}
+16. h5 {+0.43/6 2.106s, tl=46.913s, n=408}
+O-O {-0.28/2 0.000s, tl=65.400s, n=175}
+17. Ne2 {+0.68/6 2.067s, tl=45.446s, n=392}
+Rc8 {-0.17/2 0.000s, tl=66.000s, n=158}
+18. O-O {+0.59/7 2.027s, tl=44.019s, n=391}
+Bd6 {-0.09/2 0.000s, tl=66.600s, n=189}
+19. Rfd1 {+0.60/5 1.949s, tl=42.670s, n=368}
+g5 {-0.05/2 0.000s, tl=67.200s, n=267}
+20. hxg6 {+4.91/9 1.924s, tl=41.346s, n=304}
+Qe7 {-1.02/2 0.000s, tl=67.800s, n=356}
+21. gxf7+ {+5.00/7 1.874s, tl=40.072s, n=312}
+Rxf7 {-1.31/2 0.000s, tl=68.400s, n=85}
+22. Bg6 {+5.07/8 1.820s, tl=38.852s, n=296}
+Rxf3 {-0.16/2 0.000s, tl=69.000s, n=249}
+23. gxf3 {+3.91/12 1.776s, tl=37.676s, n=273}
+Qg5+ {+1.15/2 0.000s, tl=69.600s, n=352}
+24. Kh1 {+5.06/10 1.759s, tl=36.517s, n=280}
+Qxg6 {+1.88/2 0.000s, tl=70.200s, n=237}
+25. Rg1 {+6.44/8 1.708s, tl=35.409s, n=289}
+Qg5 {-2.00/2 0.000s, tl=70.800s, n=296}
+26. Rxg5+ {+8.66/7 1.676s, tl=34.333s, n=352}
+Kh7 {-5.49/3 0.000s, tl=71.400s, n=129}
+27. Rh5 {+11.32/5 1.635s, tl=33.298s, n=328}
+Nb4 {-5.60/2 0.000s, tl=72.000s, n=170}
+28. axb4 {+11.54/6 1.593s, tl=32.305s, n=352}
+Kg6 {-6.28/2 0.000s, tl=72.600s, n=165}
+29. Rh4 {+11.35/6 1.565s, tl=31.340s, n=360}
+Be5 {-6.56/2 0.000s, tl=73.200s, n=192}
+30. dxe5 {+13.49/7 1.544s, tl=30.396s, n=352}
+Rf8 {-7.51/2 0.000s, tl=73.800s, n=139}
+31. Rc7 {+14.28/6 1.495s, tl=29.501s, n=368}
+Bb5 {-7.06/2 0.000s, tl=74.400s, n=139}
+32. Nf4+ {+15.88/5 1.477s, tl=28.624s, n=396}
+Kg5 {-8.04/4 0.000s, tl=75.000s, n=128}
+33. Rh5# {+22.80/2 1.434s, tl=27.790s, n=7718, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "5"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:26"]
+[GameStartTime "2026-10-23T21:17:41 -0400"]
+[GameEndTime "2026-10-23T21:18:07 -0400"]
+[PlyCount "40"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A50"]
+[Opening "Slav Indian"]
+
+1. d4 {book} Nf6 {book} 2. c4 {book} c6 {book} 3. Nc3 {book} d5 {book}
+4. cxd5 {book} cxd5 {book} 5. Nf3 {book} Nc6 {book} 6. Bf4 {book} Qb6 {book}
+7. Na4 {book} Qa5+ {book} 8. Bd2 {book} Qd8 {book}
+9. Rc1 {0.00/2 0.000s, tl=61.200s, n=198}
+Ne4 {-0.35/7 2.515s, tl=58.685s, n=456}
+10. e3 {+0.03/2 0.000s, tl=61.800s, n=247}
+Bg4 {-0.56/9 2.461s, tl=56.824s, n=400}
+11. Nc5 {+0.35/2 0.000s, tl=62.400s, n=422}
+e6 {-0.32/12 2.406s, tl=55.018s, n=368}
+12. Bb5 {+0.77/2 0.000s, tl=63.000s, n=305}
+Bxc5 {+0.60/9 2.315s, tl=53.303s, n=376}
+13. Bxc6+ {-0.86/2 0.000s, tl=63.600s, n=325}
+bxc6 {+1.63/11 2.284s, tl=51.619s, n=366}
+14. dxc5 {-1.26/2 0.000s, tl=64.200s, n=232}
+Rb8 {+2.09/9 2.215s, tl=50.004s, n=410}
+15. h3 {-0.56/2 0.000s, tl=64.800s, n=214}
+Bxf3 {+2.73/12 2.152s, tl=48.452s, n=384}
+16. Qa4 {-1.22/2 0.000s, tl=65.400s, n=150}
+Bxg2 {+7.41/9 2.127s, tl=46.925s, n=359}
+17. Ba5 {-3.28/2 0.000s, tl=66.000s, n=164}
+Qf6 {+7.09/8 2.071s, tl=45.454s, n=359}
+18. Qxc6+ {-2.13/2 0.000s, tl=66.600s, n=266}
+Kf8 {+8.16/10 1.996s, tl=44.058s, n=450}
+19. Rh2 {-3.58/2 0.000s, tl=67.200s, n=247}
+Qxf2+ {+15.80/9 1.950s, tl=42.708s, n=871}
+20. Kd1 {-3.70/3 0.000s, tl=67.800s, n=32}
+Bf3# {+22.80/1 1.904s, tl=41.404s, n=14118, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "6"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:56"]
+[GameStartTime "2026-10-23T21:18:07 -0400"]
+[GameEndTime "2026-10-23T21:19:04 -0400"]
+[PlyCount "77"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "B12"]
+[Opening "Caro-Kann Defense: Advance Variation, Tal Variation"]
+
+1. e4 {book} c6 {book} 2. d4 {book} d5 {book} 3. e5 {book} Bf5 {book}
+4. h4 {book} h5 {book} 5. c4 {book} e6 {book} 6. Nc3 {book} Be7 {book}
+7. Qb3 {book} Qb6 {book} 8. c5 {book} Qc7 {book}
+9. Nf3 {+1.48/6 2.514s, tl=58.686s, n=456}
+Nh6 {-0.20/2 0.000s, tl=61.200s, n=219}
+10. Bf4 {+1.99/7 2.452s, tl=56.834s, n=408}
+b6 {-0.17/2 0.000s, tl=61.800s, n=197}
+11. cxb6 {+1.48/7 2.379s, tl=55.055s, n=400}
+Qd7 {-0.11/2 0.000s, tl=62.400s, n=352}
+12. b7 {+9.80/8 2.327s, tl=53.328s, n=344}
+O-O {-6.12/2 0.000s, tl=63.000s, n=347}
+13. bxa8=Q {+9.80/8 2.284s, tl=51.644s, n=332}
+Rc8 {-8.29/2 0.000s, tl=63.600s, n=156}
+14. Bxh6 {+11.34/6 2.212s, tl=50.032s, n=344}
+gxh6 {-8.05/2 0.000s, tl=64.200s, n=162}
+15. Be2 {+11.55/6 2.170s, tl=48.462s, n=368}
+Bb4 {-7.44/2 0.000s, tl=64.800s, n=154}
+16. Qxb4 {+12.38/7 2.130s, tl=46.932s, n=351}
+Na6 {-7.44/2 0.000s, tl=65.400s, n=128}
+17. Bxa6 {+11.74/7 2.053s, tl=45.479s, n=376}
+Bd3 {-8.64/2 0.000s, tl=66.000s, n=159}
+18. Bxc8 {+13.62/9 2.006s, tl=44.073s, n=352}
+Qe8 {-8.73/2 0.000s, tl=66.600s, n=157}
+19. Qd6 {+15.02/5 1.956s, tl=42.717s, n=344}
+Qf8 {-8.47/2 0.000s, tl=67.200s, n=128}
+20. Qxf8+ {+13.84/6 1.907s, tl=41.410s, n=360}
+Kxf8 {-10.70/6 0.000s, tl=67.800s, n=133}
+21. Qxc6 {+14.60/5 1.893s, tl=40.117s, n=440}
+Kg7 {-9.32/2 0.000s, tl=68.400s, n=129}
+22. Qd7 {+13.63/5 1.847s, tl=38.870s, n=408}
+Bc4 {-9.48/2 0.000s, tl=69.000s, n=128}
+23. Qxa7 {+14.55/6 1.788s, tl=37.682s, n=400}
+Kg8 {-9.91/2 0.000s, tl=69.600s, n=128}
+24. Qb8 {+14.67/5 1.739s, tl=36.543s, n=416}
+Kh8 {-9.10/2 0.000s, tl=70.200s, n=128}
+25. O-O-O {+14.57/5 1.727s, tl=35.416s, n=416}
+Be2 {-9.95/2 0.000s, tl=70.800s, n=128}
+26. Nxe2 {+14.29/7 1.689s, tl=34.327s, n=400}
+Kh7 {-10.40/3 0.000s, tl=71.400s, n=130}
+27. Nf4 {+14.58/5 1.629s, tl=33.298s, n=392}
+Kg7 {-10.60/3 0.000s, tl=72.000s, n=129}
+28. Nxh5+ {+14.71/5 1.609s, tl=32.289s, n=400}
+Kg8 {-10.89/4 0.000s, tl=72.600s, n=128}
+29. Nf6+ {+14.72/5 1.565s, tl=31.324s, n=408}
+Kf8 {-12.10/5 0.000s, tl=73.200s, n=128}
+30. Ng4 {+14.99/5 1.529s, tl=30.395s, n=416}
+Kg7 {-10.45/3 0.000s, tl=73.800s, n=129}
+31. b3 {+15.54/5 1.517s, tl=29.478s, n=368}
+Kh8 {-10.56/2 0.000s, tl=74.400s, n=128}
+32. Nxh6 {+14.15/6 1.486s, tl=28.592s, n=360}
+Kg7 {-10.65/3 0.000s, tl=75.000s, n=130}
+33. Ng4 {+14.42/6 1.455s, tl=27.737s, n=328}
+Kh8 {-10.39/2 0.000s, tl=75.600s, n=128}
+34. Ng5 {+14.79/5 1.408s, tl=26.929s, n=360}
+Kg7 {-10.67/3 0.000s, tl=76.200s, n=135}
+35. f4 {+14.98/5 1.385s, tl=26.144s, n=344}
+Kg8 {-11.02/2 0.000s, tl=76.800s, n=129}
+36. Nf6+ {+14.81/5 1.370s, tl=25.374s, n=328}
+Kh8 {-10.88/5 0.000s, tl=77.400s, n=129}
+37. g4 {+14.34/6 1.348s, tl=24.626s, n=320}
+Kg7 {-12.17/7 0.000s, tl=78.000s, n=129}
+38. Nh5+ {+15.12/5 1.318s, tl=23.908s, n=323}
+Kh8 {-10.55/3 0.000s, tl=78.600s, n=133}
+39. Bd7# {+22.80/1 1.277s, tl=23.231s, n=6990, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "6"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:43"]
+[GameStartTime "2026-10-23T21:19:04 -0400"]
+[GameEndTime "2026-10-23T21:19:48 -0400"]
+[PlyCount "60"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "B12"]
+[Opening "Caro-Kann Defense: Advance Variation, Tal Variation"]
+
+1. e4 {book} c6 {book} 2. d4 {book} d5 {book} 3. e5 {book} Bf5 {book}
+4. h4 {book} h5 {book} 5. c4 {book} e6 {book} 6. Nc3 {book} Be7 {book}
+7. Qb3 {book} Qb6 {book} 8. c5 {book} Qc7 {book}
+9. Be2 {+0.01/2 0.000s, tl=61.200s, n=191}
+b6 {-0.47/8 2.502s, tl=58.698s, n=416}
+10. Na4 {-0.19/2 0.000s, tl=61.800s, n=713}
+bxc5 {+1.03/10 2.454s, tl=56.844s, n=387}
+11. Nxc5 {-0.88/2 0.000s, tl=62.400s, n=318}
+Bxc5 {+0.81/10 2.399s, tl=55.045s, n=384}
+12. dxc5 {-0.88/2 0.000s, tl=63.000s, n=247}
+Nd7 {+1.00/9 2.317s, tl=53.328s, n=408}
+13. Qg3 {-1.21/2 0.000s, tl=63.600s, n=231}
+Qxe5 {+1.63/10 2.277s, tl=51.651s, n=408}
+14. Be3 {-0.51/2 0.000s, tl=64.200s, n=260}
+Qxb2 {+4.56/8 2.221s, tl=50.030s, n=364}
+15. Rd1 {-3.37/2 0.000s, tl=64.800s, n=291}
+Ngf6 {+5.06/8 2.169s, tl=48.461s, n=347}
+16. Qd6 {-2.63/2 0.000s, tl=65.400s, n=169}
+Qxa2 {+5.69/6 2.112s, tl=46.949s, n=322}
+17. f3 {-2.61/2 0.000s, tl=66.000s, n=172}
+a5 {+8.25/5 2.066s, tl=45.483s, n=344}
+18. Bg5 {-2.86/2 0.000s, tl=66.600s, n=165}
+a4 {+7.94/5 2.031s, tl=44.052s, n=334}
+19. Kf2 {-2.99/2 0.000s, tl=67.200s, n=237}
+a3 {+7.51/6 1.975s, tl=42.677s, n=320}
+20. Rd2 {-2.91/2 0.000s, tl=67.800s, n=188}
+Qb3 {+7.31/8 1.937s, tl=41.340s, n=287}
+21. Bxf6 {-2.96/2 0.000s, tl=68.400s, n=208}
+gxf6 {+7.55/11 1.862s, tl=40.078s, n=320}
+22. Nh3 {-4.11/2 0.000s, tl=69.000s, n=161}
+Qc3 {+8.20/7 1.828s, tl=38.850s, n=312}
+23. Ra2 {-4.58/2 0.000s, tl=69.600s, n=401}
+Bxh3 {+7.95/7 1.795s, tl=37.655s, n=332}
+24. Kg3 {-3.30/2 0.000s, tl=70.200s, n=377}
+Bf5 {+9.62/6 1.789s, tl=36.466s, n=320}
+25. Rha1 {-3.95/2 0.000s, tl=70.800s, n=163}
+Ne5 {+10.06/7 1.717s, tl=35.349s, n=339}
+26. Ba6 {-3.28/2 0.000s, tl=71.400s, n=149}
+Rxa6 {+10.69/6 1.687s, tl=34.262s, n=344}
+27. Rd1 {-2.78/2 0.000s, tl=72.000s, n=131}
+Rg8+ {+11.76/6 1.634s, tl=33.228s, n=328}
+28. Kh2 {-2.52/4 0.000s, tl=72.600s, n=128}
+Qb3 {+10.99/6 1.602s, tl=32.226s, n=304}
+29. f4 {-3.53/2 0.000s, tl=73.200s, n=179}
+Ng4+ {+15.79/8 1.569s, tl=31.257s, n=392}
+30. Kh1 {-M2/21 0.000s, tl=73.800s, n=126}
+Qxd1# {+22.80/2 1.522s, tl=30.335s, n=9492, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "7"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:41"]
+[GameStartTime "2026-10-23T21:19:48 -0400"]
+[GameEndTime "2026-10-23T21:20:30 -0400"]
+[PlyCount "57"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "B40"]
+[Opening "Sicilian Defense: Delayed Alapin Variation, with e6"]
+
+1. e4 {book} c5 {book} 2. Nf3 {book} e6 {book} 3. c3 {book} d5 {book}
+4. e5 {book} d4 {book} 5. Bd3 {book} Bd7 {book} 6. O-O {book} Bc6 {book}
+7. b3 {book} Ne7 {book} 8. cxd4 {book} Ng6 {book}
+9. Bxg6 {+0.23/12 2.516s, tl=58.684s, n=440}
+hxg6 {-0.29/2 0.000s, tl=61.200s, n=176}
+10. dxc5 {+0.28/12 2.464s, tl=56.820s, n=446}
+Na6 {-0.29/2 0.000s, tl=61.800s, n=226}
+11. d4 {+1.63/12 2.377s, tl=55.043s, n=360}
+Nc7 {-2.09/2 0.000s, tl=62.400s, n=249}
+12. b4 {+5.28/8 2.324s, tl=53.319s, n=448}
+Be7 {-1.51/2 0.000s, tl=63.000s, n=186}
+13. Nc3 {+5.23/8 2.278s, tl=51.641s, n=428}
+a6 {-1.98/2 0.000s, tl=63.600s, n=189}
+14. Be3 {+6.16/6 2.225s, tl=50.016s, n=400}
+Qd7 {-2.34/2 0.000s, tl=64.200s, n=168}
+15. a3 {+7.61/6 2.172s, tl=48.444s, n=400}
+Rd8 {-2.34/2 0.000s, tl=64.800s, n=189}
+16. Qe2 {+6.39/6 2.120s, tl=46.924s, n=397}
+f5 {-2.42/2 0.000s, tl=65.400s, n=185}
+17. exf6 {+4.90/6 2.060s, tl=45.464s, n=368}
+gxf6 {-2.42/2 0.000s, tl=66.000s, n=312}
+18. h4 {+5.30/7 2.017s, tl=44.047s, n=344}
+Kf8 {-1.61/2 0.000s, tl=66.600s, n=153}
+19. Rad1 {+7.43/6 1.979s, tl=42.668s, n=358}
+g5 {-1.86/2 0.000s, tl=67.200s, n=156}
+20. hxg5 {+7.05/9 1.931s, tl=41.337s, n=344}
+Rh7 {-2.07/2 0.000s, tl=67.800s, n=264}
+21. gxf6 {+7.73/7 1.891s, tl=40.046s, n=320}
+Rh1+ {-2.20/2 0.000s, tl=68.400s, n=266}
+22. Kxh1 {+11.21/7 1.818s, tl=38.828s, n=304}
+Bxf3 {-4.56/2 0.000s, tl=69.000s, n=155}
+23. Qxf3 {+12.13/8 1.802s, tl=37.626s, n=367}
+Bxc5 {-5.37/2 0.000s, tl=69.600s, n=163}
+24. bxc5 {+13.04/9 1.736s, tl=36.490s, n=352}
+Qh7+ {-4.40/2 0.000s, tl=70.200s, n=128}
+25. Kg1 {+13.09/8 1.705s, tl=35.385s, n=352}
+Kf7 {-7.61/2 0.000s, tl=70.800s, n=156}
+26. Qxb7 {+13.61/5 1.671s, tl=34.314s, n=337}
+Qh2+ {-6.75/2 0.000s, tl=71.400s, n=228}
+27. Kxh2 {+12.94/13 1.640s, tl=33.274s, n=331}
+Ke8 {-6.31/2 0.000s, tl=72.000s, n=130}
+28. Qxc7 {+15.34/5 1.597s, tl=32.277s, n=384}
+Rd6 {-7.81/2 0.000s, tl=72.600s, n=128}
+29. Qe7# {+22.80/3 1.556s, tl=31.321s, n=8778, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "7"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:43"]
+[GameStartTime "2026-10-23T21:20:30 -0400"]
+[GameEndTime "2026-10-23T21:21:14 -0400"]
+[PlyCount "60"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "B40"]
+[Opening "Sicilian Defense: Delayed Alapin Variation, with e6"]
+
+1. e4 {book} c5 {book} 2. Nf3 {book} e6 {book} 3. c3 {book} d5 {book}
+4. e5 {book} d4 {book} 5. Bd3 {book} Bd7 {book} 6. O-O {book} Bc6 {book}
+7. b3 {book} Ne7 {book} 8. cxd4 {book} Ng6 {book}
+9. Bxg6 {-0.40/2 0.000s, tl=61.200s, n=252}
+hxg6 {-0.02/13 2.516s, tl=58.684s, n=442}
+10. Na3 {-0.40/2 0.000s, tl=61.800s, n=278}
+cxd4 {+0.50/8 2.440s, tl=56.844s, n=464}
+11. Bb2 {-0.58/2 0.000s, tl=62.400s, n=186}
+Bc5 {+0.68/7 2.404s, tl=55.040s, n=472}
+12. Nc4 {-0.61/2 0.000s, tl=63.000s, n=210}
+g5 {+0.78/8 2.379s, tl=53.261s, n=456}
+13. Rc1 {-0.20/2 0.000s, tl=63.600s, n=159}
+g4 {+2.23/10 2.266s, tl=51.595s, n=409}
+14. Bxd4 {-0.54/2 0.000s, tl=64.200s, n=458}
+Bxd4 {-2.48/11 2.214s, tl=49.981s, n=362}
+15. Nd6+ {-2.06/2 0.000s, tl=64.800s, n=135}
+Kf8 {-3.06/10 2.161s, tl=48.420s, n=375}
+16. Nxd4 {+1.35/2 0.000s, tl=65.400s, n=272}
+Qh4 {-1.78/11 2.101s, tl=46.919s, n=400}
+17. Nxe6+ {-0.65/2 0.000s, tl=66.000s, n=396}
+fxe6 {+2.85/11 2.064s, tl=45.455s, n=420}
+18. f3 {-3.86/2 0.000s, tl=66.600s, n=270}
+Qxh2+ {+5.90/9 2.021s, tl=44.034s, n=390}
+19. Kf2 {-3.92/5 0.000s, tl=67.200s, n=133}
+Qxe5 {+8.34/7 1.959s, tl=42.675s, n=384}
+20. d4 {-3.01/2 0.000s, tl=67.800s, n=174}
+Qxd6 {+9.89/8 1.916s, tl=41.359s, n=368}
+21. fxg4 {-3.59/2 0.000s, tl=68.400s, n=149}
+Nd7 {+10.94/5 1.875s, tl=40.084s, n=408}
+22. Kg1+ {-3.28/2 0.000s, tl=69.000s, n=141}
+Nf6 {+10.31/7 1.844s, tl=38.840s, n=336}
+23. Rxc6 {-3.68/2 0.000s, tl=69.600s, n=130}
+bxc6 {+10.49/8 1.793s, tl=37.647s, n=381}
+24. Qd2 {-5.19/2 0.000s, tl=70.200s, n=129}
+Rd8 {+11.45/6 1.748s, tl=36.499s, n=354}
+25. Qe3 {-4.72/2 0.000s, tl=70.800s, n=171}
+Kg8 {+11.00/9 1.714s, tl=35.385s, n=356}
+26. g5 {-4.55/2 0.000s, tl=71.400s, n=173}
+Nd5 {+9.99/6 1.673s, tl=34.312s, n=424}
+27. Qe4 {-5.16/2 0.000s, tl=72.000s, n=142}
+Re8 {+10.60/6 1.649s, tl=33.263s, n=359}
+28. Qg4 {-3.74/2 0.000s, tl=72.600s, n=153}
+Rf8 {+11.84/6 1.590s, tl=32.273s, n=344}
+29. Rf7 {-2.92/2 0.000s, tl=73.200s, n=164}
+Rxf7 {+15.24/6 1.572s, tl=31.301s, n=558}
+30. g6 {-5.99/2 0.000s, tl=73.800s, n=128}
+Qh2# {+22.80/3 1.524s, tl=30.377s, n=8112, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "8"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:01:11"]
+[GameStartTime "2026-10-23T21:21:14 -0400"]
+[GameEndTime "2026-10-23T21:22:25 -0400"]
+[PlyCount "103"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "C08"]
+[Opening "French Defense: Tarrasch Variation, Open System"]
+
+1. e4 {book} e6 {book} 2. d4 {book} d5 {book} 3. Nd2 {book} c5 {book}
+4. exd5 {book} exd5 {book} 5. Ngf3 {book} Nf6 {book} 6. dxc5 {book} Bxc5 {book}
+7. Nb3 {book} Be7 {book} 8. Be2 {book} O-O {book}
+9. O-O {-0.21/6 2.508s, tl=58.692s, n=496}
+Re8 {-0.31/2 0.000s, tl=61.200s, n=134}
+10. Bb5 {+0.43/6 2.455s, tl=56.837s, n=464}
+Nc6 {-0.28/2 0.000s, tl=61.800s, n=233}
+11. Re1 {-0.17/5 2.403s, tl=55.034s, n=424}
+a6 {-0.27/2 0.000s, tl=62.400s, n=259}
+12. Bxc6 {-0.47/7 2.352s, tl=53.282s, n=408}
+bxc6 {-0.10/2 0.000s, tl=63.000s, n=264}
+13. Ne5 {-0.21/9 2.272s, tl=51.610s, n=424}
+c5 {0.00/2 0.000s, tl=63.600s, n=229}
+14. Nc6 {-0.11/11 2.207s, tl=50.003s, n=376}
+Qd7 {-0.44/2 0.000s, tl=64.200s, n=457}
+15. Nxe7+ {+1.27/10 2.178s, tl=48.425s, n=376}
+Rxe7 {-1.04/3 0.000s, tl=64.800s, n=128}
+16. Nxc5 {+1.77/8 2.100s, tl=46.925s, n=384}
+Qd6 {-1.04/2 0.000s, tl=65.400s, n=233}
+17. Nd3 {+2.14/7 2.068s, tl=45.457s, n=376}
+Rxe1+ {-0.74/2 0.000s, tl=66.000s, n=232}
+18. Qxe1 {+1.63/8 2.008s, tl=44.049s, n=361}
+h6 {-1.10/2 0.000s, tl=66.600s, n=144}
+19. f3 {+3.25/6 1.961s, tl=42.688s, n=376}
+d4 {-0.25/2 0.000s, tl=67.200s, n=201}
+20. Bf4 {+2.63/7 1.920s, tl=41.368s, n=360}
+Qb6 {-1.39/2 0.000s, tl=67.800s, n=160}
+21. Be5 {+2.45/6 1.889s, tl=40.079s, n=334}
+Bf5 {-1.01/2 0.000s, tl=68.400s, n=207}
+22. Qf2 {+3.28/9 1.847s, tl=38.832s, n=326}
+Qc6 {-1.18/2 0.000s, tl=69.000s, n=336}
+23. Bxd4 {+6.96/7 1.795s, tl=37.637s, n=320}
+Bxd3 {-1.87/2 0.000s, tl=69.600s, n=217}
+24. cxd3 {+5.76/7 1.755s, tl=36.482s, n=340}
+Rc8 {-1.86/2 0.000s, tl=70.200s, n=169}
+25. Qd2 {+7.89/5 1.706s, tl=35.376s, n=344}
+Rd8 {-1.57/2 0.000s, tl=70.800s, n=179}
+26. Bf2 {+7.97/5 1.668s, tl=34.308s, n=344}
+Nh5 {-2.21/2 0.000s, tl=71.400s, n=177}
+27. d4 {+7.81/5 1.625s, tl=33.283s, n=352}
+Qb7 {-2.87/2 0.000s, tl=72.000s, n=165}
+28. b3 {+8.49/5 1.609s, tl=32.274s, n=364}
+g5 {-3.18/2 0.000s, tl=72.600s, n=142}
+29. Re1 {+8.72/5 1.580s, tl=31.294s, n=328}
+Rd6 {-2.98/2 0.000s, tl=73.200s, n=146}
+30. Re8+ {+8.68/5 1.549s, tl=30.345s, n=325}
+Kg7 {-3.34/5 0.000s, tl=73.800s, n=128}
+31. Re5 {+8.93/4 1.495s, tl=29.450s, n=296}
+Rc6 {-2.53/2 0.000s, tl=74.400s, n=154}
+32. d5 {+8.92/5 1.486s, tl=28.564s, n=288}
+Rc7 {-3.77/2 0.000s, tl=75.000s, n=194}
+33. d6 {+8.77/5 1.434s, tl=27.730s, n=296}
+Nf4 {-4.63/2 0.000s, tl=75.600s, n=160}
+34. dxc7 {+10.95/6 1.432s, tl=26.898s, n=272}
+Qxc7 {-4.71/2 0.000s, tl=76.200s, n=148}
+35. Re4 {+11.14/4 1.397s, tl=26.101s, n=288}
+Qb7 {-4.79/2 0.000s, tl=76.800s, n=153}
+36. Bg3 {+11.44/4 1.367s, tl=25.334s, n=264}
+f5 {-3.07/2 0.000s, tl=77.400s, n=159}
+37. Rxf4 {+11.73/5 1.340s, tl=24.594s, n=296}
+gxf4 {-5.23/2 0.000s, tl=78.000s, n=128}
+38. Bxf4 {+9.79/4 1.325s, tl=23.869s, n=344}
+Kg8 {-4.51/2 0.000s, tl=78.600s, n=145}
+39. Bxh6 {+11.47/5 1.292s, tl=23.177s, n=304}
+a5 {-4.35/2 0.000s, tl=79.200s, n=128}
+40. Qd8+ {+11.15/5 1.268s, tl=22.509s, n=324}
+Kf7 {-5.50/6 0.000s, tl=79.800s, n=128}
+41. Qxa5 {+11.94/4 1.246s, tl=21.863s, n=308}
+Qc8 {-0.18/2 0.000s, tl=80.400s, n=145}
+42. Bf4 {+12.05/4 1.226s, tl=21.237s, n=312}
+Qc2 {-4.92/2 0.000s, tl=81.000s, n=130}
+43. b4 {+11.38/6 1.201s, tl=20.636s, n=336}
+Qb1+ {-2.66/1 0.000s, tl=81.600s, n=122}
+44. Kf2 {+10.15/8 1.170s, tl=20.066s, n=272}
+Qc2+ {-1.70/2 0.000s, tl=82.200s, n=129}
+45. Kg3 {+11.19/8 1.158s, tl=19.508s, n=296}
+Ke7 {-6.40/2 0.000s, tl=82.800s, n=132}
+46. Qc5+ {+11.35/6 1.131s, tl=18.977s, n=320}
+Kd7 {-7.08/2 0.000s, tl=83.400s, n=134}
+47. Qxc2 {+12.67/6 1.117s, tl=18.460s, n=296}
+Ke7 {-8.68/3 0.000s, tl=84.000s, n=128}
+48. Qc7+ {+14.48/4 1.112s, tl=17.948s, n=312}
+Ke8 {-8.59/4 0.000s, tl=84.600s, n=129}
+49. b5 {+13.98/6 1.098s, tl=17.450s, n=327}
+Kf8 {-8.40/6 0.000s, tl=85.200s, n=129}
+50. b6 {+14.23/6 1.076s, tl=16.974s, n=326}
+Kg8 {-8.68/6 0.000s, tl=85.800s, n=128}
+51. b7 {+15.91/5 1.056s, tl=16.518s, n=339}
+Kf8 {-M2/21 0.000s, tl=86.400s, n=126}
+52. b8=Q# {+22.80/1 1.031s, tl=16.087s, n=4607, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "8"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:54"]
+[GameStartTime "2026-10-23T21:22:25 -0400"]
+[GameEndTime "2026-10-23T21:23:20 -0400"]
+[PlyCount "76"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "C08"]
+[Opening "French Defense: Tarrasch Variation, Open System"]
+
+1. e4 {book} e6 {book} 2. d4 {book} d5 {book} 3. Nd2 {book} c5 {book}
+4. exd5 {book} exd5 {book} 5. Ngf3 {book} Nf6 {book} 6. dxc5 {book} Bxc5 {book}
+7. Nb3 {book} Be7 {book} 8. Be2 {book} O-O {book}
+9. Be3 {-0.16/2 0.000s, tl=61.200s, n=188}
+Nc6 {+0.60/6 2.511s, tl=58.689s, n=456}
+10. O-O {-0.18/2 0.000s, tl=61.800s, n=194}
+Ng4 {+0.22/6 2.447s, tl=56.842s, n=448}
+11. Bc5 {-0.10/2 0.000s, tl=62.400s, n=318}
+Re8 {+0.07/8 2.408s, tl=55.034s, n=408}
+12. Bxe7 {+0.07/2 0.000s, tl=63.000s, n=293}
+Qxe7 {+0.07/7 2.316s, tl=53.318s, n=392}
+13. Re1 {-0.13/2 0.000s, tl=63.600s, n=246}
+Qd6 {+0.15/6 2.290s, tl=51.628s, n=392}
+14. c3 {-0.10/2 0.000s, tl=64.200s, n=179}
+a5 {-0.11/7 2.229s, tl=49.999s, n=392}
+15. h3 {-0.07/2 0.000s, tl=64.800s, n=200}
+Nf6 {-0.05/9 2.157s, tl=48.442s, n=360}
+16. Nbd4 {-0.03/2 0.000s, tl=65.400s, n=213}
+Nxd4 {-0.13/6 2.125s, tl=46.917s, n=360}
+17. Nxd4 {+0.02/2 0.000s, tl=66.000s, n=483}
+Bd7 {0.00/6 2.058s, tl=45.459s, n=394}
+18. Bb5 {-0.09/2 0.000s, tl=66.600s, n=215}
+Rxe1+ {-0.23/8 2.016s, tl=44.043s, n=372}
+19. Qxe1 {+0.16/6 0.000s, tl=67.200s, n=130}
+Bxb5 {-0.19/6 1.975s, tl=42.668s, n=383}
+20. Nxb5 {+0.16/2 0.000s, tl=67.800s, n=172}
+Qb6 {-0.11/6 1.905s, tl=41.363s, n=416}
+21. Qf1 {+0.33/2 0.000s, tl=68.400s, n=525}
+Re8 {+0.22/6 1.869s, tl=40.094s, n=424}
+22. Rd1 {-0.24/2 0.000s, tl=69.000s, n=129}
+h6 {-0.15/5 1.833s, tl=38.861s, n=387}
+23. b3 {-0.12/2 0.000s, tl=69.600s, n=148}
+Qc5 {+0.06/7 1.795s, tl=37.666s, n=392}
+24. c4 {-0.23/2 0.000s, tl=70.200s, n=129}
+dxc4 {-0.03/7 1.762s, tl=36.504s, n=352}
+25. Nd4 {-0.25/2 0.000s, tl=70.800s, n=184}
+b5 {+4.66/9 1.704s, tl=35.400s, n=328}
+26. a4 {-1.78/2 0.000s, tl=71.400s, n=174}
+Qb4 {+4.40/8 1.683s, tl=34.317s, n=336}
+27. Nc2 {-1.19/2 0.000s, tl=72.000s, n=195}
+Qxb3 {+7.61/8 1.644s, tl=33.273s, n=328}
+28. Na1 {-3.09/2 0.000s, tl=72.600s, n=134}
+Qxa4 {+9.28/6 1.613s, tl=32.260s, n=352}
+29. Qe2 {-4.91/2 0.000s, tl=73.200s, n=147}
+Rxe2 {+12.39/9 1.561s, tl=31.299s, n=368}
+30. Rd8+ {-7.36/2 0.000s, tl=73.800s, n=128}
+Kh7 {+12.64/8 1.533s, tl=30.366s, n=400}
+31. Kf1 {-8.33/2 0.000s, tl=74.400s, n=137}
+Ra2 {+13.44/6 1.507s, tl=29.459s, n=395}
+32. Kg1 {-7.53/2 0.000s, tl=75.000s, n=128}
+Rxa1+ {+12.88/7 1.469s, tl=28.590s, n=384}
+33. Kh2 {-8.01/6 0.000s, tl=75.600s, n=128}
+Ra2 {+13.48/6 1.438s, tl=27.752s, n=392}
+34. Kg1 {-8.01/2 0.000s, tl=76.200s, n=128}
+c3 {+13.60/5 1.428s, tl=26.924s, n=392}
+35. Rf8 {-8.08/2 0.000s, tl=76.800s, n=128}
+c2 {+13.45/6 1.379s, tl=26.145s, n=360}
+36. Kh2 {-9.08/2 0.000s, tl=77.400s, n=131}
+c1=Q {+14.18/5 1.356s, tl=25.389s, n=336}
+37. Rh8+ {-7.76/2 0.000s, tl=78.000s, n=129}
+Kxh8 {+15.49/6 1.327s, tl=24.662s, n=553}
+38. f3 {-M4/3 0.000s, tl=78.600s, n=125}
+Qaf4# {+22.80/1 1.302s, tl=23.960s, n=6911, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "9"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:00:54"]
+[GameStartTime "2026-10-23T21:23:20 -0400"]
+[GameEndTime "2026-10-23T21:24:15 -0400"]
+[PlyCount "75"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "D31"]
+[Opening "Semi-Slav Defense: Marshall Gambit"]
+
+1. d4 {book} d5 {book} 2. c4 {book} c6 {book} 3. Nc3 {book} e6 {book}
+4. e4 {book} Bb4 {book} 5. Bd2 {book} dxc4 {book} 6. Qg4 {book} Bf8 {book}
+7. Bxc4 {book} Qxd4 {book} 8. Qe2 {book} Qd8 {book}
+9. Nf3 {+0.84/7 2.524s, tl=58.676s, n=440}
+b5 {-1.00/2 0.000s, tl=61.200s, n=149}
+10. Bb3 {+0.73/8 2.440s, tl=56.836s, n=400}
+Nf6 {-0.95/2 0.000s, tl=61.800s, n=179}
+11. e5 {+1.23/7 2.407s, tl=55.029s, n=414}
+Ng4 {-1.08/2 0.000s, tl=62.400s, n=224}
+12. Ne4 {+4.47/7 2.337s, tl=53.292s, n=396}
+a5 {-2.58/2 0.000s, tl=63.000s, n=167}
+13. a4 {+4.18/7 2.276s, tl=51.616s, n=392}
+Be7 {-2.39/2 0.000s, tl=63.600s, n=205}
+14. axb5 {+3.69/9 2.234s, tl=49.982s, n=352}
+cxb5 {-2.33/2 0.000s, tl=64.200s, n=190}
+15. Qxb5+ {+2.87/9 2.158s, tl=48.424s, n=344}
+Bd7 {-0.52/3 0.000s, tl=64.800s, n=136}
+16. Qe2 {+2.66/8 2.115s, tl=46.909s, n=339}
+O-O {-1.21/2 0.000s, tl=65.400s, n=273}
+17. O-O {+2.67/8 2.075s, tl=45.434s, n=336}
+Qb6 {-1.13/2 0.000s, tl=66.000s, n=164}
+18. Bc4 {+3.02/8 2.029s, tl=44.005s, n=312}
+Nc6 {-0.92/2 0.000s, tl=66.600s, n=276}
+19. Bc3 {+3.24/7 1.964s, tl=42.641s, n=298}
+Nb4 {-1.26/2 0.000s, tl=67.200s, n=281}
+20. Nd6 {+2.89/9 1.939s, tl=41.302s, n=264}
+Nh6 {-0.80/2 0.000s, tl=67.800s, n=341}
+21. Rfd1 {+2.51/6 1.873s, tl=40.029s, n=264}
+Rab8 {-1.04/2 0.000s, tl=68.400s, n=249}
+22. h3 {+2.81/8 1.832s, tl=38.797s, n=256}
+Kh8 {-1.67/2 0.000s, tl=69.000s, n=227}
+23. Qd2 {+4.02/8 1.812s, tl=37.585s, n=256}
+Rfd8 {-1.55/2 0.000s, tl=69.600s, n=242}
+24. Ng5 {+3.89/9 1.745s, tl=36.440s, n=232}
+Be8 {-1.98/2 0.000s, tl=70.200s, n=332}
+25. Qf4 {+3.97/9 1.733s, tl=35.307s, n=232}
+Ra8 {-2.32/2 0.000s, tl=70.800s, n=445}
+26. Ngxf7+ {+5.11/10 1.668s, tl=34.239s, n=240}
+Nxf7 {-2.16/3 0.000s, tl=71.400s, n=129}
+27. Nxf7+ {+5.44/11 1.654s, tl=33.185s, n=240}
+Kg8 {-2.83/5 0.000s, tl=72.000s, n=128}
+28. Nxd8 {+8.84/8 1.596s, tl=32.189s, n=232}
+Qxf2+ {-4.05/2 0.000s, tl=72.600s, n=504}
+29. Qxf2 {+9.36/7 1.578s, tl=31.211s, n=288}
+Bg6 {-6.46/2 0.000s, tl=73.200s, n=246}
+30. Nxe6 {+13.65/9 1.525s, tl=30.286s, n=248}
+Rc8 {-7.46/2 0.000s, tl=73.800s, n=145}
+31. Nf4+ {+14.61/6 1.493s, tl=29.393s, n=232}
+Kh8 {-4.71/2 0.000s, tl=74.400s, n=125}
+32. Nxg6+ {+13.58/5 1.463s, tl=28.530s, n=240}
+hxg6 {-6.41/6 0.000s, tl=75.000s, n=128}
+33. Bb5 {+14.94/4 1.465s, tl=27.665s, n=256}
+Bc5 {-5.29/2 0.000s, tl=75.600s, n=134}
+34. Bd4 {+12.87/8 1.410s, tl=26.855s, n=272}
+Kg8 {-6.38/2 0.000s, tl=76.200s, n=191}
+35. Bxc5 {+14.05/6 1.394s, tl=26.061s, n=264}
+Nc2 {-6.93/2 0.000s, tl=76.800s, n=128}
+36. Qxc2 {+15.12/8 1.364s, tl=25.297s, n=258}
+Rc7 {-7.92/2 0.000s, tl=77.400s, n=128}
+37. Rd8+ {+15.42/5 1.341s, tl=24.556s, n=272}
+Kf7 {-9.51/7 0.000s, tl=78.000s, n=128}
+38. Bc4# {+22.80/1 1.299s, tl=23.857s, n=6597, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "9"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:53"]
+[GameStartTime "2026-10-23T21:24:15 -0400"]
+[GameEndTime "2026-10-23T21:25:09 -0400"]
+[PlyCount "74"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "D31"]
+[Opening "Semi-Slav Defense: Marshall Gambit"]
+
+1. d4 {book} d5 {book} 2. c4 {book} c6 {book} 3. Nc3 {book} e6 {book}
+4. e4 {book} Bb4 {book} 5. Bd2 {book} dxc4 {book} 6. Qg4 {book} Bf8 {book}
+7. Bxc4 {book} Qxd4 {book} 8. Qe2 {book} Qd8 {book}
+9. f4 {+0.71/2 0.000s, tl=61.200s, n=231} b5 {-0.16/9 2.509s, tl=58.691s, n=416}
+10. Bb3 {+1.18/2 0.000s, tl=61.800s, n=324}
+a5 {+0.19/7 2.472s, tl=56.819s, n=415}
+11. Nf3 {+0.22/2 0.000s, tl=62.400s, n=312}
+a4 {-0.25/8 2.398s, tl=55.021s, n=400}
+12. Bd1 {+0.26/2 0.000s, tl=63.000s, n=417}
+Be7 {+0.46/8 2.323s, tl=53.298s, n=416}
+13. a3 {-0.20/2 0.000s, tl=63.600s, n=191}
+Nd7 {+0.71/7 2.267s, tl=51.631s, n=408}
+14. e5 {-0.12/2 0.000s, tl=64.200s, n=196}
+Nc5 {+0.59/8 2.218s, tl=50.013s, n=368}
+15. Ne4 {+0.39/2 0.000s, tl=64.800s, n=222}
+Nxe4 {+0.80/9 2.171s, tl=48.442s, n=352}
+16. Qxe4 {-0.25/2 0.000s, tl=65.400s, n=198}
+Bb7 {+1.04/8 2.103s, tl=46.939s, n=368}
+17. b4 {-0.37/2 0.000s, tl=66.000s, n=222}
+axb3 {+2.75/10 2.051s, tl=45.488s, n=320}
+18. Qb1 {-1.46/2 0.000s, tl=66.600s, n=173}
+Nh6 {+4.70/8 2.019s, tl=44.069s, n=344}
+19. Bxb3 {-2.73/2 0.000s, tl=67.200s, n=161}
+O-O {+4.94/7 1.981s, tl=42.688s, n=327}
+20. Bb4 {-2.53/2 0.000s, tl=67.800s, n=182}
+c5 {+7.58/8 1.927s, tl=41.361s, n=312}
+21. Bd2 {-3.62/2 0.000s, tl=68.400s, n=195}
+c4 {+7.65/7 1.861s, tl=40.100s, n=320}
+22. Bc2 {-3.83/2 0.000s, tl=69.000s, n=212}
+Bc5 {+6.34/8 1.848s, tl=38.852s, n=320}
+23. Bb4 {-3.04/2 0.000s, tl=69.600s, n=176}
+Bxb4+ {+6.85/9 1.794s, tl=37.658s, n=320}
+24. Qxb4 {-3.20/3 0.000s, tl=70.200s, n=128}
+Bxf3 {+7.80/7 1.755s, tl=36.503s, n=324}
+25. gxf3 {-3.07/2 0.000s, tl=70.800s, n=205}
+Qh4+ {+8.03/6 1.724s, tl=35.379s, n=352}
+26. Kd1 {-4.85/3 0.000s, tl=71.400s, n=128}
+Qxf4 {+8.76/6 1.679s, tl=34.300s, n=376}
+27. Qxf8+ {-5.72/2 0.000s, tl=72.000s, n=191}
+Kxf8 {+11.22/6 1.636s, tl=33.264s, n=394}
+28. Be4 {-7.04/2 0.000s, tl=72.600s, n=136}
+Rd8+ {+11.12/6 1.608s, tl=32.256s, n=365}
+29. Ke2 {-6.83/2 0.000s, tl=73.200s, n=129}
+Qxe5 {+11.86/5 1.564s, tl=31.292s, n=360}
+30. Rhd1 {-7.41/2 0.000s, tl=73.800s, n=128}
+Qxh2+ {+11.07/8 1.525s, tl=30.367s, n=344}
+31. Kf1 {-4.47/5 0.000s, tl=74.400s, n=128}
+Rxd1+ {+11.42/6 1.509s, tl=29.458s, n=368}
+32. Rxd1 {-8.68/8 0.000s, tl=75.000s, n=128}
+g6 {+11.66/6 1.470s, tl=28.588s, n=408}
+33. Bc6 {-0.32/2 0.000s, tl=75.600s, n=148}
+Qf4 {+11.58/6 1.435s, tl=27.753s, n=400}
+34. a4 {0.00/2 0.000s, tl=76.200s, n=148}
+b4 {+11.30/5 1.422s, tl=26.931s, n=368}
+35. Kg2 {-4.39/2 0.000s, tl=76.800s, n=128}
+Nf5 {+11.60/5 1.396s, tl=26.135s, n=365}
+36. a5 {-5.62/2 0.000s, tl=77.400s, n=128}
+b3 {+11.12/6 1.371s, tl=25.364s, n=352}
+37. Kh3 {-4.57/2 0.000s, tl=78.000s, n=128}
+Qg3# {+22.80/1 1.326s, tl=24.638s, n=7370, Black mates} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "10"]
+[White "inezita-candidate"]
+[Black "stockfish-17.1-skill0-n128"]
+[Result "1-0"]
+[EngineWhiteName "Inezita 0.1.2"]
+[EngineWhiteAuthor "Inezita Developers"]
+[EngineBlackName "Stockfish 17.1"]
+[EngineBlackAuthor "the Stockfish developers (see AUTHORS file)"]
+[GameDuration "00:01:01"]
+[GameStartTime "2026-10-23T21:25:09 -0400"]
+[GameEndTime "2026-10-23T21:26:11 -0400"]
+[PlyCount "85"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A46"]
+[Opening "Indian Defense: London System"]
+
+1. d4 {book} e6 {book} 2. Nf3 {book} Nf6 {book} 3. Bf4 {book} c5 {book}
+4. c3 {book} cxd4 {book} 5. cxd4 {book} Qb6 {book} 6. Qc2 {book} Nc6 {book}
+7. e3 {book} Nb4 {book} 8. Qb3 {book} Nbd5 {book}
+9. Bg3 {+0.68/7 2.528s, tl=58.672s, n=454}
+Ne4 {+4.56/2 0.000s, tl=61.200s, n=335}
+10. Bd3 {+1.28/8 2.465s, tl=56.807s, n=416}
+Bb4+ {+4.32/2 0.000s, tl=61.800s, n=306}
+11. Nbd2 {+2.31/11 2.408s, tl=54.999s, n=376}
+f5 {-0.36/2 0.000s, tl=62.400s, n=400}
+12. Rc1 {+2.77/9 2.339s, tl=53.260s, n=357}
+O-O {-0.17/2 0.000s, tl=63.000s, n=376}
+13. Bh4 {+2.28/9 2.284s, tl=51.576s, n=336}
+h6 {+0.24/2 0.000s, tl=63.600s, n=323}
+14. a3 {+2.37/10 2.201s, tl=49.975s, n=336}
+Bxd2+ {+1.92/2 0.000s, tl=64.200s, n=629}
+15. Nxd2 {+2.19/12 2.156s, tl=48.419s, n=336}
+Nxd2 {+1.50/2 0.000s, tl=64.800s, n=393}
+16. Qxb6 {+3.11/11 2.105s, tl=46.914s, n=361}
+Nxb6 {-0.77/2 0.000s, tl=65.400s, n=166}
+17. Kxd2 {+3.66/10 2.129s, tl=45.385s, n=408}
+g5 {-0.96/1 0.000s, tl=66.000s, n=94}
+18. Bg3 {+6.09/7 2.020s, tl=43.965s, n=416}
+f4 {-1.19/2 0.000s, tl=66.600s, n=136}
+19. exf4 {+5.44/10 1.966s, tl=42.599s, n=365}
+Nd5 {-0.97/2 0.000s, tl=67.200s, n=189}
+20. fxg5 {+7.98/7 1.924s, tl=41.275s, n=368}
+h5 {-3.43/2 0.000s, tl=67.800s, n=159}
+21. h4 {+8.93/4 1.868s, tl=40.007s, n=376}
+a5 {-4.32/2 0.000s, tl=68.400s, n=129}
+22. Rhe1 {+8.95/5 1.834s, tl=38.773s, n=384}
+b6 {-4.74/2 0.000s, tl=69.000s, n=128}
+23. Be5 {+8.94/5 1.803s, tl=37.570s, n=376}
+Bb7 {-2.15/1 0.000s, tl=69.600s, n=124}
+24. f3 {+9.00/5 1.739s, tl=36.431s, n=360}
+Bc6 {-4.18/2 0.000s, tl=70.200s, n=128}
+25. Be4 {+9.00/4 1.706s, tl=35.325s, n=329}
+a4 {-4.50/2 0.000s, tl=70.800s, n=131}
+26. g6 {+9.01/5 1.659s, tl=34.266s, n=336}
+Ra7 {-3.89/2 0.000s, tl=71.400s, n=130}
+27. g7 {+8.92/6 1.642s, tl=33.224s, n=336}
+Rd8 {-3.84/2 0.000s, tl=72.000s, n=156}
+28. Bg6 {+9.19/5 1.612s, tl=32.212s, n=344}
+Ra5 {-3.59/2 0.000s, tl=72.600s, n=134}
+29. Bxh5 {+9.35/5 1.576s, tl=31.236s, n=336}
+Ne7 {-3.94/2 0.000s, tl=73.200s, n=128}
+30. Bg4 {+9.50/5 1.545s, tl=30.291s, n=312}
+Rb5 {-3.81/2 0.000s, tl=73.800s, n=145}
+31. h5 {+9.00/5 1.500s, tl=29.391s, n=336}
+Ra8 {-3.84/2 0.000s, tl=74.400s, n=198}
+32. h6 {+9.05/5 1.467s, tl=28.524s, n=328}
+Ng6 {-3.88/2 0.000s, tl=75.000s, n=175}
+33. Bf6 {+8.88/5 1.432s, tl=27.692s, n=304}
+Nf4 {-3.48/2 0.000s, tl=75.600s, n=154}
+34. Re5 {+8.85/8 1.418s, tl=26.874s, n=296}
+Nd5 {-3.27/2 0.000s, tl=76.200s, n=204}
+35. h7+ {+8.29/9 1.396s, tl=26.078s, n=296}
+Kxh7 {-3.57/4 0.000s, tl=76.800s, n=133}
+36. Rh1+ {+5.64/10 1.370s, tl=25.308s, n=285}
+Kg8 {-2.45/4 0.000s, tl=77.400s, n=130}
+37. Rh8+ {+6.14/11 1.326s, tl=24.582s, n=256}
+Kf7 {-2.91/3 0.000s, tl=78.000s, n=61}
+38. Bg5 {+6.83/10 1.333s, tl=23.849s, n=272}
+Rxb2+ {-0.88/2 0.000s, tl=78.600s, n=260}
+39. Kc1 {+5.40/8 1.291s, tl=23.158s, n=259}
+Rxg2 {-1.04/2 0.000s, tl=79.200s, n=311}
+40. Rh7 {+6.74/6 1.275s, tl=22.483s, n=285}
+Rg1+ {+1.45/2 0.000s, tl=79.800s, n=427}
+41. Kc2 {+6.25/7 1.239s, tl=21.844s, n=264}
+Rg2+ {+0.61/2 0.000s, tl=80.400s, n=272}
+42. Kb1 {+5.42/7 1.219s, tl=21.225s, n=264}
+Rg8 {+1.32/2 0.000s, tl=81.000s, n=242}
+43. Bh5# {+22.80/1 1.187s, tl=20.638s, n=6014, White mates} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.10.23"]
+[Round "10"]
+[White "stockfish-17.1-skill0-n128"]
+[Black "inezita-candidate"]
+[Result "0-1"]
+[EngineWhiteName "Stockfish 17.1"]
+[EngineWhiteAuthor "the Stockfish developers (see AUTHORS file)"]
+[EngineBlackName "Inezita 0.1.2"]
+[EngineBlackAuthor "Inezita Developers"]
+[GameDuration "00:00:41"]
+[GameStartTime "2026-10-23T21:26:11 -0400"]
+[GameEndTime "2026-10-23T21:26:53 -0400"]
+[PlyCount "58"]
+[Termination "normal"]
+[TimeControl "60+0.6"]
+[ECO "A46"]
+[Opening "Indian Defense: London System"]
+
+1. d4 {book} e6 {book} 2. Nf3 {book} Nf6 {book} 3. Bf4 {book} c5 {book}
+4. c3 {book} cxd4 {book} 5. cxd4 {book} Qb6 {book} 6. Qc2 {book} Nc6 {book}
+7. e3 {book} Nb4 {book} 8. Qb3 {book} Nbd5 {book}
+9. Bg3 {-0.01/2 0.000s, tl=61.200s, n=357}
+Qxb3 {-0.22/9 2.526s, tl=58.674s, n=456}
+10. Nbd2 {-0.19/2 0.000s, tl=61.800s, n=137}
+Qxb2 {+8.84/7 2.460s, tl=56.814s, n=424}
+11. Bd3 {-7.34/2 0.000s, tl=62.400s, n=207}
+Qxa1+ {+11.09/10 2.403s, tl=55.011s, n=432}
+12. Nb1 {-7.20/5 0.000s, tl=63.000s, n=129}
+Qxa2 {+11.76/10 2.316s, tl=53.295s, n=448}
+13. Ne5 {-8.31/2 0.000s, tl=63.600s, n=130}
+Nb4 {+12.23/6 2.274s, tl=51.621s, n=427}
+14. Bc4 {-7.94/2 0.000s, tl=64.200s, n=207}
+Qxb1+ {+12.88/6 2.231s, tl=49.990s, n=432}
+15. Ke2 {-9.03/5 0.000s, tl=64.800s, n=129}
+Qxh1 {+13.01/6 2.149s, tl=48.441s, n=456}
+16. Bf4 {-8.66/2 0.000s, tl=65.400s, n=129}
+Be7 {+14.64/7 2.112s, tl=46.929s, n=448}
+17. Nxf7 {-8.54/2 0.000s, tl=66.000s, n=128}
+Kxf7 {+12.68/7 2.065s, tl=45.464s, n=408}
+18. Bg5 {-8.82/2 0.000s, tl=66.600s, n=128}
+Qxg2 {+12.88/6 2.013s, tl=44.051s, n=411}
+19. h4 {-9.69/2 0.000s, tl=67.200s, n=135}
+h6 {+13.48/6 1.968s, tl=42.683s, n=387}
+20. Bxe6+ {-9.83/2 0.000s, tl=67.800s, n=153}
+Kxe6 {+13.48/7 1.908s, tl=41.375s, n=432}
+21. Kd1 {-9.90/2 0.000s, tl=68.400s, n=128}
+hxg5 {+14.23/7 1.884s, tl=40.091s, n=470}
+22. hxg5 {-9.92/2 0.000s, tl=69.000s, n=129}
+Qxg5 {+14.87/5 1.820s, tl=38.871s, n=480}
+23. e4 {-10.69/3 0.000s, tl=69.600s, n=134}
+Rh1+ {+14.83/6 1.854s, tl=37.617s, n=472}
+24. Ke2 {-11.61/7 0.000s, tl=70.200s, n=128}
+Nxe4 {+15.34/6 1.755s, tl=36.462s, n=453}
+25. f4 {-10.39/4 0.000s, tl=70.800s, n=134}
+Qf6 {+14.84/6 1.709s, tl=35.353s, n=544}
+26. f5+ {-10.22/3 0.000s, tl=71.400s, n=133}
+Kxf5 {+13.06/6 1.679s, tl=34.274s, n=384}
+27. Ke3 {-10.40/4 0.000s, tl=72.000s, n=129}
+d5 {+13.20/6 1.632s, tl=33.242s, n=368}
+28. Ke2 {-12.42/5 0.000s, tl=72.600s, n=129}
+Qxd4 {+14.84/4 1.607s, tl=32.235s, n=384}
+29. Kf3 {-M2/56 0.000s, tl=73.200s, n=127}
+Qf2# {+22.80/2 1.555s, tl=31.280s, n=8308, Black mates} 0-1
+

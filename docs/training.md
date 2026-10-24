@@ -6,6 +6,13 @@ independent Stockfish targets and neural PUCT self-play. This reduces dependence
 on human mistakes; it does not guarantee monotonic true playing strength.
 Promotion requires game results and tactical regression checks.
 
+## Inezita 0.1.3 continuation
+
+Use [the 0.1.3 development and submission guide](inezita-0.1.3.md) for the new
+full-corpus replay, EMA validation and paired promotion protocol. It includes
+conservative continuation and expanded-data configurations targeting progress
+toward the 2200 reference. Old accepted artifacts and results remain intact.
+
 ## Submit
 
 Use Python 3.12 or newer with `training/requirements.txt` installed. On Rivanna:
@@ -77,9 +84,9 @@ weights have different tensor shapes and cannot initialize her.
    equipped with the MCO opening book, exact Static Exchange Evaluation (SEE)
    piece-safety priors, and bare-king endgame conversion shaping. Policy
    targets are normalized root visits; WDL comes from actual outcomes (filtering
-   out any botched decisive-material draw). Defaults: two rounds of 16 games,
-   64 simulations per move, and 4,000 training steps per round at learning rate
-   3e-5 with 75% teacher replay. Human imitation labels are never reintroduced. Root Dirichlet noise and early-game move sampling add
+   out any botched decisive-material draw). The original scratch configuration now uses two rounds of 32 games,
+   128 simulations per move, and 1,000 training steps per round at learning rate
+   1.5e-5 with 80% teacher replay. The 0.1.3 continuation settings are listed above. Human imitation labels are never reintroduced. Root Dirichlet noise and early-game move sampling add
    exploration. Subsequent runs with `INIT_ARTIFACT` skip human initialization.
    Each new self-play round initializes optimization from the accepted model
    recorded in that round's frozen source metadata. A rejected tail checkpoint
@@ -106,12 +113,13 @@ The trained Python player is available to chess GUIs through the
 Both models receive equal search budgets and paired openings with colors
 reversed.
 
-Promotion requires at least 55% score, a Wilson-style score screen above 50%,
-all match games finishing, and no loss of a previously solved tactical board.
-This is an engineering screen, not an exact Elo confidence interval or proof
-against all regressions. Small matches have limited statistical power. Ties
-and uncertain results retain the incumbent. The first reference model is the
-initialized network, stored explicitly as `initial`.
+Promotion requires at least 55% score, complete color-reversed opening pairs,
+an exact one-sided pair-level randomization test, and no tactical regression.
+The significance threshold is allocated across the planned exported candidates.
+This is a fixed-sample screening test under pair-level exchangeability, not an
+Elo confidence interval. Uncertain results retain the incumbent. Older saved
+Wilson-style reports remain readable; they cannot authorize a new promotion.
+The first reference model is the initialized network, stored as `initial`.
 
 `tests/fixtures/independent_tactics.json` contains six hand-authored regression
 boards excluded from all training. Expand this small starting suite before
@@ -126,8 +134,9 @@ tactical outcomes. The corpus evaluation split stays reserved from optimization.
 `"promoted": false` means the candidate did not pass every acceptance condition.
 Training can finish successfully with exit 0 while retaining an earlier accepted
 checkpoint. Gate output includes match scores, completed/unfinished games,
-tactical regressions and rejection reasons. `insufficient_match_evidence` means
-the score lower bound did not exceed 50%, even if the raw score was sufficient.
+tactical regressions and rejection reasons. `insufficient_paired_evidence` means the paired p-value exceeds the allocated
+threshold even if raw score is sufficient. Legacy reports may instead contain
+`insufficient_match_evidence`, referring to their former score-bound screen.
 
 Inspect an existing run on a login node without allocating a GPU:
 
@@ -148,7 +157,9 @@ report provides the evidence needed before tuning training or search budgets.
 step, minibatch/Python/PyTorch/CUDA RNGs, data fingerprints, configuration,
 source revision and hardware context. Long stages (`steps >= 100`) apply a
 deterministic linear warmup followed by cosine learning-rate decay to 10% of the
-stage peak LR. Portable model artifacts contain weights only.
+stage peak LR. Portable model artifacts contain EMA weights for stages with
+100 or more steps. Candidate validation reloads these exact bytes and records
+separate policy/value metrics; optimizer checkpoints retain raw training weights.
 
 The job forwards Slurm's 120-second warning and termination signals to the
 trainer. It checkpoints after an optimizer step and exits 75. Gates and
@@ -180,9 +191,12 @@ CUDA RNGs are reseeded with `(training seed + checkpoint step) mod 2^64` rather
 than loading device-specific RNG state. Subsequent results are not bitwise
 identical to an uninterrupted run. Environment differences are printed in
 `run.log` and retained in subsequent training checkpoints' `resume_history`.
-Completed curriculum stages use the same resume policy. Existing checkpoints
-are supported; no preparation rerun, checkpoint deletion or new `RUN_DIR` is
-needed. Keep `RESUME_MODE=portable` for future submissions on mixed GPU nodes.
+Completed curriculum stages validate their step and data/configuration signature
+before being skipped. Existing 0.1.2 self-play optimizer checkpoints used a different
+replay pool and must not resume under 0.1.3 code: finish them on their original
+revision or start the new continuation from an accepted artifact and fresh
+`RUN_DIR`. Model artifacts and old status reports remain readable. Keep
+`RESUME_MODE=portable` for compatible submissions on mixed GPU nodes.
 
 For later improvement, set `INIT_ARTIFACT` to the `artifact` value in an accepted
 checkpoint's `accepted.json` and select a new `RUN_DIR`. The new run performs
@@ -208,7 +222,8 @@ sbatch --export=ALL hpc/train_inezita.slurm
 Use the original data directory (`DATA_DIR`, if overridden) and retain the same
 environment variables when resubmitting this continuation. Existing pilot
 results remain valid; the corrected initialization takes effect for new rounds.
-Existing partial self-play checkpoints preserve their original progress.
+Legacy partial self-play checkpoints require their original code revision; the
+new full-corpus mixture intentionally has a different resume signature.
 
 Logs: `inezita_prepare_<job>.out/.err`, `inezita_train_<job>.out/.err`, and
 `RUN_DIR/run.log`. Inspect `validation-*`, `gate-*`, `accepted.json`, and the
@@ -218,7 +233,7 @@ run has not established a stronger playing model, even if training loss fell.
 ## References
 
 - Monroe et al. (ICLR 2026), [*Chessformer: A Unified Architecture for Chess Modeling*](https://arxiv.org/abs/2605.19091) — 64-square token representation, dynamic Geometric Attention Bias (GAB), `from–to` query-key policy head with promotion offsets, and 5% history-frame masking.
-- Braun (2026), [*Engineering Efficient Self-Play Chess: Search, Replay, and Throughput Under Limited Compute*](https://arxiv.org/abs/2609.37447) — dynamic reduced-parent FPU, per-ply search/outcome discounting, 90/10 outcome + root-WDL target blending, and 30/70 policy-surprise prioritized sampling.
+- Braun (2026), [*Engineering Efficient Self-Play Chess: Search, Replay, and Throughput Under Limited Compute*](https://arxiv.org/abs/2609.37447) — dynamic reduced-parent FPU, per-ply search/outcome discounting, outcome + root-WDL target blending, and 30/70 policy-surprise prioritized sampling.
 - Weichart (2026), [*Variance-Aware Prior-Based Tree Policies for Monte Carlo Tree Search*](https://arxiv.org/abs/2512.21648) — Welford $O(1)$ online variance tracking and Bernstein `PUCT-V` exploration.
 - Farebrother et al. (ICML 2024), [*Stop Regressing: Training Value Functions via Classification for Scalable Deep RL*](https://arxiv.org/abs/2403.03950) & Ruoss et al. (NeurIPS 2024), [*Amortized Planning with Large-Scale Transformers: A Case Study on Chess*](https://arxiv.org/abs/2402.04494) — ordinal `HL-Gauss` value target smoothing and 15–16 layer transformer depth scaling.
 - Morales-Brotons et al. (TMLR 2024), [*Exponential Moving Average of Weights in Deep Learning: Dynamics and Benefits*](https://arxiv.org/abs/2411.18704) — non-bootstrapped shadow EMA weight averaging (`period = 16`, warmup decay to `0.992`).

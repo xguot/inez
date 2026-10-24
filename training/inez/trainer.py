@@ -19,7 +19,7 @@ from torch.nn import functional as F
 
 from .curriculum import atomic_json, sha256
 from .encoding import encode_position, legal_policy_indices, move_to_policy_index
-from .model import ChessTransformer, ModelConfig, save_checkpoint
+from .model import ChessTransformer, ModelConfig, load_checkpoint, save_checkpoint
 from .records import load_records, validate_record
 
 
@@ -89,17 +89,89 @@ def supervised_loss(model, batch):
 
 
 @torch.no_grad()
-def validation_loss(model, records, batch_size, device, limit=256):
+def validation_metrics(model, records, batch_size, device, limit=2048, seed=0):
+    """Deterministic held-out metrics against the original, unsmoothed targets.
+
+    WDL distances measure agreement with the supplied target distributions;
+    teacher targets alone cannot establish calibration against real game outcomes.
+    """
+    if batch_size < 1 or (limit is not None and limit < 1):
+        raise ValueError('validation batch size and sample limit must be positive')
     model.eval()
     dataset = RecordBatches(records)
-    indices = random.Random(0).sample(range(len(records)), min(limit, len(records)))
-    total, count = 0.0, 0
+    indices = random.Random(seed).sample(range(len(records)),
+        len(records) if limit is None else min(limit, len(records)))
+    sums = dict(policy_loss=0.0, wdl_cross_entropy=0.0, expected_value_mse=0.0,
+                expected_value_mae=0.0, wdl_squared_distance=0.0,
+                policy_top1_agreement=0.0, wdl_top1_agreement=0.0)
+    policy_count = 0
     for start in range(0, len(indices), batch_size):
-        batch_indices = indices[start:start + batch_size]
-        loss, _, _ = supervised_loss(model, dataset.batch(batch_indices, device))
-        total += float(loss.item()) * len(batch_indices)
-        count += len(batch_indices)
-    return total / count
+        features, mask, policy_target, wdl_target = dataset.batch(indices[start:start + batch_size], device)
+        policy_logits, value_logits = model(features)
+        policy_logits = policy_logits.masked_fill(~mask, -1e9)
+        log_policy = F.log_softmax(policy_logits, dim=-1)
+        log_wdl = F.log_softmax(value_logits, dim=-1)
+        wdl = log_wdl.exp()
+        rows = policy_target.sum(dim=-1) > 0
+        policy_count += int(rows.sum().item())
+        expected_diff = wdl[:, 0] - wdl[:, 2] - wdl_target[:, 0] + wdl_target[:, 2]
+        values = {
+            'policy_loss': -(policy_target * log_policy).sum(dim=-1)[rows].sum(),
+            'wdl_cross_entropy': -(wdl_target * log_wdl).sum(),
+            'expected_value_mse': expected_diff.square().sum(),
+            'expected_value_mae': expected_diff.abs().sum(),
+            'wdl_squared_distance': (wdl - wdl_target).square().sum(),
+            'policy_top1_agreement': (policy_logits.argmax(-1)[rows] == policy_target.argmax(-1)[rows]).sum(),
+            'wdl_top1_agreement': (wdl.argmax(-1) == wdl_target.argmax(-1)).sum(),
+        }
+        for key, value in values.items():
+            sums[key] += float(value.item())
+    metrics = {key: value / (max(1, policy_count) if key.startswith('policy_') else len(indices))
+               for key, value in sums.items()}
+    metrics['value_loss'] = metrics['wdl_cross_entropy'] + metrics['expected_value_mse']
+    metrics['loss'] = metrics['policy_loss'] + metrics['value_loss']
+    if not all(math.isfinite(value) for value in metrics.values()):
+        raise ValueError('nonfinite validation metrics')
+    return {**metrics, 'records': len(indices), 'policy_records': policy_count,
+            'sampling_seed': seed, 'sample_indices_sha256': hashlib.sha256(
+                json.dumps(indices, separators=(',', ':')).encode()).hexdigest()}
+
+
+def validation_loss(model, records, batch_size, device, limit=256):
+    """Compatibility helper for callers that only need the combined objective."""
+    return validation_metrics(model, records, batch_size, device, limit)['loss']
+
+
+def sample_batch_indices(primary_size, batch_size, generator, *, primary_table=None,
+                         replay_size=0, replay_table=None, replay_fraction=None):
+    """Draw fresh examples from each full pool, then shuffle with the saved RNG.
+
+    Stochastic rounding makes the requested fraction unbiased even for small
+    batches; priority weights only affect selection *within* each pool.
+    """
+    if primary_size < 1 or batch_size < 1:
+        raise ValueError('empty primary pool or minibatch')
+    if replay_fraction is None:
+        replay_count = 0
+        if replay_size:
+            raise ValueError('replay fraction is required for a replay pool')
+    else:
+        if replay_size < 1 or not math.isfinite(replay_fraction) or not 0 < replay_fraction < 1:
+            raise ValueError('replay requires a nonempty pool and fraction between zero and one')
+        expected = batch_size * replay_fraction
+        replay_count = math.floor(expected)
+        if float(torch.rand((), generator=generator)) < expected - replay_count:
+            replay_count += 1
+    def draw(size, count, table):
+        selected = torch.randint(len(table) if table is not None else size,
+                                 (count,), generator=generator).tolist()
+        return [table[index] for index in selected] if table is not None else selected
+    indices = draw(primary_size, batch_size - replay_count, primary_table)
+    if replay_count:
+        indices += [primary_size + index for index in draw(replay_size, replay_count, replay_table)]
+        order = torch.randperm(batch_size, generator=generator).tolist()
+        indices = [indices[index] for index in order]
+    return indices, replay_count
 
 
 def atomic_checkpoint(path, state):
@@ -247,8 +319,35 @@ def _update_ema_state(ema_state, model, step, *, period=16, max_decay=0.992):
             ema_state[key].copy_(param)
 
 
+def training_signature(model, train, validation, config, stage, *, replay=None, replay_fraction=None):
+    """Bind both ordinary resumes and completed-stage skips to identical inputs."""
+    if not train or not validation:
+        raise ValueError('empty training or validation records')
+    if any(record['label_kind'] != 'game_result' for record in train) and stage == 'human':
+        raise ValueError('human stage expects game-result initialization labels')
+    if stage == 'teacher' and any(record['label_kind'] != 'teacher_wdl' for record in train):
+        raise ValueError('teacher stage must replace both human policy and value targets')
+    if stage == 'selfplay' and any(record['label_kind'] not in ('teacher_wdl', 'search') for record in train):
+        raise ValueError('self-play updates may replay teacher labels, never human imitation labels')
+    if replay is not None:
+        if stage != 'selfplay' or not replay or any(r['label_kind'] != 'teacher_wdl' for r in replay):
+            raise ValueError('self-play replay must contain the complete teacher training pool')
+        if any(r['label_kind'] != 'search' for r in train):
+            raise ValueError('mixed-pool self-play expects search records in its primary pool')
+        if replay_fraction is None or not math.isfinite(replay_fraction) or not 0 < replay_fraction < 1:
+            raise ValueError('invalid teacher replay fraction')
+    elif replay_fraction is not None:
+        raise ValueError('replay fraction requires replay records')
+    data_id = fingerprint(train) + ':' + fingerprint(validation)
+    signature = {'stage': stage, 'settings': config, 'model': model.metadata(), 'data': data_id}
+    if replay is not None:
+        signature['replay'] = {'data': fingerprint(replay), 'fraction': replay_fraction,
+                               'sampler': 'full-corpus-mixture-v1'}
+    return signature
+
+
 def train_stage(model, train, validation, output, *, config, stage, gate, stop=None,
-                resume_mode='exact'):
+                resume_mode='exact', replay=None, replay_fraction=None):
     """Every exported candidate is evaluated; the gate owns champion selection.
 
     last.pt is a training-state checkpoint, never an accepted playing model.
@@ -262,19 +361,15 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
     steps, batch_size = config['steps'], config['batch_size']
     if steps < 1 or batch_size < 1 or config['checkpoint_every'] < 1:
         raise ValueError('training steps, batch size and checkpoint interval must be positive')
-    if any(record['label_kind'] != 'game_result' for record in train) and stage == 'human':
-        raise ValueError('human stage expects game-result initialization labels')
-    if stage == 'teacher' and any(record['label_kind'] != 'teacher_wdl' for record in train):
-        raise ValueError('teacher stage must replace both human policy and value targets')
-    if stage == 'selfplay' and any(record['label_kind'] not in ('teacher_wdl', 'search') for record in train):
-        raise ValueError('self-play updates may replay teacher labels, never human imitation labels')
-    dataset = RecordBatches(train)
-    data_id = fingerprint(train) + ':' + fingerprint(validation)
-    signature = {'stage': stage, 'settings': config, 'model': model.metadata(), 'data': data_id}
+    signature = training_signature(model, train, validation, config, stage,
+                                   replay=replay, replay_fraction=replay_fraction)
+    combined = list(train) + list(replay) if replay is not None else train
+    dataset = RecordBatches(combined)
     generator = torch.Generator().manual_seed(config['seed'])
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
     start_step = 0
     resume_history = []
+    sampler_counts = {'primary': 0, 'teacher_replay': 0}
     ema_state = ({k: v.detach().clone() for k, v in model.state_dict().items()}
                  if steps >= 100 else None)
     checkpoint = output / 'last.pt'
@@ -294,6 +389,7 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
         if event['differences']:
             resume_history.append(event)
         start_step = state['step']
+        sampler_counts = dict(state.get('sampler_counts', sampler_counts))
     try:
         revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     except (OSError, subprocess.CalledProcessError):
@@ -307,7 +403,7 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
             'sampler_rng': generator.get_state(), 'torch_rng': torch.get_rng_state(),
             'python_rng': random.getstate(),
             'cuda_rng': torch.cuda.get_rng_state_all() if device.type == 'cuda' else [],
-            'context': context, 'resume_history': resume_history}
+            'context': context, 'resume_history': resume_history, 'sampler_counts': sampler_counts}
         if ema_state is not None:
             payload['ema_model'] = ema_state
         atomic_checkpoint(checkpoint, payload)
@@ -327,6 +423,18 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
             else:
                 save_checkpoint(model, candidate)
         with torch.random.fork_rng(devices=list(range(torch.cuda.device_count())) if device.type == 'cuda' else []):
+            # Load the immutable artifact: this also validates its actual checksum.
+            # The raw optimizer model is never replaced by EMA weights.
+            exported = load_checkpoint(candidate, device=device, expected_config=model.config)
+            metrics = validation_metrics(exported, validation, batch_size, device,
+                limit=config.get('validation_limit', 2048), seed=config.get('validation_seed', 0))
+            del exported
+            manifest = json.loads((candidate / 'manifest.json').read_text())
+            atomic_json(output / f'validation-{step:07d}.json', {
+                'step': step, 'stage': stage, **metrics, 'context': context,
+                'weights_kind': 'ema' if ema_state is not None else 'raw',
+                'candidate': str(candidate.resolve()), 'weights_sha256': manifest['weights_sha256'],
+                'validation_data_sha256': fingerprint(validation), 'sampler_counts': sampler_counts})
             gate(candidate, report)
 
     print(json.dumps({'stage': stage, 'status': 'evaluating_final_checkpoint' if start_step >= steps else 'training',
@@ -339,6 +447,7 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
     base_lr = float(config['lr'])
     warmup_steps = min(500, max(10, steps // 20)) if steps >= 100 else 0
     priority_table = _priority_sampling_table(train) if steps >= 100 else None
+    replay_table = _priority_sampling_table(replay) if replay is not None and steps >= 100 else None
     hl_blend = 0.20 if stage == 'human' else 0.08
     for step in range(start_step + 1, steps + 1):
         if steps >= 100:
@@ -350,11 +459,11 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
             for group in optimizer.param_groups:
                 group['lr'] = current_lr
         model.train()
-        if priority_table is not None:
-            draws = torch.randint(len(priority_table), (batch_size,), generator=generator).tolist()
-            indices = [priority_table[d] for d in draws]
-        else:
-            indices = torch.randint(len(train), (batch_size,), generator=generator).tolist()
+        indices, replay_count = sample_batch_indices(len(train), batch_size, generator,
+            primary_table=priority_table, replay_size=len(replay) if replay is not None else 0,
+            replay_table=replay_table, replay_fraction=replay_fraction)
+        sampler_counts['primary'] += batch_size - replay_count
+        sampler_counts['teacher_replay'] += replay_count
         batch = dataset.batch(indices, device)
         if steps >= 100:
             batch = (
@@ -374,20 +483,14 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
             _update_ema_state(ema_state, model, step)
         if step == 1 or step % config.get('log_every', 20) == 0:
             print(json.dumps({'stage': stage, 'step': step, 'loss': float(loss.item()),
-                              'policy_loss': float(policy_loss.item()), 'value_loss': float(value_loss.item())}), flush=True)
+                              'policy_loss': float(policy_loss.item()), 'value_loss': float(value_loss.item()),
+                              'sampler_counts': sampler_counts}), flush=True)
         due = step % config['checkpoint_every'] == 0 or step == steps
-        if step == steps and ema_state is not None and not (stop is not None and stop.requested):
-            model.load_state_dict(ema_state)
         if due or stop is not None and stop.requested:
             save(step)
         if stop is not None and stop.requested:
             print('Signal received; atomic training checkpoint saved. Resume with the same run directory.', flush=True)
             return False
         if due:
-            value = validation_loss(model, validation, batch_size, device)
-            if not math.isfinite(value):
-                raise ValueError('nonfinite validation loss')
-            atomic_json(output / f'validation-{step:07d}.json', {'step': step, 'stage': stage,
-                        'loss': value, 'records': min(256, len(validation)), 'context': context})
             evaluate_step(step)
     return True

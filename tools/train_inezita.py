@@ -6,6 +6,7 @@ import argparse
 from contextlib import contextmanager
 from dataclasses import asdict
 import json
+import math
 import fcntl
 import os
 import platform
@@ -26,11 +27,11 @@ import chess
 import torch
 
 from inez.curriculum import (atomic_json, evaluate_candidate, import_games,
-    position_key, read_tactics, relabel_dataset, selfplay_records, sha256)
+    position_key, promotion_decision, read_tactics, relabel_dataset, selfplay_records, sha256)
 from inez.model import ChessTransformer, ModelConfig, load_checkpoint, save_checkpoint
 from inez.device import validate_cuda_runtime
 from inez.records import load_records, validate_record
-from inez.trainer import StopRequested, dataset_records, restore_checkpoint_rng, train_stage
+from inez.trainer import StopRequested, dataset_records, restore_checkpoint_rng, train_stage, training_signature
 
 
 def rooted(path):
@@ -68,10 +69,26 @@ def read_config(path):
     if (len(unique_openings) != len(config['gate']['openings'])
             or not 1 <= config['gate']['pairs'] <= len(unique_openings)):
         raise ValueError('match gate needs distinct paired openings; do not count repeated deterministic games as new evidence')
+    positions = set()
     for moves in config['gate']['openings']:
         board = chess.Board()
         for move in moves:
             board.push_uci(move)
+        key = position_key(board)
+        if key in positions or board.outcome(claim_draw=False) is not None:
+            raise ValueError('match gate needs distinct nonterminal opening positions')
+        positions.add(key)
+    settings = config['training']
+    for key in ('human_steps', 'teacher_steps', 'selfplay_steps', 'batch_size', 'checkpoint_every'):
+        if isinstance(settings[key], bool) or not isinstance(settings[key], int) or settings[key] < 1:
+            raise ValueError(f'training {key} must be a positive integer')
+    for key in ('lr', 'teacher_lr', 'selfplay_lr'):
+        value = settings.get(key, settings['teacher_lr'])
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f'training {key} must be finite and positive')
+    if settings.get('validation_limit') is not None and settings.get('validation_limit', 2048) < 1:
+        raise ValueError('validation_limit must be positive or null for the full split')
+    promotion_budget(config)
     if not 0 < config['selfplay']['teacher_replay_fraction'] < 1:
         raise ValueError('self-play requires both search targets and teacher replay')
     if config['selfplay']['rounds'] < 1 or config['gate']['historical_opponents'] < 1:
@@ -235,8 +252,8 @@ def gate_summary(result, report_path, *, minimum_score, cached=False):
         completed = report.get('completed_games', len(scores))
         score, lower = report.get('score'), report.get('score_lower_bound')
         regressions = report.get('tactical_regressions', [])
-        reasons = []
-        if not report['passed']:
+        reasons = list(report.get('rejection_reasons', []))
+        if not report['passed'] and not reasons:
             if completed == 0:
                 reasons.append('no_completed_games')
             if completed < len(games):
@@ -251,7 +268,8 @@ def gate_summary(result, report_path, *, minimum_score, cached=False):
                 reasons.append('gate_rejected; inspect the full report')
         opponents.append({'opponent': report['opponent'], 'passed': report['passed'],
             'score': score, 'minimum_score': minimum_score, 'score_lower_bound': lower,
-            'required_lower_bound_exclusive': 0.5, 'completed_games': completed,
+            'required_lower_bound_exclusive': 0.5 if lower is not None else None,
+            'paired_test': report.get('paired_test'), 'completed_games': completed,
             'total_games': len(games), 'wins': scores.count(1.0), 'draws': scores.count(0.5),
             'losses': scores.count(0.0), 'unfinished_games': len(games) - completed,
             'tactical_regressions': regressions, 'rejection_reasons': reasons})
@@ -286,12 +304,88 @@ def run_status(directory):
             'note': 'Gate rejection keeps the earlier accepted model and is a normal training outcome.'}
 
 
+def promotion_budget(config, *, warm_start=True):
+    """Bonferroni allocation across the predeclared candidate checkpoints.
+
+    Beating every historical opponent is an intersection requirement, so no
+    extra opponent factor is needed. A new run is a new experiment, not another
+    chance to keep testing an unchanged candidate until it passes.
+    """
+    settings = config.get('training', {})
+    interval = settings.get('checkpoint_every', 1)
+    stages = [settings.get('teacher_steps', 1)]
+    if not warm_start:
+        stages.append(settings.get('human_steps', 1))
+    stages += [settings.get('selfplay_steps', 1)] * config.get('selfplay', {}).get('rounds', 1)
+    candidates = sum(math.ceil(steps / interval) for steps in stages)
+    familywise_alpha = config['gate'].get('familywise_alpha', 0.05)
+    if not math.isfinite(familywise_alpha) or not 0 < familywise_alpha < 0.5:
+        raise ValueError('gate familywise_alpha must be between zero and 0.5')
+    return {'method': 'bonferroni-candidates-v1', 'planned_candidates': candidates,
+            'familywise_alpha': familywise_alpha, 'candidate_alpha': familywise_alpha / candidates}
+
+
 class ChampionGate:
-    def __init__(self, root, config, model_config, device, stop):
+    def __init__(self, root, config, model_config, device, stop, *, warm_start=True):
         self.root, self.config, self.model_config = Path(root), config, model_config
         self.device, self.stop = device, stop
         self.path = self.root / 'accepted.json'
+        self.budget = promotion_budget(config, warm_start=warm_start)
         self.tactics = read_tactics(rooted(config['tactics']))
+
+    def _evidence_identity(self, current, opponents):
+        artifacts = {}
+        for name in [current, *opponents]:
+            path = Path(name)
+            manifest = json.loads((path / 'manifest.json').read_text())
+            actual = sha256(path / 'weights.pt')
+            if actual != manifest['weights_sha256']:
+                raise ValueError('promotion artifact weights changed or do not match their manifest')
+            artifacts[name] = {'weights_sha256': actual,
+                               'manifest_sha256': sha256(path / 'manifest.json')}
+        sources = {name: sha256(ROOT / name) for name in (
+            'tools/train_inezita.py', 'training/inez/curriculum.py',
+            'training/inez/puct.py', 'training/inez/encoding.py', 'training/inez/model.py')}
+        return {'artifacts': artifacts, 'sources': sources}
+
+    def _validate_promotion_report(self, result, current, history):
+        """A saved pass is authority only for this candidate and experiment."""
+        expected_opponents = list(reversed(history[-self.config['gate']['historical_opponents']:]))
+        if (result.get('candidate') != current or result.get('parent_history') != history
+                or result.get('promotion_budget') != self.budget
+                or result.get('evidence_identity') != self._evidence_identity(current, expected_opponents)
+                or result.get('tactics_sha256') != sha256(rooted(self.config['tactics']))
+                or not expected_opponents
+                or [report.get('opponent') for report in result.get('opponents', [])] != expected_opponents):
+            raise ValueError('promotion report does not match this candidate, champion history, or paired experiment; use a fresh run directory')
+        expected_tactics = [item['name'] for item in self.tactics]
+        expected_openings = []
+        for moves in self.config['gate']['openings'][:self.config['gate']['pairs']]:
+            board = chess.Board()
+            for move in moves:
+                board.push_uci(move)
+            expected_openings.append((list(moves), position_key(board)))
+        if len(expected_openings) != self.config['gate']['pairs']:
+            raise ValueError('promotion report has insufficient configured opening pairs')
+        for report in result['opponents']:
+            candidate_tactics = report.get('candidate_tactics', [])
+            incumbent_tactics = report.get('incumbent_tactics', [])
+            if [item.get('name') for item in candidate_tactics] != expected_tactics:
+                raise ValueError('promotion report has missing or different tactical evidence')
+            games = report.get('games', [])
+            for game in games:
+                pair = game.get('pair')
+                if (isinstance(pair, bool) or not isinstance(pair, int)
+                        or not 0 <= pair < len(expected_openings)
+                        or (game.get('opening'), game.get('opening_position')) != expected_openings[pair]):
+                    raise ValueError('promotion report does not match the configured opening pairs')
+            points = sum(game['candidate_score'] for game in games if game.get('candidate_score') is not None)
+            decision = promotion_decision(points, report.get('completed_games'),
+                candidate_tactics, incumbent_tactics, match_games=games,
+                minimum_score=self.config['gate']['minimum_score'],
+                alpha=self.budget['candidate_alpha'], expected_pairs=self.config['gate']['pairs'])
+            if not decision['passed'] or any(report.get(key) != value for key, value in decision.items()):
+                raise ValueError('promotion report lacks valid paired evidence for this experiment')
 
     def __call__(self, candidate_path, report_path):
         if self.stop.requested:
@@ -306,8 +400,7 @@ class ChampionGate:
                 # The report is durable before the pointer. Recover that narrow
                 # interruption without rerunning games or losing their evidence.
                 if result['passed'] and current not in history:
-                    if result['parent_history'] != history:
-                        raise ValueError('cannot apply a promotion report to another champion history')
+                    self._validate_promotion_report(result, current, history)
                     atomic_json(self.path, {'artifact': current, 'history': history + [current]})
                 print(json.dumps(gate_summary(result, report_path,
                     minimum_score=self.config['gate']['minimum_score'], cached=True)), flush=True)
@@ -315,13 +408,15 @@ class ChampionGate:
             candidate = load_checkpoint(candidate_path, device=self.device, expected_config=self.model_config)
             opponents = history[-self.config['gate']['historical_opponents']:]
             reports = []
+            identity = self._evidence_identity(current, list(reversed(opponents)))
             for opponent in reversed(opponents):
                 if self.stop.requested:
                     raise InterruptedError('gate deferred until resume')
                 incumbent = load_checkpoint(opponent, device=self.device, expected_config=self.model_config)
                 report = evaluate_candidate(candidate, incumbent, tactics=self.tactics,
                     **{key: self.config['gate'][key] for key in
-                       ('openings', 'pairs', 'simulations', 'max_plies', 'minimum_score')}, stop=self.stop)
+                       ('openings', 'pairs', 'simulations', 'max_plies', 'minimum_score')},
+                    alpha=self.budget['candidate_alpha'], stop=self.stop)
                 reports.append({'opponent': opponent, **report})
                 del incumbent
                 if not report['passed']:
@@ -329,7 +424,10 @@ class ChampionGate:
             passed = len(reports) == len(opponents) and all(item['passed'] for item in reports)
             result = {'passed': passed, 'candidate': current, 'opponents': reports,
                       'parent_history': history,
-                      'tactics_sha256': sha256(rooted(self.config['tactics']))}
+                      'tactics_sha256': sha256(rooted(self.config['tactics'])),
+                      'promotion_budget': self.budget, 'evidence_identity': identity}
+            if passed:
+                self._validate_promotion_report(result, current, history)
             # Only accepted.json determines deployment and self-play generation.
             # A rejected candidate remains inspectable without replacing champion.
             atomic_json(report_path, result)
@@ -340,6 +438,8 @@ class ChampionGate:
 
 
 def pipeline(args, config, model_config):
+    if config.get('requires_init_artifact') and not args.init_artifact:
+        raise ValueError('this continuation requires --init-artifact; use a fresh RUN_DIR')
     device = torch.device(args.device)
     validate_cuda_runtime(device)
     if args.init_artifact:
@@ -396,27 +496,34 @@ def pipeline(args, config, model_config):
         atomic_json(root / 'accepted.json', {'artifact': str(baseline.resolve()), 'history': [str(baseline.resolve())]})
     settings = config['training']
     with StopRequested() as stop:
-        gate = ChampionGate(root, config, model_config, device, stop)
+        gate = ChampionGate(root, config, model_config, device, stop, warm_start=bool(args.init_artifact))
 
-        def stage(name, kind, train, validation, steps):
+        def stage(name, kind, train, validation, steps, *, replay=None, replay_fraction=None):
             nonlocal model
+            options = {key: settings[key] for key in ('batch_size', 'weight_decay', 'clip_grad', 'checkpoint_every', 'log_every')}
+            learning_rate = settings['lr'] if kind == 'human' else settings['teacher_lr']
+            if kind == 'selfplay':
+                learning_rate = settings.get('selfplay_lr', learning_rate)
+            options.update(steps=steps, seed=config['seed'], lr=learning_rate)
+            for key in ('validation_limit', 'validation_seed'):
+                if key in settings:
+                    options[key] = settings[key]
             if name in state['completed']:
                 checkpoint = root / name / 'last.pt'
                 previous = torch.load(checkpoint, map_location='cpu', weights_only=True)
+                expected = training_signature(model, train, validation, options, kind,
+                    replay=replay, replay_fraction=replay_fraction)
+                if previous['signature'] != expected or previous['step'] != steps:
+                    raise ValueError('completed checkpoint configuration, dataset or step changed; use a new run directory')
                 restore_checkpoint_rng(previous, next(model.parameters()).device,
                     resume_mode=args.resume_mode, seed=config['seed'], checkpoint=checkpoint)
                 model.load_state_dict(previous['model'])
                 print(json.dumps({'stage': name, 'status': 'already_complete',
                                   'completed_steps': previous['step'], 'remaining_steps': 0}), flush=True)
                 return
-            options = {key: settings[key] for key in ('batch_size', 'weight_decay', 'clip_grad', 'checkpoint_every', 'log_every')}
-            learning_rate = settings['lr'] if kind == 'human' else settings['teacher_lr']
-            if kind == 'selfplay':
-                learning_rate = settings.get('selfplay_lr', learning_rate)
-            options.update(steps=steps, seed=config['seed'], lr=learning_rate)
             if not train_stage(model, train, validation, root / name,
                                config=options, stage=kind, gate=gate, stop=stop,
-                               resume_mode=args.resume_mode):
+                               resume_mode=args.resume_mode, replay=replay, replay_fraction=replay_fraction):
                 raise InterruptedError('training checkpoint saved')
             state['completed'].append(name)
             atomic_json(state_path, state)
@@ -458,9 +565,6 @@ def pipeline(args, config, model_config):
                 raise ValueError('self-play replay checksum mismatch')
             records = load_records([samples_path])
             fraction = config['selfplay']['teacher_replay_fraction']
-            rng = random.Random(config['seed'] + number)
-            replay_count = max(1, int(len(records) * fraction / (1 - fraction)))
-            records += rng.choices(teacher_train, k=replay_count)
             if name not in state['completed'] and not (root / name / 'last.pt').exists():
                 # Each round proposes an update to the model that generated its
                 # frozen targets. The preceding stage/round may have been rejected.
@@ -471,7 +575,8 @@ def pipeline(args, config, model_config):
                 print(json.dumps({'selfplay_initialization': name,
                                   'artifact': str(champion_path), 'learning_rate':
                                   settings.get('selfplay_lr', settings['teacher_lr'])}), flush=True)
-            stage(name, 'selfplay', records, teacher_validation, settings['selfplay_steps'])
+            stage(name, 'selfplay', records, teacher_validation, settings['selfplay_steps'],
+                  replay=teacher_train, replay_fraction=fraction)
     print(json.dumps(run_status(root), indent=2), flush=True)
 
 

@@ -163,7 +163,11 @@ class NeuralUci:
         torch.set_num_threads(self.threads)
         artifact = resolve_artifact(self.model_path)
         model = load_checkpoint(artifact, device=self.device)
-        self.evaluator = NeuralEvaluator(model)
+        evaluator = NeuralEvaluator(model)
+        # Run the complete inference path during readiness, before the match clock
+        # starts. This also catches backend failures that loading weights cannot.
+        evaluator.evaluate_batch([chess.Board()])
+        self.evaluator = evaluator
         parameters = sum(parameter.numel() for parameter in model.parameters())
         self.diagnostic(f'loaded {artifact}; parameters={parameters}; device={self.evaluator.device}')
 
@@ -261,7 +265,7 @@ class NeuralUci:
             return True
         command, args = tokens[0], tokens[1:]
         if command == 'uci':
-            self.write('id name Inezita 0.1.2')
+            self.write('id name Inezita 0.1.3')
             self.write('id author Inezita Developers')
             self.write(f'option name ModelPath type string default {self.model_path}')
             self.write(f'option name Device type combo default {self.device} var cpu var mps var cuda')

@@ -89,6 +89,47 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(engine.cpuct, 2.5)
 
 
+class ReadinessTests(unittest.TestCase):
+    def test_readiness_runs_real_inference_once_and_reuses_loaded_model(self):
+        class CountingModel(ChessTransformer):
+            calls = 0
+
+            def forward(self, features):
+                self.calls += 1
+                return super().forward(features)
+
+        model = CountingModel(ModelConfig(width=16, layers=1, heads=2,
+                                         dynamic_rank=2, policy_width=4))
+        output = io.StringIO()
+        engine = NeuralUci(threads=1, output=output, log=io.StringIO())
+        with patch('inez.uci.resolve_artifact', return_value=Path('/fixture/model')), \
+             patch('inez.uci.load_checkpoint', return_value=model) as load:
+            engine.handle('isready')
+            self.assertEqual(model.calls, 1)
+            self.assertIsNotNone(engine.evaluator)
+            engine.handle('isready')
+            engine.ensure_model()
+            load.assert_called_once()
+        self.assertEqual(model.calls, 1)
+        self.assertEqual(output.getvalue().splitlines(), ['readyok', 'readyok'])
+
+    def test_readiness_reports_backend_failure_before_readyok(self):
+        class BrokenModel(ChessTransformer):
+            def forward(self, features):
+                raise RuntimeError('attention backend unavailable')
+
+        model = BrokenModel(ModelConfig(width=16, layers=1, heads=2,
+                                       dynamic_rank=2, policy_width=4))
+        output = io.StringIO()
+        engine = NeuralUci(threads=1, output=output, log=io.StringIO())
+        with patch('inez.uci.resolve_artifact', return_value=Path('/fixture/model')), \
+             patch('inez.uci.load_checkpoint', return_value=model):
+            with self.assertRaisesRegex(RuntimeError, 'attention backend unavailable'):
+                engine.handle('isready')
+        self.assertNotIn('readyok', output.getvalue())
+        self.assertIsNone(engine.evaluator)
+
+
 class SearchControlTests(unittest.TestCase):
     def test_interrupt_before_evaluation_does_not_invent_visits_or_value(self):
         updates = []
@@ -199,7 +240,7 @@ class ProtocolTests(unittest.TestCase):
         with chess.engine.SimpleEngine.popen_uci(
                 [sys.executable, str(ROOT / 'tools/neural_uci.py'), '--model', str(self.artifact),
                  '--threads', '1'], timeout=15) as engine:
-            self.assertEqual(engine.id['name'], 'Inezita 0.1.2')
+            self.assertEqual(engine.id['name'], 'Inezita 0.1.3')
             self.assertNotIn('Evaluator', engine.options)
             board = chess.Board()
             for move in ('e2e4', 'c7c5'):

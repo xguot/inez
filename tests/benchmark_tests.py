@@ -20,7 +20,8 @@ import chess
 import chess.pgn
 
 from benchmark_inezita import (artifact_record, audit_games, external_opponent_record,
-    fastchess_command, parse_uci_options, previous_artifact, position_key,
+    excluded_positions, fastchess_command, parse_uci_options, previous_artifact, position_key,
+    _configure_value, validate_external_control,
     select_openings, sha256, verify_external_opponent_unchanged, wait_for_tournament)
 from inez.device import validate_cuda_runtime
 
@@ -33,6 +34,16 @@ def opening(moves):
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_every_training_gate_is_excluded_from_release_openings(self):
+        excluded, sources = excluded_positions()
+        for path in (ROOT / 'configs/train').glob('inezita*.json'):
+            self.assertEqual(sources[str(path.relative_to(ROOT))], sha256(path))
+            for moves in json.loads(path.read_text())['gate']['openings']:
+                board = chess.Board()
+                for move in moves:
+                    board.push_uci(move)
+                self.assertIn(position_key(board), excluded)
+
     def test_native_signal_handlers_are_restored_as_default(self):
         child = MagicMock()
         child.wait.return_value = 0
@@ -214,6 +225,8 @@ class BenchmarkTests(unittest.TestCase):
             self.assertEqual(sf_rec['kind'], 'external_uci')
             self.assertEqual(sf_rec['name'], 'stockfish-17.1-elo1320')
             self.assertEqual(sf_rec['options']['UCI_Elo'], '1400')
+            self.assertEqual(sf_rec['strength_setting'], {
+                'system': 'Stockfish UCI_Elo', 'value': 1400, 'is_candidate_rating': False})
             self.assertEqual(sf_rec['options']['UCI_LimitStrength'], 'true')
 
             cmd = fastchess_command(sf_args, root, {'path': '/model'}, sf_rec)
@@ -251,6 +264,90 @@ class BenchmarkTests(unittest.TestCase):
             summary = audit_games(pgn_path, [book], opponent_name='stockfish-17.1-elo1320')
             self.assertEqual((summary['wins'], summary['losses'], summary['pairs']), (2, 0, 1))
             self.assertEqual(summary['pentanomial'], [0, 0, 0, 0, 1])
+
+    def test_stockfish_reference_ladder_maps_exact_settings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / 'stockfish'
+            binary.write_bytes(b'reference engine')
+            for elo in (1320, 1600, 1900, 2200):
+                with self.subTest(elo=elo):
+                    args = Namespace(opponent=None, reference=f'stockfish-elo-{elo}',
+                                     opponent_engine=binary, opponent_option=[], opponent_arg=[])
+                    record = external_opponent_record(args)
+                    self.assertEqual(record['options'], {
+                        'Threads': '1', 'Hash': '64', 'UCI_LimitStrength': 'true',
+                        'UCI_Elo': str(elo), 'Move Overhead': '50'})
+                    self.assertEqual(record['name'], f'stockfish-17.1-elo{elo}')
+                    self.assertIsNone(record['nodes'])
+                    self.assertEqual(record['strength_setting']['value'], elo)
+                    self.assertFalse(record['strength_setting']['is_candidate_rating'])
+            args.opponent_option = ['UCI_LimitStrength=false']
+            self.assertNotIn('strength_setting', external_opponent_record(args))
+
+    def test_same_weights_require_distinct_binary_and_pinned_code(self):
+        candidate = {'weights_sha256': 'same-weights'}
+        opponent = {'model_artifact': dict(candidate), 'binary_sha256': 'old-binary',
+                    'sources': {'training/inez/uci.py': 'old-code'}}
+        current_sources = {'training/inez/uci.py': 'new-code'}
+        validate_external_control(candidate, opponent, 'new-binary', current_sources)
+        with self.assertRaisesRegex(ValueError, 'distinct launcher binary'):
+            validate_external_control(candidate, opponent, 'old-binary', current_sources)
+        with self.assertRaisesRegex(ValueError, 'distinct pinned sources'):
+            validate_external_control(candidate, opponent, 'new-binary', opponent['sources'])
+        candidate['weights_sha256'] = 'different-weights'
+        validate_external_control(candidate, opponent, 'old-binary', opponent['sources'])
+
+    def test_frozen_inezita_external_control_pins_sources_and_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            binary = root / 'build/inezita'
+            binary.parent.mkdir()
+            binary.write_bytes(b'frozen launcher')
+            for relative in ('CMakeLists.txt', 'training/inez/uci.py', 'tools/neural_uci.py'):
+                source = root / relative
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_text('frozen source')
+            artifact = root / 'artifact'
+            artifact.mkdir()
+            weights = artifact / 'weights.pt'
+            weights.write_bytes(b'frozen weights')
+            (artifact / 'manifest.json').write_text(json.dumps({
+                'weights': 'weights.pt', 'weights_sha256': sha256(weights), 'config': {}}))
+            args = Namespace(opponent=None, reference=None, opponent_engine=binary,
+                             opponent_option=[f'ModelPath={artifact}', 'Device=cpu', 'Threads=1'],
+                             opponent_arg=[], opponent_source_root=root)
+            record = external_opponent_record(args)
+            self.assertEqual(record['model_artifact']['weights_sha256'], sha256(weights))
+            self.assertEqual(record['options']['ModelPath'], str(artifact.resolve()))
+            self.assertIn('training/inez/uci.py', record['sources'])
+            self.assertEqual(record['source_root_verification'],
+                             'operator-declared launcher runtime root')
+            verify_external_opponent_unchanged(record)
+            weights.write_bytes(b'changed weights')
+            with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
+                verify_external_opponent_unchanged(record)
+            weights.write_bytes(b'frozen weights')
+            (root / 'training/inez/uci.py').write_text('changed source')
+            with self.assertRaisesRegex(ValueError, 'sources changed'):
+                verify_external_opponent_unchanged(record)
+            args.opponent_source_root = None
+            with self.assertRaisesRegex(ValueError, 'opponent-source-root'):
+                external_opponent_record(args)
+
+    def test_reference_options_respect_the_actual_engine_advertised_bounds(self):
+        elo = chess.engine.Option('UCI_Elo', 'spin', 1320, 1320, 3190, [])
+        self.assertEqual(_configure_value(elo, '2200'), 2200)
+        for invalid in ('1319', '3191', '2200.5', 'not-a-number'):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, 'UCI_Elo'):
+                _configure_value(elo, invalid)
+        different_version = chess.engine.Option('UCI_Elo', 'spin', 1600, 1600, 2100, [])
+        with self.assertRaisesRegex(ValueError, 'UCI_Elo'):
+            _configure_value(different_version, '2200')
+        enabled = chess.engine.Option('UCI_LimitStrength', 'check', False, None, None, [])
+        self.assertTrue(_configure_value(enabled, 'true'))
+        self.assertFalse(_configure_value(enabled, 'false'))
+        with self.assertRaisesRegex(ValueError, 'boolean'):
+            _configure_value(enabled, 'maybe')
 
     def test_parse_uci_options_rejects_malformed_entries(self):
         self.assertEqual(parse_uci_options(['Hash=64', 'UCI_LimitStrength=true']),

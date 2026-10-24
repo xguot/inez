@@ -9,6 +9,20 @@ if [[ "${INEZ_PYTHON:-}" == HOME/* ]]; then
     export INEZ_PYTHON="${HOME}/${INEZ_PYTHON#HOME/}"
 fi
 ACCOUNT="${INEZ_ACCOUNT:-nssac_students}"
+MODE="${1:-prepare}"
+case "${MODE}" in
+    continue)
+        : "${INIT_ARTIFACT:?Set INIT_ARTIFACT to the accepted model artifact to improve}"
+        export TRAIN_CONFIG="${TRAIN_CONFIG:-configs/train/inezita-0.1.3.json}"
+        export RUN_DIR="${RUN_DIR:-${ROOT_DIR}/results/training/inezita-0.1.3}"
+        export DATA_DIR="${DATA_DIR:-${ROOT_DIR}/data/processed/inezita}"
+        TRAIN_JOB="$(sbatch --parsable --account="${ACCOUNT}" hpc/train_inezita.slurm)"
+        echo "Inezita continuation job: ${TRAIN_JOB}; config=${TRAIN_CONFIG}; run=${RUN_DIR}"
+        exit 0
+        ;;
+    prepare) ;;
+    *) echo "Usage: bash hpc/submit_inezita.sh [prepare|continue]" >&2; exit 1 ;;
+esac
 PREP_JOB="$(sbatch --parsable --account="${ACCOUNT}" hpc/prepare_inezita.slurm)"
 PREP_JOB="${PREP_JOB%%;*}"
 echo "Inezita data preparation job: ${PREP_JOB}"

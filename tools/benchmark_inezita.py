@@ -37,6 +37,8 @@ from train_inezita import resolve_stockfish
 BOOK_REVISION = 'a804a97e709f40aa75a00f9d19e84915b7a3a45c'
 BOOK_URL = f'https://raw.githubusercontent.com/official-stockfish/books/{BOOK_REVISION}/8moves_v3.pgn.zip'
 BOOK_SHA256 = '7e1e9dd118b4bb97d8a8b5b8a790c86e21f8509d59a27d2883767d94477be02e'
+BENCHMARK_VERSION = '0.1.3'
+NEURAL_ENGINE_NAMES = {'Inezita 0.1.2', 'Inezita 0.1.3'}
 STAGES = {'pilot': (10, 0, '60+0.6'), 'baseline': (1000, 10, '60+0.6'),
           'gauntlet': (500, 10, '60+0.6'), 'confirmation': (1000, 1010, '180+1.8')}
 REFERENCE_PRESETS = {
@@ -59,6 +61,20 @@ REFERENCE_PRESETS = {
         'name': 'stockfish-17.1-elo1600',
         'args': [],
         'options': {'Threads': 1, 'Hash': 64, 'UCI_LimitStrength': 'true', 'UCI_Elo': 1600, 'Move Overhead': 50},
+        'nodes': None,
+    },
+    'stockfish-elo-1900': {
+        'engine': 'stockfish',
+        'name': 'stockfish-17.1-elo1900',
+        'args': [],
+        'options': {'Threads': 1, 'Hash': 64, 'UCI_LimitStrength': 'true', 'UCI_Elo': 1900, 'Move Overhead': 50},
+        'nodes': None,
+    },
+    'stockfish-elo-2200': {
+        'engine': 'stockfish',
+        'name': 'stockfish-17.1-elo2200',
+        'args': [],
+        'options': {'Threads': 1, 'Hash': 64, 'UCI_LimitStrength': 'true', 'UCI_Elo': 2200, 'Move Overhead': 50},
         'nodes': None,
     },
     'inezita-material': {
@@ -193,10 +209,47 @@ def external_opponent_record(args):
         'options': options,
         'nodes': opponent_nodes,
     }
+    # This is the opponent's requested setting, not an estimated rating of
+    # Inezita. Preserve overrides here rather than inferring it from the name.
+    if (engine_kind == 'stockfish'
+            and options.get('UCI_LimitStrength', '').strip().lower() in ('true', '1', 'yes', 'on')):
+        record['strength_setting'] = {
+            'system': 'Stockfish UCI_Elo',
+            'value': int(options['UCI_Elo']),
+            'is_candidate_rating': False,
+        }
+    source_root = getattr(args, 'opponent_source_root', None)
+    if source_root is not None:
+        source_root = Path(source_root).expanduser().resolve()
+        for relative in ('CMakeLists.txt', 'training/inez/uci.py', 'tools/neural_uci.py'):
+            if not (source_root / relative).is_file():
+                raise ValueError(f'external Inezita source root is missing {relative}: {source_root}')
+        record['source_root'] = str(source_root)
+        record['sources'] = source_record(source_root)
+        # The launcher embeds its Python source directory at build time.
+        # An explicit root records the operator's claim; a binary filename or
+        # UCI version string alone cannot establish the Python runtime path.
+        record['source_root_verification'] = 'operator-declared launcher runtime root'
+    if 'ModelPath' in options:
+        if source_root is None:
+            raise ValueError('external Inezita ModelPath requires --opponent-source-root '
+                             'matching the launcher build source directory')
+        model_artifact = artifact_record(options['ModelPath'])
+        options['ModelPath'] = model_artifact['path']
+        record['model_artifact'] = model_artifact
     if weights_path is not None:
         record['weights_path'] = str(weights_path)
         record['weights_sha256'] = sha256(weights_path)
     return record
+
+
+def validate_external_control(candidate, opponent, binary_sha256, sources):
+    model = opponent.get('model_artifact')
+    if model is None or model['weights_sha256'] != candidate['weights_sha256']:
+        return
+    if opponent['binary_sha256'] == binary_sha256 or opponent['sources'] == sources:
+        raise ValueError('same-weight code comparison requires a distinct launcher binary '
+                         'and distinct pinned sources')
 
 
 def verify_external_opponent_unchanged(opponent):
@@ -204,6 +257,10 @@ def verify_external_opponent_unchanged(opponent):
         raise ValueError('external opponent binary changed during the tournament')
     if 'weights_path' in opponent and sha256(opponent['weights_path']) != opponent['weights_sha256']:
         raise ValueError('external opponent weights changed during the tournament')
+    if 'sources' in opponent and source_record(Path(opponent['source_root'])) != opponent['sources']:
+        raise ValueError('external opponent sources changed during the tournament')
+    if 'model_artifact' in opponent and artifact_record(opponent['model_artifact']['path']) != opponent['model_artifact']:
+        raise ValueError('external opponent model artifact changed during the tournament')
 
 
 def _configure_value(option, raw_value):
@@ -216,17 +273,21 @@ def _configure_value(option, raw_value):
         if lowered in ('false', '0', 'no', 'off'):
             return False
         raise ValueError(f'invalid boolean value for UCI option {option.name}: {raw_value}')
-    if option.type == 'spin':
-        return int(raw_value)
-    return str(raw_value)
+    try:
+        # Use the binary's advertised bounds/choices. Stockfish versions can
+        # differ, so never silently clamp a requested rating to another one.
+        return option.parse(raw_value)
+    except chess.engine.EngineError as error:
+        raise ValueError(f'invalid UCI option {option.name}: {error}') from error
 
 
-def source_record():
-    files = [ROOT / 'CMakeLists.txt']
+def source_record(root=ROOT):
+    root = Path(root).resolve()
+    files = [root / 'CMakeLists.txt']
     for directory in ('src', 'include', 'training', 'tools', 'hpc'):
-        files += [p for p in (ROOT / directory).rglob('*')
+        files += [p for p in (root / directory).rglob('*')
                   if p.suffix in ('.py', '.cpp', '.hpp', '.slurm', '.sh')]
-    return {str(p.relative_to(ROOT)): sha256(p) for p in sorted(files)}
+    return {str(p.relative_to(root)): sha256(p) for p in sorted(files)}
 
 
 def default_book(cache):
@@ -235,7 +296,7 @@ def default_book(cache):
     if not archive.exists():
         temporary = cache / f'.book-{os.getpid()}.download'
         try:
-            request = urllib.request.Request(BOOK_URL, headers={'User-Agent': 'InezitaBenchmark/0.1.2'})
+            request = urllib.request.Request(BOOK_URL, headers={'User-Agent': f'InezitaBenchmark/{BENCHMARK_VERSION}'})
             with urllib.request.urlopen(request, timeout=120) as remote, temporary.open('wb') as out:
                 while block := remote.read(1024 * 1024):
                     out.write(block)
@@ -259,10 +320,12 @@ def position_key(board):
 
 def excluded_positions():
     excluded = set()
-    sources = [ROOT / 'data/openings/mco_openings.tsv', ROOT / 'configs/train/inezita.json']
+    sources = [ROOT / 'data/openings/mco_openings.tsv',
+               *sorted((ROOT / 'configs/train').glob('inezita*.json'))]
     with sources[0].open() as stream:
         lines = [row['uci'].split() for row in csv.DictReader(stream, delimiter='\t')]
-    lines += json.loads(sources[1].read_text())['gate']['openings']
+    for config in sources[1:]:
+        lines += json.loads(config.read_text())['gate']['openings']
     for moves in lines:
         board = chess.Board()
         excluded.add(position_key(board))
@@ -429,6 +492,8 @@ def execute(args, report):
         cuda_runtime=torch.version.cuda, precision='float32',
         host=platform.node(), platform=platform.platform(), device=args.device, threads=args.threads,
         slurm_job_id=os.environ.get('SLURM_JOB_ID'), cuda_visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES'))
+    if external_mode:
+        validate_external_control(candidate, opponent, report['binary_sha256'], report['sources'])
     report['device_name'] = torch.cuda.get_device_name(0) if args.device == 'cuda' else platform.processor()
     if args.openings:
         text = args.openings.read_text(encoding='utf-8-sig')
@@ -445,8 +510,8 @@ def execute(args, report):
     env = {**os.environ, 'INEZ_PYTHON': sys.executable, 'PYTHONDONTWRITEBYTECODE': '1'}
     env.pop('INEZ_BASELINE', None)
     with chess.engine.SimpleEngine.popen_uci(str(args.binary), env=env, timeout=120) as engine:
-        if engine.id.get('name') != 'Inezita 0.1.2' or 'ModelPath' not in engine.options:
-            raise ValueError('benchmark requires the Inezita 0.1.2 neural UCI launcher')
+        if engine.id.get('name') not in NEURAL_ENGINE_NAMES or 'ModelPath' not in engine.options:
+            raise ValueError('benchmark requires an Inezita 0.1.2 or 0.1.3 neural UCI launcher')
         engine.configure({'ModelPath': candidate['path'], 'Device': args.device, 'Threads': args.threads})
         engine.ping()
         # Loading weights alone did not expose the V100/cu130 mismatch.
@@ -471,8 +536,8 @@ def execute(args, report):
                 raise RuntimeError('external opponent preflight returned an illegal move')
     else:
         with chess.engine.SimpleEngine.popen_uci(str(args.binary), env=env, timeout=120) as engine:
-            if engine.id.get('name') != 'Inezita 0.1.2' or 'ModelPath' not in engine.options:
-                raise ValueError('benchmark requires the Inezita 0.1.2 neural UCI launcher')
+            if engine.id.get('name') not in NEURAL_ENGINE_NAMES or 'ModelPath' not in engine.options:
+                raise ValueError('benchmark requires an Inezita 0.1.2 or 0.1.3 neural UCI launcher')
             engine.configure({'ModelPath': opponent['path'], 'Device': args.device, 'Threads': args.threads})
             engine.ping()
             result = engine.play(chess.Board(), chess.engine.Limit(nodes=1))
@@ -533,9 +598,12 @@ def main():
     parser.add_argument('--model', type=Path, default=DEFAULT_MODEL)
     parser.add_argument('--opponent', type=Path)
     parser.add_argument('--reference', choices=tuple(REFERENCE_PRESETS),
-                        help='named external reference preset (e.g. stockfish-elo-1320, lc0)')
-    parser.add_argument('--opponent-engine', type=Path,
+                        help='named external reference preset (Stockfish UCI_Elo 1320/1600/1900/2200, skill 0, material, or lc0)')
+    parser.add_argument('--opponent-engine', '--opponent-binary', dest='opponent_engine', type=Path,
                         help='external UCI engine binary path when not using a checkpoint opponent')
+    parser.add_argument('--opponent-source-root', type=Path,
+                        help='frozen Inezita launcher build source directory; pins Python sources '
+                             '(operator must ensure launcher was built from this root)')
     parser.add_argument('--opponent-name', help='player name in PGN/Fastchess for external opponent')
     parser.add_argument('--opponent-arg', action='append', default=[],
                         help='CLI argument passed to external opponent binary (repeatable)')
@@ -568,13 +636,15 @@ def main():
         parser.error('invalid pair count, opening offset, threads or simulation budget')
     if args.opponent is not None and (args.reference is not None or args.opponent_engine is not None):
         parser.error('cannot combine checkpoint --opponent with --reference or --opponent-engine')
-    for name in ('model', 'opponent', 'opponent_engine', 'lc0_weights', 'fastchess', 'binary', 'openings', 'cache', 'output', 'pilot_dir'):
+    if args.opponent_source_root is not None and args.reference is None and args.opponent_engine is None:
+        parser.error('--opponent-source-root requires an external opponent binary')
+    for name in ('model', 'opponent', 'opponent_source_root', 'opponent_engine', 'lc0_weights', 'fastchess', 'binary', 'openings', 'cache', 'output', 'pilot_dir'):
         value = getattr(args, name)
         if value is not None:
             setattr(args, name, value.expanduser().resolve())
     args.started = time.monotonic()
     args.output.mkdir(parents=True, exist_ok=False)
-    report = {'format_version': 1, 'status': 'preparing', 'started_utc': utc_now()}
+    report = {'format_version': 1, 'benchmark_version': BENCHMARK_VERSION, 'status': 'preparing', 'started_utc': utc_now()}
     try:
         return execute(args, report)
     except BaseException as error:

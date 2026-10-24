@@ -65,13 +65,20 @@ fi
 BUILD_DIR="${ROOT_DIR}/build/benchmark"
 cmake -S "${ROOT_DIR}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 cmake --build "${BUILD_DIR}" --target inezita --parallel "${SLURM_CPUS_PER_TASK:-8}"
-OUT_DIR="${BENCH_OUTPUT:-${ROOT_DIR}/results/evaluation/inezita-0.1.2/${STAGE}-${SLURM_JOB_ID:-$(date -u +%Y%m%dT%H%M%SZ)}}"
+OUT_DIR="${BENCH_OUTPUT:-${ROOT_DIR}/results/evaluation/inezita-0.1.3/${STAGE}-${SLURM_JOB_ID:-$(date -u +%Y%m%dT%H%M%SZ)}}"
 ARGS=(--stage "${STAGE}" --fastchess "${FASTCHESS}" --binary "${BUILD_DIR}/inezita"
       --output "${OUT_DIR}" --device "${BENCH_DEVICE:-cuda}" --threads "${BENCH_THREADS:-4}")
 if [[ -n "${BENCH_MODEL:-}" ]]; then ARGS+=(--model "${BENCH_MODEL}"); fi
 if [[ -n "${BENCH_OPPONENT:-}" ]]; then ARGS+=(--opponent "${BENCH_OPPONENT}"); fi
 if [[ -n "${BENCH_REFERENCE:-}" ]]; then ARGS+=(--reference "${BENCH_REFERENCE}"); fi
 if [[ -n "${BENCH_OPPONENT_ENGINE:-}" ]]; then ARGS+=(--opponent-engine "${BENCH_OPPONENT_ENGINE}"); fi
+if [[ -n "${BENCH_OPPONENT_BINARY:-}" ]]; then ARGS+=(--opponent-binary "${BENCH_OPPONENT_BINARY}"); fi
+if [[ -n "${BENCH_OPPONENT_SOURCE_ROOT:-}" ]]; then ARGS+=(--opponent-source-root "${BENCH_OPPONENT_SOURCE_ROOT}"); fi
+if [[ -n "${BENCH_OPPONENT_MODEL:-}" ]]; then
+    ARGS+=(--opponent-option "ModelPath=${BENCH_OPPONENT_MODEL}"
+           --opponent-option "Device=${BENCH_DEVICE:-cuda}"
+           --opponent-option "Threads=${BENCH_THREADS:-4}")
+fi
 if [[ -n "${BENCH_OPPONENT_NAME:-}" ]]; then ARGS+=(--opponent-name "${BENCH_OPPONENT_NAME}"); fi
 if [[ -n "${BENCH_OPPONENT_NODES:-}" ]]; then ARGS+=(--opponent-nodes "${BENCH_OPPONENT_NODES}"); fi
 if [[ -n "${LC0_WEIGHTS:-}" ]]; then ARGS+=(--lc0-weights "${LC0_WEIGHTS}"); fi

@@ -5,6 +5,9 @@
 # (Stockfish 17.1 at Skill 0/128n, UCI_Elo 1320, UCI_Elo 1600, plus Lc0 when
 # LC0_BINARY and LC0_WEIGHTS are provided). Pass `gauntlet` after completing
 # the pilot to run 1,000 games (500 pairs) per opponent.
+# To test the 0.1.3 target ladder, set GAUNTLET_REFERENCES to the space-separated
+# stockfish-elo-1320 stockfish-elo-1600 stockfish-elo-1900 stockfish-elo-2200.
+# These are opponent settings, not calibrated human ratings for Inezita.
 #SBATCH --job-name=inezita_gauntlet
 #SBATCH --output=inezita_gauntlet_%j.out
 #SBATCH --error=inezita_gauntlet_%j.err
@@ -70,7 +73,7 @@ BUILD_DIR="${ROOT_DIR}/build/benchmark"
 cmake -S "${ROOT_DIR}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 cmake --build "${BUILD_DIR}" --target inezita --parallel "${SLURM_CPUS_PER_TASK:-8}"
 
-GAUNTLET_ROOT="${BENCH_OUTPUT:-${ROOT_DIR}/results/evaluation/inezita-0.1.2/gauntlet-${STAGE}-${SLURM_JOB_ID:-$(date -u +%Y%m%dT%H%M%SZ)}}"
+GAUNTLET_ROOT="${BENCH_OUTPUT:-${ROOT_DIR}/results/evaluation/inezita-0.1.3/gauntlet-${STAGE}-${SLURM_JOB_ID:-$(date -u +%Y%m%dT%H%M%SZ)}}"
 mkdir -p "${GAUNTLET_ROOT}"
 
 if [[ -n "${GAUNTLET_REFERENCES:-}" ]]; then

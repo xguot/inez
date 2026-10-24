@@ -1,0 +1,127 @@
+{
+  "gauntlet_root": "/sfs/weka/scratch/mhn4xq/inez/results/evaluation/inezita-0.1.2/gauntlet-pilot-21894378",
+  "opponents": {
+    "stockfish-elo-1320": {
+      "status": "complete",
+      "opponent": {
+        "args": [],
+        "binary": "/sfs/weka/scratch/mhn4xq/inez/data/raw/stockfish-17.1/stockfish-ubuntu-x86-64-avx2",
+        "binary_sha256": "54abc2fc2e79a608b502b8190ca58b4d51747e58bfcdfc20530710554a4bd7ca",
+        "kind": "external_uci",
+        "name": "stockfish-17.1-elo1320",
+        "nodes": null,
+        "options": {
+          "Hash": "64",
+          "Move Overhead": "50",
+          "Threads": "1",
+          "UCI_Elo": "1320",
+          "UCI_LimitStrength": "true"
+        },
+        "reference": "stockfish-elo-1320",
+        "uci_id": {
+          "author": "the Stockfish developers (see AUTHORS file)",
+          "name": "Stockfish 17.1"
+        }
+      },
+      "summary": {
+        "draws": 0,
+        "faults": {},
+        "games": 20,
+        "losses": 5,
+        "pairs": 10,
+        "pentanomial": [
+          0,
+          0,
+          5,
+          0,
+          5
+        ],
+        "unfinished": 0,
+        "wins": 15
+      },
+      "elapsed_seconds": 2893.0031131394207,
+      "projected_1000_game_hours": 40.18059879360307
+    },
+    "stockfish-elo-1600": {
+      "status": "complete",
+      "opponent": {
+        "args": [],
+        "binary": "/sfs/weka/scratch/mhn4xq/inez/data/raw/stockfish-17.1/stockfish-ubuntu-x86-64-avx2",
+        "binary_sha256": "54abc2fc2e79a608b502b8190ca58b4d51747e58bfcdfc20530710554a4bd7ca",
+        "kind": "external_uci",
+        "name": "stockfish-17.1-elo1600",
+        "nodes": null,
+        "options": {
+          "Hash": "64",
+          "Move Overhead": "50",
+          "Threads": "1",
+          "UCI_Elo": "1600",
+          "UCI_LimitStrength": "true"
+        },
+        "reference": "stockfish-elo-1600",
+        "uci_id": {
+          "author": "the Stockfish developers (see AUTHORS file)",
+          "name": "Stockfish 17.1"
+        }
+      },
+      "summary": {
+        "draws": 1,
+        "faults": {},
+        "games": 20,
+        "losses": 8,
+        "pairs": 10,
+        "pentanomial": [
+          0,
+          1,
+          7,
+          0,
+          2
+        ],
+        "unfinished": 0,
+        "wins": 11
+      },
+      "elapsed_seconds": 3195.990910540335,
+      "projected_1000_game_hours": 44.38876264639354
+    },
+    "stockfish-skill-0-n128": {
+      "status": "complete",
+      "opponent": {
+        "args": [],
+        "binary": "/sfs/weka/scratch/mhn4xq/inez/data/raw/stockfish-17.1/stockfish-ubuntu-x86-64-avx2",
+        "binary_sha256": "54abc2fc2e79a608b502b8190ca58b4d51747e58bfcdfc20530710554a4bd7ca",
+        "kind": "external_uci",
+        "name": "stockfish-17.1-skill0-n128",
+        "nodes": 128,
+        "options": {
+          "Hash": "16",
+          "Move Overhead": "50",
+          "Skill Level": "0",
+          "Threads": "1"
+        },
+        "reference": "stockfish-skill-0-n128",
+        "uci_id": {
+          "author": "the Stockfish developers (see AUTHORS file)",
+          "name": "Stockfish 17.1"
+        }
+      },
+      "summary": {
+        "draws": 0,
+        "faults": {},
+        "games": 20,
+        "losses": 0,
+        "pairs": 10,
+        "pentanomial": [
+          0,
+          0,
+          0,
+          0,
+          10
+        ],
+        "unfinished": 0,
+        "wins": 20
+      },
+      "elapsed_seconds": 1041.279868031852,
+      "projected_1000_game_hours": 14.462220389331277
+    }
+  }
+}

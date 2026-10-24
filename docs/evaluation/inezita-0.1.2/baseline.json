@@ -1,0 +1,39 @@
+{
+  "engine": "Inezita",
+  "baseline_version": "0.1.2",
+  "evaluated_code_revision": "3edaf018e9dc5a5e11f739d27cec5475ed1f8637",
+  "artifact": "results/training/inezita/teacher/candidate-0020000",
+  "weights_sha256": "ba8ff3202b9dbdc1f1f2881cc2ec9b39c8a47f19cb074de75cb2dad6024db778",
+  "manifest_sha256": "c78d8fe1c796f359b79959e1cb2cb2957c31a13382af34923ef7c353537cc484",
+  "architecture": {
+    "architecture": "inez-square-transformer-v1",
+    "artifact_version": 1,
+    "config": {
+      "dropout": 0.0,
+      "dynamic_rank": 32,
+      "ffn_ratio": 1.5,
+      "heads": 8,
+      "layers": 15,
+      "policy_width": 64,
+      "width": 512
+    },
+    "encoding": {
+      "contract_version": 1,
+      "feature_count": 119,
+      "history_frames": 8,
+      "layout": "square_major",
+      "orientation": "current_player_rank_flip",
+      "policy_size": 4288,
+      "value_order": [
+        "win",
+        "draw",
+        "loss"
+      ]
+    },
+    "torch_version": "2.14.1+cu130",
+    "weights": "weights.pt",
+    "weights_sha256": "ba8ff3202b9dbdc1f1f2881cc2ec9b39c8a47f19cb074de75cb2dad6024db778"
+  },
+  "evaluation": "gauntlet-pilot-21894378",
+  "note": "This frozen baseline pins evaluated code and model bytes. The earlier v0.1.2 tag identifies the version-bump commit; use evaluated_code_revision to reproduce this measured engine."
+}

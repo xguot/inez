@@ -112,7 +112,8 @@ class CurriculumTests(unittest.TestCase):
         self.assertFalse(promotion_decision(16, 16, worse, previous)['passed'])
         self.assertFalse(promotion_decision(8, 16, previous, previous)['passed'])
         self.assertFalse(promotion_decision(1, 1, previous, previous)['passed'])
-        self.assertTrue(promotion_decision(16, 16, previous, previous)['passed'])
+        # Aggregate game counts cannot establish independent opening pairs.
+        self.assertFalse(promotion_decision(16, 16, previous, previous)['passed'])
 
     def test_importer_preserves_histories_and_independent_splits(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -332,6 +333,12 @@ class CurriculumTests(unittest.TestCase):
                     pipeline(args, config, model_config)
                 stages.assert_not_called()
                 self.assertEqual(generate.call_count, 2)
+                checkpoint = run / 'teacher/last.pt'
+                corrupted = torch.load(checkpoint, weights_only=True)
+                corrupted['signature']['data'] = 'copied-from-another-experiment'
+                torch.save(corrupted, checkpoint)
+                with self.assertRaisesRegex(ValueError, 'completed checkpoint configuration'):
+                    pipeline(args, config, model_config)
 
     def test_gate_summary_explains_rejection_from_existing_reports(self):
         sys.path.insert(0, str(ROOT / 'tools'))
@@ -467,10 +474,26 @@ while True:
             initial = str((root / 'initial').resolve())
             atomic_json(root / 'accepted.json', {'artifact': initial, 'history': [initial]})
             config = {'tactics': str(ROOT / 'tests/fixtures/independent_tactics.json'),
-                      'gate': {'historical_opponents': 2, 'openings': [[]], 'pairs': 1,
+                      'gate': {'historical_opponents': 2, 'pairs': 8,
+                               'openings': [[], ['e2e4'], ['d2d4'], ['c2c4'],
+                                            ['g1f3'], ['b1c3'], ['g2g3'], ['b2b3']],
                                'simulations': 1, 'max_plies': 8, 'minimum_score': 0.55}}
             gate = ChampionGate(root, config, model_config, torch.device('cpu'), Stop())
-            with patch('train_inezita.evaluate_candidate', return_value={'passed': True, 'games': []}):
+            games = []
+            for pair, opening in enumerate(config['gate']['openings']):
+                board = chess.Board()
+                for move in opening:
+                    board.push_uci(move)
+                for white in (True, False):
+                    games.append({'pair': pair, 'candidate_white': white, 'candidate_score': 1.0,
+                                  'result': '1-0' if white else '0-1',
+                                  'opening': opening, 'opening_position': position_key(board)})
+            tactics = [{'name': item['name'], 'solved': True} for item in gate.tactics]
+            passed_report = promotion_decision(16, 16, tactics, tactics, match_games=games,
+                alpha=gate.budget['candidate_alpha'], expected_pairs=8)
+            passed_report.update(games=games, completed_games=16, candidate_tactics=tactics,
+                                 incumbent_tactics=tactics)
+            with patch('train_inezita.evaluate_candidate', return_value=passed_report):
                 gate(root / 'good', root / 'good-report.json')
             good = json.loads((root / 'accepted.json').read_text())
             self.assertEqual(good['artifact'], str((root / 'good').resolve()))
@@ -479,8 +502,38 @@ while True:
                 gate(root / 'bad', root / 'bad-report.json')
             self.assertEqual(json.loads((root / 'accepted.json').read_text()), good)
             # Simulate a crash after the promotion report, before its pointer.
-            atomic_json(root / 'accepted.json', {'artifact': initial, 'history': [initial]})
+            original = json.loads((root / 'good-report.json').read_text())
+            parent = {'artifact': initial, 'history': [initial]}
+            atomic_json(root / 'accepted.json', parent)
+            for change in ('legacy', 'candidate', 'budget', 'paired_score', 'opening', 'tactics', 'sources', 'weights'):
+                damaged = copy.deepcopy(original)
+                if change == 'legacy':
+                    damaged.pop('promotion_budget')
+                elif change == 'candidate':
+                    damaged['candidate'] = str((root / 'bad').resolve())
+                elif change == 'budget':
+                    damaged['promotion_budget']['candidate_alpha'] = 0.49
+                elif change == 'paired_score':
+                    damaged['opponents'][0]['paired_test']['p_value'] = 0.0
+                elif change == 'opening':
+                    damaged['opponents'][0]['games'][0]['opening_position'] = 'another-opening'
+                elif change == 'tactics':
+                    damaged['opponents'][0]['candidate_tactics'].pop()
+                elif change == 'sources':
+                    damaged['evidence_identity']['sources']['training/inez/puct.py'] = 'another-search'
+                else:
+                    damaged['evidence_identity']['artifacts'][str((root / 'good').resolve())]['weights_sha256'] = 'changed'
+                atomic_json(root / 'good-report.json', damaged)
+                with self.subTest(change=change), self.assertRaises(ValueError):
+                    gate(root / 'good', root / 'good-report.json')
+                self.assertEqual(json.loads((root / 'accepted.json').read_text()), parent)
+            atomic_json(root / 'good-report.json', original)
             gate(root / 'good', root / 'good-report.json')
+            self.assertEqual(json.loads((root / 'accepted.json').read_text()), good)
+            # A buggy fresh evaluator cannot authorize an evidence-free pass either.
+            with patch('train_inezita.evaluate_candidate', return_value={'passed': True, 'games': []}):
+                with self.assertRaises(ValueError):
+                    gate(root / 'bad', root / 'invalid-report.json')
             self.assertEqual(json.loads((root / 'accepted.json').read_text()), good)
 
     def test_stop_requested_handles_c_level_signal_handlers(self):
@@ -629,9 +682,9 @@ while True:
         adj = _tactical_priors(desperado, raw)
         self.assertGreater(adj['a5a3'], adj['e4f2'] * 5.0)
 
-        # Calibrated Wilson bound promotes a 15/24 (62.5%) win margin while still rejecting 1/1 and 8/16.
+        # Legacy aggregate-only input cannot bypass the paired-outcome gate.
         tactics_ok = [{'name': 'mate', 'solved': True}]
-        self.assertTrue(promotion_decision(15.0, 24, tactics_ok, tactics_ok)['passed'])
+        self.assertFalse(promotion_decision(15.0, 24, tactics_ok, tactics_ok)['passed'])
         self.assertFalse(promotion_decision(13.0, 24, tactics_ok, tactics_ok)['passed'])
 
 

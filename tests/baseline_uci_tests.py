@@ -32,7 +32,7 @@ class BaselineUciTests(unittest.TestCase):
             for evaluator, batch_size in (('material', 4), ('uniform', 1)):
                 engine = stack.enter_context(chess.engine.SimpleEngine.popen_uci(
                     [BINARY, '--baseline'], timeout=15, env={**os.environ, 'INEZ_BASELINE': '1'}))
-                self.assertEqual(engine.id['name'], 'Inezita 0.1.2')
+                self.assertEqual(engine.id['name'], 'Inezita 0.1.3')
                 engine.configure({'Evaluator': evaluator, 'BatchSize': batch_size})
                 engines.append(engine)
             openings = ('e2e4 e7e5 g1f3 b8c6 f1c4', 'e2e4 e7e6 d2d4 d7d5 e4e5')

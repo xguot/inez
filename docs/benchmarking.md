@@ -5,6 +5,11 @@ Inze is the future larger model. The game counts below are our proposed testing
 budget, not measurements already obtained and not a universal industry minimum.
 No benchmark or Slurm job has been launched by writing this protocol.
 
+The [frozen 0.1.2 results](evaluation/inezita-0.1.2/README.md) preserve the measured
+baseline. See [the 0.1.3 guide](inezita-0.1.3.md) for training, frozen-code controls
+and the 1900/2200 reference ladder. Set `BENCH_MODEL` explicitly to the new run;
+the default model path continues to use the existing accepted artifact.
+
 ## What major engines do
 
 Stockfish separates development tests from progression measurements. Functional
@@ -24,7 +29,7 @@ the games. It recommends controlling resource contention. Its example is
 500 two-game rounds, or 1,000 games; that example is not a mandatory sample size.
 See [Lc0 testing guide](https://lczero.org/dev/wiki/testing-guide/).
 
-## First baseline for Inezita 0.1.2
+## Release testing for Inezita 0.1.3
 
 Use Fastchess for games and statistical reporting, with complete PGNs retained.
 The existing neural diagnostic runner remains a separate behavioral check.
@@ -166,7 +171,7 @@ Git, make, CMake, a C++20 compiler, and a CUDA Python environment with
 Set `INEZ_PYTHON` if automatic selection does not find that environment.
 
 Results are written to
-`results/evaluation/inezita-0.1.2/pilot-<jobid>/`. Check `manifest.json` for
+`results/evaluation/inezita-0.1.3/pilot-<jobid>/`. Check `manifest.json` for
 `status: complete`, exactly 20 games, ten pairs, no faults, and unchanged model
 checksums. It also records an initial projected cost for 2,000 games. The job
 exits nonzero on incomplete or faulted results, and retains logs/PGNs for diagnosis.
@@ -174,7 +179,7 @@ exits nonzero on incomplete or faulted results, and retains logs/PGNs for diagno
 After reviewing that pilot, use the same entry point for the 2,000-game baseline:
 
 ```sh
-export PILOT_DIR="$PWD/results/evaluation/inezita-0.1.2/pilot-<jobid>"
+export PILOT_DIR="$PWD/results/evaluation/inezita-0.1.3/pilot-<jobid>"
 sbatch --time=<wall-time-from-pilot> hpc/benchmark_inezita.slurm baseline
 ```
 
@@ -188,7 +193,7 @@ automatic resume is not implemented by this wrapper. Its Fastchess state is
 retained for an explicitly audited recovery rather than silently starting over.
 
 For the external reference gauntlet (Stockfish 17.1 at `Skill Level=0` / `128`
-nodes, `UCI_Elo=1320`, and `UCI_Elo=1600`, plus `lc0` when `LC0_BINARY` and
+nodes, `UCI_Elo=1320`, and `UCI_Elo=1600`, with opt-in 1900/2200 presets, plus `lc0` when `LC0_BINARY` and
 `LC0_WEIGHTS` are supplied), submit the dedicated gauntlet job:
 
 ```sh
@@ -196,14 +201,14 @@ sbatch hpc/gauntlet_inezita.slurm
 ```
 
 By default this runs a 20-game pilot (ten opening pairs) against each reference
-under `results/evaluation/inezita-0.1.2/gauntlet-pilot-<jobid>/<reference>/` and
+under `results/evaluation/inezita-0.1.3/gauntlet-pilot-<jobid>/<reference>/` and
 writes an aggregated `summary.json`. To include Lc0 in the pilot gauntlet, export
 `LC0_BINARY` and `LC0_WEIGHTS` (and optional `BENCH_OPPONENT_NODES=128` for an
 equal-simulation track) before submitting. After reviewing the pilot gauntlet,
 run the 1,000-game (`500`-pair) reference matches with:
 
 ```sh
-export PILOT_GAUNTLET_DIR="$PWD/results/evaluation/inezita-0.1.2/gauntlet-pilot-<jobid>"
+export PILOT_GAUNTLET_DIR="$PWD/results/evaluation/inezita-0.1.3/gauntlet-pilot-<jobid>"
 sbatch --time=<wall-time-from-pilot> hpc/gauntlet_inezita.slurm gauntlet
 ```
 
@@ -308,7 +313,7 @@ CUDA/PyTorch versions, clocks, precision, threads, opening slice, start/end time
 Slurm job ID and completion status. Keep `games.pgn`, tournament output,
 Fastchess state, engine logs, and neural diagnostic reports. Recheck weights
 hashes at the end. Store generated output under ignored
-`results/evaluation/inezita-0.1.2/<unique-run>/` and check in only reviewed summaries.
+`results/evaluation/inezita-0.1.3/<unique-run>/` and check in only reviewed summaries.
 
 ## Active checks and legacy cleanup
 

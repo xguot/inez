@@ -1,0 +1,2 @@
+# PGN exports end each game with a blank separator; preserve the original bytes.
+*.pgn whitespace=-blank-at-eof

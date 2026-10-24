@@ -5,6 +5,11 @@ Stealing the quiet hours of my twenties.
 Inezita (`inezita`) is the current ~29.2M model. The future larger model will be
 called Inze (`inze`).
 
+The 0.1.3 development branch adds full-corpus replay, exact exported-weight
+validation and paired promotion gates. See the [0.1.3 training and evaluation
+guide](docs/inezita-0.1.3.md). The 2200 reference is a development target; measured
+strength remains documented in the [frozen 0.1.2 baseline](docs/evaluation/inezita-0.1.2/README.md).
+
 ## Quickstart
 
 Build and test the C++20 rules and PUCT engine:
