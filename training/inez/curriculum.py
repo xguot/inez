@@ -572,8 +572,8 @@ def relabel_dataset(source, output, stockfish, *, nodes=10000, multipv=4, temper
         raise ValueError('invalid teacher settings')
     source_manifest = verify_dataset(source)
     output.parent.mkdir(parents=True, exist_ok=True)
-    num_workers = min(threads, 32)
-    hash_per_worker = max(32, 1024 // num_workers)
+    num_workers = min(threads, 48)
+    hash_per_worker = max(32, 1536 // num_workers)
     chunk_size = 32
     work = output.with_name(output.name + '.work')
     work.mkdir(exist_ok=True)

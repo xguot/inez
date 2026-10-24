@@ -10,7 +10,7 @@
 #SBATCH --constraint=a100_40gb
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=96G
-#SBATCH --time=12:00:00
+#SBATCH --time=36:00:00
 #SBATCH --signal=B:USR1@120
 
 set -Eeuo pipefail

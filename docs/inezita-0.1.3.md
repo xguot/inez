@@ -16,9 +16,9 @@ bash hpc/submit_inezita.sh
 - **First run**: Creates a frozen code/config snapshot under
   `results/training/inezita-0.1.3/source/`, writes
   `results/training/inezita-0.1.3/job.json`, and submits
-  `hpc/prepare_inezita.slurm` (32 CPU cores, 96 GiB RAM, 12h) followed
+  `hpc/prepare_inezita.slurm` (48 CPU cores, 96 GiB RAM, 24h) followed
   automatically by `hpc/train_inezita.slurm` (`--dependency=afterok`, 1 A100
-  40GB GPU, 16 CPU cores, 96 GiB RAM, 12h).
+  40GB GPU, 16 CPU cores, 96 GiB RAM, 36h).
 - **Automatic resume**: If the job hits the Slurm wall-clock limit and saves an
   atomic checkpoint (`exit 75`), running the exact same command
   (`bash hpc/submit_inezita.sh`) detects `results/training/inezita-0.1.3/job.json`

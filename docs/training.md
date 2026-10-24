@@ -30,9 +30,9 @@ frozen experiment when `job.json` is already present.
 
 The submitter snapshots all training sources and configurations under
 `RUN_DIR/source/`, writes a pinned `RUN_DIR/job.json`, and schedules CPU
-preparation (`hpc/prepare_inezita.slurm`, 32 CPU cores, 96 GiB host memory, 12
+preparation (`hpc/prepare_inezita.slurm`, 48 CPU cores, 96 GiB host memory, 24
 hours) followed by a dependent single-GPU training job (`hpc/train_inezita.slurm`,
-1 A100 40GB GPU, 16 CPU cores, 96 GiB host memory, 12 hours) under
+1 A100 40GB GPU, 16 CPU cores, 96 GiB host memory, 36 hours) under
 `nssac_students`. Set `INEZ_ACCOUNT` to override the account. CUDA is required;
 there is no automatic CPU fallback.
 

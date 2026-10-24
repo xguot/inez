@@ -6,9 +6,9 @@
 #SBATCH --error=inezita_prepare_%j.err
 #SBATCH --account=nssac_students
 #SBATCH --partition=standard
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=48
 #SBATCH --mem=96G
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 
 set -Eeuo pipefail
 trap 'rc=$?; echo "Preparation failed at line ${LINENO}; exit=${rc}" >&2' ERR
@@ -43,7 +43,7 @@ else
     fi
 fi
 export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
-export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-32}"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-48}"
 export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
 "${PY}" -u tools/train_inezita.py prepare --job-spec "${INEZ_JOB_SPEC}" \
     --config "${TRAIN_CONFIG:-configs/train/inezita.json}" \
