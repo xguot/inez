@@ -200,7 +200,8 @@ class PreparationTests(unittest.TestCase):
             human = json.loads((source / 'manifest.json').read_text())
             settings = config['preparation']
             human['preparation'] = {key: settings[key] for key in
-                ('min_rating', 'min_ply', 'samples_per_game', 'max_games', 'blunder_samples_per_game')}
+                ('min_rating', 'min_ply', 'samples_per_game', 'max_games', 'blunder_samples_per_game',
+                 'min_time_control_seconds', 'require_normal_termination')}
             human['preparation'].update(tactics_sha256=sha256(cli.rooted(config['tactics'])),
                 openings_sha256=sha256(cli.rooted(settings['openings'])))
             atomic_json(source / 'manifest.json', human)

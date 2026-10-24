@@ -49,7 +49,8 @@ class JobTests(unittest.TestCase):
         manifest = {'manifest_version': 1, 'record_version': 1, 'encoding_version': 1,
                     'audit': {'cross_split_positions': 0, 'duplicate_samples': 0}, 'splits': {},
                     'preparation': {key: config['preparation'][key] for key in
-                        ('min_rating','min_ply','samples_per_game','max_games','blunder_samples_per_game')}}
+                        ('min_rating','min_ply','samples_per_game','max_games','blunder_samples_per_game',
+                         'min_time_control_seconds','require_normal_termination')}}
         manifest['preparation'].update(tactics_sha256=sha256(ROOT / config['tactics']),
             openings_sha256=sha256(ROOT / config['preparation']['openings']))
         for split in ('train','validation','evaluation'):
@@ -64,12 +65,12 @@ class JobTests(unittest.TestCase):
         tm = copy.deepcopy(manifest)
         for split in ('train','validation','evaluation'):
             rec = json.loads((human / (split + '.jsonl')).read_text())
-            rec.update(label_kind='teacher_wdl', teacher={'name':'Stockfish','version':'fixture','limits':{'nodes':10000}})
+            rec.update(label_kind='teacher_wdl', teacher={'name':'Stockfish','version':'fixture','limits':{'nodes':50000}})
             path = teacher / (split + '.jsonl')
             path.write_text(json.dumps(rec) + '\n')
             tm['splits'][split] = {'records': 1, 'sha256': sha256(path)}
         tm['teacher'] = {'human_manifest_sha256': sha256(human / 'manifest.json'),
-            'nodes':10000,'multipv':4,'temperature':0.15,'binary_sha256':'fixture'}
+            'nodes':50000,'multipv':4,'temperature':0.15,'label_contract':2,'binary_sha256':'fixture'}
         atomic_json(teacher / 'manifest.json', tm)
         env = {'INIT_ARTIFACT':str(artifact),'RUN_DIR':str(folder/'run'),
                'DATA_DIR':str(data),'TRAIN_CONFIG':str(config_path)}

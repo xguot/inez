@@ -25,29 +25,22 @@ validation sample. `validation_limit: null` requests the complete split. These
 measure agreement with teacher distributions; actual outcome calibration still
 needs independent game results. The evaluation split is never used for updates.
 
-The initial continuation retains the model architecture and existing prepared
-corpus, while the expanded 0.1.3 corpus upgrades both game selection and
-Stockfish teacher depth:
+The 0.1.3 training recipe (`configs/train/inezita-0.1.3.json`) retains the
+29.2M model architecture (`configs/models/inezita.json`) and upgrades both game
+curation and Stockfish teacher depth:
 
-| Setting | Continuation (`inezita-0.1.3.json`) | Expanded corpus (`inezita-0.1.3-expanded.json`) |
+| Setting | 0.1.2 baseline | 0.1.3 (`configs/train/inezita-0.1.3.json`) |
 | --- | ---: | ---: |
-| Teacher steps / peak LR | 4,000 / 1e-5 | 12,000 / 2e-5 |
-| Imported games / teacher nodes | Existing 20,000 / 10,000 | 100,000 / 50,000 |
+| Imported games | 20,000 | 100,000 |
 | Minimum player rating (`min_rating`) | 2300 | 2400 |
 | Minimum time control (`base + 40 * inc`) | Any (`0s`) | `>= 260s` (`180+2`, `300+0`, `600+0`, etc.) |
 | Termination filter | Any completed result | `Normal` only (excludes time forfeits) |
-| Teacher label contract | v1 / v2 | v2 (fresh `ucinewgame` per position) |
-| Self-play rounds / games per round | 4 / 128 | 4 / 256 |
-| Simulations per self-play move | 256 | 256 |
-| Self-play steps / peak LR | 500 / 5e-6 | 1,000 / 5e-6 |
-| Teacher replay fraction | 80% | 80% |
-
-First run the bounded continuation to check forgetting and candidate quality, or
-proceed directly to the expanded-data experiment (`inezita-0.1.3-expanded.json`)
-for 2400+ increment/rapid games and 50,000-node Stockfish labels. Its
-preparation workload is substantially larger; measure progress and cost before
-increasing it further. More steps on unchanged data are not assumed to produce
-2200+ strength.
+| Teacher Stockfish 17.1 budget | 10,000 nodes | 50,000 nodes (`label_contract: 2`, fresh `ucinewgame` per position) |
+| Teacher steps / peak LR | 30,000 / 1e-4 | 12,000 / 2e-5 (every 2,000 steps) |
+| Self-play rounds / games per round | 2 / 32 | 4 / 256 |
+| Simulations per self-play move | 128 | 256 |
+| Self-play steps / peak LR | 4,000 / 1.5e-5 | 1,000 / 5e-6 |
+| Teacher replay fraction | 75% (round-subset) | 80% (full verified teacher pool) |
 
 ## Promotion
 
@@ -62,14 +55,15 @@ Both self-play generation and promotion gates commit atomic per-game progress
 (`training/inez/progress.py`), so a Slurm time limit or signal resumes at the
 last completed game boundary without losing finished games.
 
-The run predeclares eight candidate tests for continuation and ten for expanded
-training. A 0.05 run-wide alpha budget is divided across these checkpoints
-(Bonferroni: 0.00625 and 0.005 per candidate). A candidate must pass every required
-opponent, so no separate opponent multiplicity factor is used. Inconclusive
-results retain the incumbent. Repeating unchanged candidates in new runs is not
-additional independent evidence. Cached reports must match the artifact,
-parent history, openings, tactics, source/model hashes and significance budget before recovering a
-promotion. Old reports remain readable but cannot authorize new acceptance.
+The run predeclares ten candidate tests (six teacher checkpoints and four
+self-play rounds). A 0.05 run-wide alpha budget is divided across these
+checkpoints (Bonferroni: 0.005 per candidate). A candidate must pass every
+required opponent, so no separate opponent multiplicity factor is used.
+Inconclusive results retain the incumbent. Repeating unchanged candidates in new
+runs is not additional independent evidence. Cached reports must match the
+artifact, parent history, openings, tactics, source/model hashes and
+significance budget before recovering a promotion. Old reports remain readable
+but cannot authorize new acceptance.
 
 ## Submit on Rivanna
 
@@ -77,37 +71,25 @@ promotion. Old reports remain readable but cannot authorize new acceptance.
 immutable source and configuration snapshot under `RUN_DIR/source/` and pins
 `RUN_DIR/job.json` before submitting Slurm jobs.
 
-To reuse the existing 0.1.2 prepared data for the bounded continuation with a
-fresh run directory:
+Submit the single 0.1.3 track (100,000 `Normal`-termination 2400+ games with
+`base + 40 * inc >= 260s` and 50,000-node Stockfish labels, followed by GPU
+continuation from the accepted 0.1.2 model):
 
 ```sh
 export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
 export TRAIN_CONFIG=configs/train/inezita-0.1.3.json
-export DATA_DIR="$PWD/data/processed/inezita"
+export DATA_DIR="$PWD/data/processed/inezita-0.1.3"
 export RUN_DIR="$PWD/results/training/inezita-0.1.3"
-bash hpc/submit_inezita.sh continue
-```
-
-This verifies `DATA_DIR` and submits `hpc/train_inezita.slurm` directly without
-another preparation job.
-
-For the curated expanded-data experiment (100,000 `Normal`-termination 2400+
-games with `base + 40 * inc >= 260s` and 50,000-node Stockfish labels), pass
-`--prepare` so `hpc/prepare_inezita.slurm` runs first and chains
-`hpc/train_inezita.slurm` via `--dependency=afterok`:
-
-```sh
-export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
-export TRAIN_CONFIG=configs/train/inezita-0.1.3-expanded.json
-export DATA_DIR="$PWD/data/processed/inezita-0.1.3-expanded"
-export RUN_DIR="$PWD/results/training/inezita-0.1.3-expanded"
 bash hpc/submit_inezita.sh continue --prepare
 ```
+
+Passing `--prepare` schedules `hpc/prepare_inezita.slurm` first and chains
+`hpc/train_inezita.slurm` automatically via `--dependency=afterok`.
 
 To resume an interrupted 0.1.3 run from its frozen `job.json` snapshot:
 
 ```sh
-export RUN_DIR="$PWD/results/training/inezita-0.1.3-expanded"
+export RUN_DIR="$PWD/results/training/inezita-0.1.3"
 bash hpc/submit_inezita.sh resume
 ```
 
@@ -118,9 +100,9 @@ progress. The full-corpus sampler has a different checkpoint signature from
 0.1.2 self-play; use a fresh run directory rather than resuming legacy 0.1.2
 optimizer checkpoints.
 
-Both continuation configs require an explicitly accepted initialization artifact
-and skip human imitation. Preserve the frozen 0.1.2 artifact; select a trained
-model explicitly with `ModelPath`/`BENCH_MODEL` until release acceptance.
+`configs/train/inezita-0.1.3.json` requires an explicitly accepted initialization
+artifact and skips human imitation. Preserve the frozen 0.1.2 artifact; select a
+trained model explicitly with `ModelPath`/`BENCH_MODEL` until release acceptance.
 
 ## Release evidence
 

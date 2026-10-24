@@ -79,13 +79,12 @@ class ReplayTests(unittest.TestCase):
         from train_inezita import read_config, promotion_budget, pipeline
         from types import SimpleNamespace
         root = Path(__file__).resolve().parents[1]
-        for name, candidates in [('inezita-0.1.3', 8), ('inezita-0.1.3-expanded', 10)]:
-            config, model_config = read_config(root / 'configs/train' / (name + '.json'))
-            budget = promotion_budget(config)
-            self.assertEqual(budget['planned_candidates'], candidates)
-            self.assertAlmostEqual(budget['candidate_alpha'] * candidates, 0.05)
-            with self.assertRaisesRegex(ValueError, 'requires --init-artifact'):
-                pipeline(SimpleNamespace(init_artifact=None), config, model_config)
+        config, model_config = read_config(root / 'configs/train/inezita-0.1.3.json')
+        budget = promotion_budget(config)
+        self.assertEqual(budget['planned_candidates'], 10)
+        self.assertAlmostEqual(budget['candidate_alpha'] * 10, 0.05)
+        with self.assertRaisesRegex(ValueError, 'requires --init-artifact'):
+            pipeline(SimpleNamespace(init_artifact=None), config, model_config)
 
     def test_exported_ema_metrics_and_raw_optimizer_state_survive_resume(self):
         config = ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4, dropout=0.2)

@@ -42,8 +42,7 @@ def new_job(mode, *, prepare=False, dry_run=False, environment=None):
     initial = verify_accepted_artifact(absolute(artifact), expected_config=model_config) if artifact else None
     run = absolute(env.get('RUN_DIR') or
         ('results/training/inezita-0.1.3' if mode == 'continue' else 'results/training/inezita-0.1.3-scratch'))
-    data = absolute(env.get('DATA_DIR') or
-        ('data/processed/inezita' if mode == 'continue' else 'data/processed/inezita-0.1.3-expanded'))
+    data = absolute(env.get('DATA_DIR') or 'data/processed/inezita-0.1.3')
     if run.exists():
         raise ValueError(f'RUN_DIR already exists: {run}; use resume for its frozen experiment or choose a fresh directory')
     if run == data or run.is_relative_to(data) or data.is_relative_to(run):
