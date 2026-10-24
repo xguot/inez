@@ -83,7 +83,7 @@ To run from a terminal:
 Or choose another model/device:
 
 ```sh
-./build/inezita --model results/training/inezita-continue --device cpu --threads 4
+./build/inezita --model results/training/inezita-0.1.3 --device cpu --threads 4
 ```
 
 Protocol tests, including independent python-chess client integration:

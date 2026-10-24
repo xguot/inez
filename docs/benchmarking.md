@@ -329,5 +329,6 @@ Native baseline legality/protocol coverage now lives in
 `tests/uci_client.py`. Neither emits strength estimates. The old baseline report
 is retained as [historical engineering data](evaluation/handcrafted-baseline.md).
 
-The data preparation, Inezita training, GPU overfit smoke, and neural diagnostics
-scripts are active workflows and remain in place.
+Data preparation, Inezita training, benchmark matches, and neural diagnostics
+remain active workflows. CUDA execution checks run in the training preflight;
+the standalone GPU smoke job and its overfit script have been removed.

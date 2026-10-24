@@ -56,14 +56,6 @@ fi
 # checkout root). Collect them under hpc/logs locally, off the root.
 mkdir -p "${ROOT_DIR}/hpc/logs"
 rsync "${RSYNC_FLAGS[@]}" \
-    --include='/inez_smoke_*.out' \
-    --include='/inez_smoke_*.err' \
-    --include='/inez_train_*.out' \
-    --include='/inez_train_*.err' \
-    --include='/inez_prepare_*.out' \
-    --include='/inez_prepare_*.err' \
-    --include='/inezita_smoke_*.out' \
-    --include='/inezita_smoke_*.err' \
     --include='/inezita_train_*.out' \
     --include='/inezita_train_*.err' \
     --include='/inezita_prepare_*.out' \

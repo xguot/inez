@@ -21,6 +21,7 @@ from .curriculum import atomic_json, sha256
 from .encoding import encode_position, legal_policy_indices, move_to_policy_index
 from .model import ChessTransformer, ModelConfig, load_checkpoint, save_checkpoint
 from .records import load_records, validate_record
+from .experiment import training_sources, SNAPSHOT_MANIFEST
 
 
 def dataset_records(directory, split):
@@ -136,10 +137,6 @@ def validation_metrics(model, records, batch_size, device, limit=2048, seed=0):
             'sampling_seed': seed, 'sample_indices_sha256': hashlib.sha256(
                 json.dumps(indices, separators=(',', ':')).encode()).hexdigest()}
 
-
-def validation_loss(model, records, batch_size, device, limit=256):
-    """Compatibility helper for callers that only need the combined objective."""
-    return validation_metrics(model, records, batch_size, device, limit)['loss']
 
 
 def sample_batch_indices(primary_size, batch_size, generator, *, primary_table=None,
@@ -339,7 +336,8 @@ def training_signature(model, train, validation, config, stage, *, replay=None, 
     elif replay_fraction is not None:
         raise ValueError('replay fraction requires replay records')
     data_id = fingerprint(train) + ':' + fingerprint(validation)
-    signature = {'stage': stage, 'settings': config, 'model': model.metadata(), 'data': data_id}
+    signature = {'stage': stage, 'settings': config, 'model': model.metadata(), 'data': data_id,
+                 'training_sources': training_sources(Path(__file__).resolve().parents[2])}
     if replay is not None:
         signature['replay'] = {'data': fingerprint(replay), 'fraction': replay_fraction,
                                'sampler': 'full-corpus-mixture-v1'}
@@ -391,7 +389,11 @@ def train_stage(model, train, validation, output, *, config, stage, gate, stop=N
         start_step = state['step']
         sampler_counts = dict(state.get('sampler_counts', sampler_counts))
     try:
-        revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+        source_manifest = Path(__file__).resolve().parents[2] / SNAPSHOT_MANIFEST
+        if source_manifest.is_file():
+            revision = json.loads(source_manifest.read_text())['source_revision']
+        else:
+            revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     except (OSError, subprocess.CalledProcessError):
         revision = None
     context = {'hostname': socket.gethostname(), 'slurm_job_id': os.environ.get('SLURM_JOB_ID'),

@@ -48,7 +48,7 @@ def uniform(board):
 class FakeStockfish:
     id = {'name': 'Stockfish fixture'}
 
-    def analyse(self, board, limit, multipv):
+    def analyse(self, board, limit, multipv, game=None):
         moves = ['e2e4', 'd2d4'] if board.turn else ['e7e5', 'c7c5']
         def wdl(wins, draws, losses):
             value = chess.engine.Wdl(wins, draws, losses)
@@ -75,6 +75,16 @@ class CurriculumTests(unittest.TestCase):
                 self.assertNotIn('h2h3', labeled['policy'])
                 self.assertGreater(labeled['policy']['e2e4'], labeled['policy']['d2d4'])
             validate_record(labeled)
+
+    def test_teacher_analysis_resets_engine_history_for_every_position(self):
+        engine = FakeStockfish()
+        with patch.object(engine, 'analyse', wraps=engine.analyse) as analyse:
+            stockfish_labels(example(), engine, nodes=10, multipv=2)
+            stockfish_labels(example(), engine, nodes=10, multipv=2)
+        tokens = [call.kwargs['game'] for call in analyse.call_args_list]
+        self.assertIsNotNone(tokens[0])
+        self.assertIsNotNone(tokens[1])
+        self.assertIsNot(tokens[0], tokens[1])
 
     def test_teacher_requires_native_wdl_instead_of_fabricating_draw_mass(self):
         engine = FakeStockfish()
@@ -300,7 +310,8 @@ class CurriculumTests(unittest.TestCase):
                                    data_dir=str(data), resume_mode='exact')
             def dataset(directory, split):
                 return [teacher if Path(directory).name == 'teacher' else example()]
-            with patch('train_inezita.dataset_records', side_effect=dataset), \
+            with patch('train_inezita.verify_prepared_data', return_value={'verified': True}), \
+                 patch('train_inezita.dataset_records', side_effect=dataset), \
                  patch('train_inezita.ChampionGate', return_value=lambda *args: None), \
                  patch('train_inezita.selfplay_records', return_value=([search_record], {})) as generate:
                 with patch('train_inezita.train_stage', side_effect=interrupt_selfplay):
@@ -434,7 +445,8 @@ while True:
 ''')
             fake.chmod(0o755)
             env = {**os.environ, 'INEZ_ROOT': str(root), 'INEZ_PYTHON': str(fake),
-                   'RUN_DIR': str(root / 'run'), 'RESUME_MODE': 'portable'}
+                   'RUN_DIR': str(root / 'run'), 'RESUME_MODE': 'portable',
+                   'INEZ_JOB_SPEC': str(root / 'job.json')}
             proc = subprocess.Popen(['bash', str(ROOT / 'hpc/train_inezita.slurm')], env=env,
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             try:

@@ -27,3 +27,7 @@ __pycache__/
 /inezita_smoke_*.err
 /inezita_bench_*.out
 /inezita_bench_*.err
+/inezita_gauntlet_*.out
+/inezita_gauntlet_*.err
+/.codewhale/
+/webstock.pgn

@@ -7,13 +7,14 @@
 #SBATCH --account=nssac_students
 #SBATCH --partition=standard
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=32G
+#SBATCH --mem=96G
 #SBATCH --time=06:00:00
 
 set -Eeuo pipefail
 trap 'rc=$?; echo "Preparation failed at line ${LINENO}; exit=${rc}" >&2' ERR
 ROOT_DIR="${INEZ_ROOT:-${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}}"
 cd "${ROOT_DIR}"
+: "${INEZ_JOB_SPEC:?Submit through bash hpc/submit_inezita.sh continue, scratch, or resume}"
 if command -v module >/dev/null 2>&1 && [[ -z "${CXX:-}" ]]; then
     module load "${INEZ_COMPILER_MODULE:-gcc}"
     export CXX="$(command -v g++)"
@@ -44,7 +45,7 @@ fi
 export PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-16}"
 export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
-"${PY}" -u tools/train_inezita.py prepare \
+"${PY}" -u tools/train_inezita.py prepare --job-spec "${INEZ_JOB_SPEC}" \
     --config "${TRAIN_CONFIG:-configs/train/inezita.json}" \
     --data-dir "${DATA_DIR:-data/processed/inezita}" \
     --stockfish "${INEZ_STOCKFISH:-stockfish}" --threads "${OMP_NUM_THREADS}"

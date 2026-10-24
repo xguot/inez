@@ -1,11 +1,11 @@
 # Inezita 0.1.3 development
 
-The objective is to improve the existing 29.2M model toward the Stockfish 2200
-reference under frozen practical time/hardware conditions. This is a development
-target. No newly trained 0.1.3 model or 2200 result is claimed by this code change.
+The objective is to improve the existing 29.2M model toward the Stockfish 2200–2400
+reference range under frozen practical time/hardware conditions. This is a development
+target. No newly trained 0.1.3 model or 2200+ result is claimed by this code change.
 The [measured 0.1.2 baseline](evaluation/inezita-0.1.2/README.md) is preserved.
 
-## Training changes
+## Training and data changes
 
 Self-play minibatches now draw teacher examples from the complete verified
 teacher training pool on every step. Stochastic rounding preserves the requested
@@ -25,22 +25,29 @@ validation sample. `validation_limit: null` requests the complete split. These
 measure agreement with teacher distributions; actual outcome calibration still
 needs independent game results. The evaluation split is never used for updates.
 
-The initial continuation retains the model architecture and prepared corpus:
+The initial continuation retains the model architecture and existing prepared
+corpus, while the expanded 0.1.3 corpus upgrades both game selection and
+Stockfish teacher depth:
 
-| Setting | Continuation | Expanded-data experiment |
+| Setting | Continuation (`inezita-0.1.3.json`) | Expanded corpus (`inezita-0.1.3-expanded.json`) |
 | --- | ---: | ---: |
 | Teacher steps / peak LR | 4,000 / 1e-5 | 12,000 / 2e-5 |
 | Imported games / teacher nodes | Existing 20,000 / 10,000 | 100,000 / 50,000 |
+| Minimum player rating (`min_rating`) | 2300 | 2400 |
+| Minimum time control (`base + 40 * inc`) | Any (`0s`) | `>= 260s` (`180+2`, `300+0`, `600+0`, etc.) |
+| Termination filter | Any completed result | `Normal` only (excludes time forfeits) |
+| Teacher label contract | v1 / v2 | v2 (fresh `ucinewgame` per position) |
 | Self-play rounds / games per round | 4 / 128 | 4 / 256 |
 | Simulations per self-play move | 256 | 256 |
 | Self-play steps / peak LR | 500 / 5e-6 | 1,000 / 5e-6 |
 | Teacher replay fraction | 80% | 80% |
 
-First run the bounded continuation to check forgetting and candidate quality.
-The expanded experiment supplies a concrete data-coverage and label-budget step
-if continuation gains plateau. Its preparation workload is substantially larger;
-measure progress and cost before increasing it further. More steps on unchanged
-data are not assumed to produce 2200 strength.
+First run the bounded continuation to check forgetting and candidate quality, or
+proceed directly to the expanded-data experiment (`inezita-0.1.3-expanded.json`)
+for 2400+ increment/rapid games and 50,000-node Stockfish labels. Its
+preparation workload is substantially larger; measure progress and cost before
+increasing it further. More steps on unchanged data are not assumed to produce
+2200+ strength.
 
 ## Promotion
 
@@ -51,6 +58,9 @@ An exact one-sided pair-level sign-flip test keeps the two color-reversed games
 together. It assumes independent opening-pair engine-label exchangeability under
 the null; it is a fixed-sample engineering gate, not an Elo interval or SPRT.
 Opening positions are fixed before play and transposed duplicates are rejected.
+Both self-play generation and promotion gates commit atomic per-game progress
+(`training/inez/progress.py`), so a Slurm time limit or signal resumes at the
+last completed game boundary without losing finished games.
 
 The run predeclares eight candidate tests for continuation and ten for expanded
 training. A 0.05 run-wide alpha budget is divided across these checkpoints
@@ -63,7 +73,12 @@ promotion. Old reports remain readable but cannot authorize new acceptance.
 
 ## Submit on Rivanna
 
-Reuse existing prepared data for the first continuation, with a fresh run:
+`bash hpc/submit_inezita.sh` (backed by `tools/submit_training.py`) creates an
+immutable source and configuration snapshot under `RUN_DIR/source/` and pins
+`RUN_DIR/job.json` before submitting Slurm jobs.
+
+To reuse the existing 0.1.2 prepared data for the bounded continuation with a
+fresh run directory:
 
 ```sh
 export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
@@ -73,28 +88,39 @@ export RUN_DIR="$PWD/results/training/inezita-0.1.3"
 bash hpc/submit_inezita.sh continue
 ```
 
-This submits training directly and avoids another preparation job. Keep the same
-settings when resuming. Use `RESUME_MODE=portable` only when changing numerical
-hardware/library environments. The preflight requires a real compatible CUDA
-kernel probe; the existing job requests an A100 40GB. Checkpointing on a Slurm
-warning preserves progress. The code update itself submits no jobs.
+This verifies `DATA_DIR` and submits `hpc/train_inezita.slurm` directly without
+another preparation job.
 
-For the separate expanded-data experiment, use fresh data and run directories:
+For the curated expanded-data experiment (100,000 `Normal`-termination 2400+
+games with `base + 40 * inc >= 260s` and 50,000-node Stockfish labels), pass
+`--prepare` so `hpc/prepare_inezita.slurm` runs first and chains
+`hpc/train_inezita.slurm` via `--dependency=afterok`:
 
 ```sh
 export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
 export TRAIN_CONFIG=configs/train/inezita-0.1.3-expanded.json
 export DATA_DIR="$PWD/data/processed/inezita-0.1.3-expanded"
 export RUN_DIR="$PWD/results/training/inezita-0.1.3-expanded"
-bash hpc/submit_inezita.sh prepare
+bash hpc/submit_inezita.sh continue --prepare
 ```
 
-The full-corpus sampler has a different checkpoint signature from 0.1.2 self-play.
-Use a fresh run; finish any legacy optimizer checkpoint with its original code.
+To resume an interrupted 0.1.3 run from its frozen `job.json` snapshot:
 
-Both configs require an explicitly accepted initialization artifact and skip human
-imitation. Preserve the frozen 0.1.2 artifact; select a trained model explicitly
-with `ModelPath`/`BENCH_MODEL` until release acceptance.
+```sh
+export RUN_DIR="$PWD/results/training/inezita-0.1.3-expanded"
+bash hpc/submit_inezita.sh resume
+```
+
+Use `RESUME_MODE=portable` only when changing numerical hardware/library
+environments. The preflight requires a real compatible CUDA kernel probe; the
+existing job requests an A100 40GB. Checkpointing on a Slurm warning preserves
+progress. The full-corpus sampler has a different checkpoint signature from
+0.1.2 self-play; use a fresh run directory rather than resuming legacy 0.1.2
+optimizer checkpoints.
+
+Both continuation configs require an explicitly accepted initialization artifact
+and skip human imitation. Preserve the frozen 0.1.2 artifact; select a trained
+model explicitly with `ModelPath`/`BENCH_MODEL` until release acceptance.
 
 ## Release evidence
 

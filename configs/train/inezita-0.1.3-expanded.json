@@ -21,10 +21,13 @@
     "samples_per_game": 16,
     "blunder_samples_per_game": 2,
     "min_ply": 0,
-    "min_rating": 2300,
+    "min_rating": 2400,
+    "min_time_control_seconds": 260,
+    "require_normal_termination": true,
     "teacher_nodes": 50000,
     "teacher_multipv": 4,
-    "teacher_temperature": 0.15
+    "teacher_temperature": 0.15,
+    "teacher_label_contract": 2
   },
   "training": {
     "human_steps": 20000,

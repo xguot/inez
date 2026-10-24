@@ -27,15 +27,19 @@ import chess
 import torch
 
 from inez.curriculum import (atomic_json, evaluate_candidate, import_games,
-    position_key, promotion_decision, read_tactics, relabel_dataset, selfplay_records, sha256)
+    position_key, promotion_decision, read_tactics, relabel_dataset, selfplay_records, sha256, verify_dataset)
 from inez.model import ChessTransformer, ModelConfig, load_checkpoint, save_checkpoint
 from inez.device import validate_cuda_runtime
-from inez.records import load_records, validate_record
+from inez.experiment import training_sources, verify_accepted_artifact, verify_snapshot, SNAPSHOT_MANIFEST
+from inez.jobs import verify_job_spec
+from inez.records import load_records, validate_record, read_json
 from inez.trainer import StopRequested, dataset_records, restore_checkpoint_rng, train_stage, training_signature
 
 
 def rooted(path):
     path = Path(path)
+    if not path.is_absolute() and path.parts[:2] == ('data', 'raw'):
+        return Path(os.environ.get('INEZ_DATA_ROOT', ROOT)) / path
     return path if path.is_absolute() else ROOT / path
 
 
@@ -60,7 +64,31 @@ def exclusive_run(directory, name):
 
 def read_config(path):
     config = json.loads(Path(path).read_text())
-    # Reject invalid pilot settings before any lengthy allocation or download.
+    preparation = config['preparation']
+    for key, minimum in (('max_games', 1), ('samples_per_game', 1), ('min_ply', 0),
+                         ('min_rating', 0), ('blunder_samples_per_game', 0),
+                         ('min_time_control_seconds', 0),
+                         ('teacher_nodes', 1), ('teacher_multipv', 1)):
+        default = 0 if key in ('blunder_samples_per_game', 'min_time_control_seconds') else None
+        value = preparation.get(key, default)
+        if type(value) is not int or value < minimum:
+            raise ValueError(f'preparation {key} must be an integer >= {minimum}')
+    if not isinstance(preparation.get('require_normal_termination', False), bool):
+        raise ValueError('preparation require_normal_termination must be a boolean')
+    temperature = preparation.get('teacher_temperature')
+    if type(temperature) not in (int, float) or not math.isfinite(temperature) or temperature <= 0:
+        raise ValueError('preparation teacher_temperature must be finite and positive')
+    archives, urls = preparation.get('archives'), preparation.get('urls')
+    if archives is not None or urls is not None:
+        if (not isinstance(archives, list) or not isinstance(urls, list) or not archives
+                or len(archives) != len(urls)
+                or any(not isinstance(item, str) or not item.strip() for item in archives + urls)):
+            raise ValueError('preparation archives and urls must be nonempty aligned lists')
+    elif not preparation.get('archive') or not preparation.get('url'):
+        raise ValueError('preparation requires an archive and URL')
+    if preparation.get('openings') and not rooted(preparation['openings']).is_file():
+        raise ValueError('configured preparation openings file does not exist')
+    # Reject invalid settings before any lengthy allocation or download.
     model_config = ModelConfig.from_dict(json.loads(rooted(config['model_config']).read_text()))
     read_tactics(rooted(config['tactics']))
     if not config['gate']['openings']:
@@ -98,9 +126,31 @@ def read_config(path):
     return config, model_config
 
 
+def _validate_archive(path):
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = [name for name in archive.namelist() if name.endswith('.pgn')]
+            if len(names) != 1 or archive.testzip() is not None:
+                raise ValueError('Elite archive must contain exactly one intact PGN')
+    except (zipfile.BadZipFile, OSError) as error:
+        raise ValueError(f'corrupt Elite archive: {path}') from error
+
+
 def download_archive(path, url):
     path = Path(path)
+    provenance_path = path.with_suffix('.source.json')
     if path.exists():
+        if not path.is_file():
+            raise ValueError(f'archive path is not a file: {path}')
+        _validate_archive(path)
+        digest = sha256(path)
+        if provenance_path.exists():
+            provenance = read_json(provenance_path.read_text())
+            if provenance.get('uri') != url or provenance.get('sha256') != digest:
+                raise ValueError(f'cached archive provenance or checksum mismatch: {path}')
+        else:
+            atomic_json(provenance_path, {'uri': url, 'sha256': digest,
+                        'checksum_kind': 'observed existing archive hash; publisher supplies no checksum here'})
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + '.part')
@@ -111,13 +161,13 @@ def download_archive(path, url):
             while block := response.read(1024 * 1024):
                 size += len(block)
                 if size > 2 * 1024**3:
-                    raise ValueError('starter archive exceeds the 2 GiB download bound')
+                    raise ValueError('Elite archive exceeds the 2 GiB download bound')
                 stream.write(block)
-        with zipfile.ZipFile(temporary) as archive:
-            if archive.testzip() is not None:
-                raise ValueError('corrupt Elite archive')
+            stream.flush()
+            os.fsync(stream.fileno())
+        _validate_archive(temporary)
         os.replace(temporary, path)
-        atomic_json(path.with_suffix('.source.json'), {'uri': url, 'sha256': sha256(path),
+        atomic_json(provenance_path, {'uri': url, 'sha256': sha256(path),
                     'checksum_kind': 'observed download hash; publisher supplies no checksum here'})
     finally:
         temporary.unlink(missing_ok=True)
@@ -138,7 +188,7 @@ def resolve_stockfish(value):
         asset = 'stockfish-ubuntu-x86-64-avx2' if 'avx2' in flags else 'stockfish-ubuntu-x86-64'
     else:
         raise ValueError('Set INEZ_STOCKFISH to a compatible installed Stockfish executable on this platform')
-    destination = ROOT / 'data/raw/stockfish-17.1'
+    destination = Path(os.environ.get('INEZ_DATA_ROOT', ROOT)) / 'data/raw/stockfish-17.1'
     destination.mkdir(parents=True, exist_ok=True)
     binary = destination / asset
     provenance = destination / (asset + '.source.json')
@@ -200,8 +250,79 @@ def resolve_stockfish(value):
     return str(binary)
 
 
+def _verify_preparation_manifest(manifest, config):
+    preparation = manifest.get('preparation')
+    if not isinstance(preparation, dict):
+        raise ValueError('incomplete human preparation metadata; choose a fresh DATA_DIR')
+    settings = config['preparation']
+    for key in ('min_rating', 'min_ply', 'samples_per_game', 'max_games',
+                'blunder_samples_per_game', 'min_time_control_seconds', 'require_normal_termination'):
+        default = False if key == 'require_normal_termination' else (
+            0 if key in ('blunder_samples_per_game', 'min_time_control_seconds') else None)
+        if preparation.get(key, default) != settings.get(key, default):
+            raise ValueError(f'prepared data {key} differs from the requested configuration; choose a fresh DATA_DIR')
+    if preparation.get('tactics_sha256') != sha256(rooted(config['tactics'])):
+        raise ValueError('prepared data uses a different held-out tactics suite')
+    openings = rooted(settings['openings']) if settings.get('openings') else None
+    if openings is not None and not openings.is_file():
+        raise ValueError('configured preparation openings file does not exist')
+    if preparation.get('openings_sha256') != (sha256(openings) if openings else None):
+        raise ValueError('prepared data uses a different opening corpus')
+    audit = manifest.get('audit', {})
+    if audit.get('cross_split_positions') != 0 or audit.get('duplicate_samples') != 0:
+        raise ValueError('prepared data does not declare independent, deduplicated splits')
+
+
+def verify_prepared_data(directory, config, *, full=False):
+    """Verify completed corpus identity and label budgets; training seed may change.
+
+    full=True additionally validates every legal game/target. The default checks
+    all split hashes and streamed record counts against their completed manifests.
+    """
+    directory = Path(directory)
+    human = verify_dataset(directory / 'human', full=full)
+    _verify_preparation_manifest(human, config)
+    teacher = verify_dataset(directory / 'teacher', full=full)
+    human_hash = sha256(directory / 'human/manifest.json')
+    label = teacher.get('teacher', {})
+    if label.get('human_manifest_sha256') != human_hash:
+        raise ValueError('teacher and human splits have different provenance')
+    settings = config['preparation']
+    for key in ('nodes', 'multipv', 'temperature'):
+        if label.get(key) != settings['teacher_' + key]:
+            raise ValueError(f'prepared teacher {key} differs from the requested label budget; choose a fresh DATA_DIR')
+    if settings.get('teacher_label_contract') is not None and label.get('label_contract') != settings['teacher_label_contract']:
+        raise ValueError('teacher label contract differs from the requested configuration; choose a fresh DATA_DIR')
+    for split in ('train', 'validation', 'evaluation'):
+        if human['splits'][split]['records'] != teacher['splits'][split]['records']:
+            raise ValueError('teacher and human split record counts differ')
+    request_path = directory / 'request.json'
+    if request_path.is_file():
+        request = read_json(request_path.read_text())
+        # Data preparation seed stays recorded in request/manifest; a new training
+        # experiment may deliberately use a different optimizer/sampling seed.
+        recorded = request.get('preparation', {})
+        for key in ('min_rating', 'min_ply', 'samples_per_game', 'max_games',
+                    'blunder_samples_per_game', 'min_time_control_seconds', 'require_normal_termination'):
+            default = False if key == 'require_normal_termination' else (
+                0 if key in ('blunder_samples_per_game', 'min_time_control_seconds') else None)
+            if recorded.get(key, default) != settings.get(key, default):
+                raise ValueError(f'prepared data request {key} differs from the requested preparation')
+        if request.get('tactics_sha256') != human['preparation']['tactics_sha256']:
+            raise ValueError('prepared data request uses a different tactics suite')
+        if request.get('openings_sha256') != human['preparation'].get('openings_sha256'):
+            raise ValueError('prepared data request uses a different opening corpus')
+        if request.get('teacher_binary_sha256') != label.get('binary_sha256'):
+            raise ValueError('prepared teacher binary differs from its preparation request')
+    return {'human_manifest_sha256': human_hash,
+            'teacher_manifest_sha256': sha256(directory / 'teacher/manifest.json'),
+            'splits': {split: teacher['splits'][split] for split in ('train', 'validation', 'evaluation')}}
+
+
 def prepare(args, config):
     settings = config['preparation']
+    if type(args.threads) is not int or args.threads < 1:
+        raise ValueError('preparation threads must be a positive integer')
     if args.archive:
         archives = [Path(args.archive)]
         urls = [settings.get('url') or settings['urls'][0]]
@@ -211,21 +332,30 @@ def prepare(args, config):
     else:
         archives = [rooted(settings['archive'])]
         urls = [settings['url']]
+    if len(archives) != len(urls) or not archives:
+        raise ValueError('preparation archives and urls must be nonempty aligned lists')
+    openings_path = rooted(settings['openings']) if settings.get('openings') else None
+    if openings_path is not None and not openings_path.is_file():
+        raise ValueError('configured preparation openings file does not exist')
+    output = Path(args.data_dir)
+    # Validate already published data before downloading or scheduling more work.
+    if (output / 'human').exists():
+        _verify_preparation_manifest(verify_dataset(output / 'human'), config)
+    if (output / 'teacher').exists():
+        identity = verify_prepared_data(output, config)
+        print(json.dumps({'data_ready': str(output.resolve()), **identity}), flush=True)
+        return
     executable = resolve_stockfish(args.stockfish)
     for archive_path, archive_url in zip(archives, urls):
         download_archive(archive_path, archive_url)
-    openings_path = rooted(settings['openings']) if settings.get('openings') else None
-    output = Path(args.data_dir)
     output.mkdir(parents=True, exist_ok=True)
-    # Persist the complete preparation request so reruns cannot silently combine
-    # a new teacher/configuration with an older human split.
     request = {'preparation': settings, 'seed': config['seed'],
                'archive_sha256': [sha256(a) for a in archives] if len(archives) > 1 else sha256(archives[0]),
-               'openings_sha256': sha256(openings_path) if openings_path and openings_path.is_file() else None,
+               'openings_sha256': sha256(openings_path) if openings_path else None,
                'teacher_binary_sha256': sha256(executable), 'teacher_threads': args.threads,
                'tactics_sha256': sha256(rooted(config['tactics']))}
     request_path = output / 'request.json'
-    if request_path.exists() and json.loads(request_path.read_text()) != request:
+    if request_path.exists() and read_json(request_path.read_text()) != request:
         raise ValueError('preparation request changed; choose a new data directory')
     atomic_json(request_path, request)
     if not (output / 'human').exists():
@@ -234,13 +364,15 @@ def prepare(args, config):
             max_games=settings['max_games'], samples_per_game=settings['samples_per_game'],
             min_ply=settings['min_ply'], min_rating=settings['min_rating'], seed=config['seed'],
             openings_path=openings_path,
-            blunder_samples_per_game=settings.get('blunder_samples_per_game', 0))
+            blunder_samples_per_game=settings.get('blunder_samples_per_game', 0),
+            min_time_control_seconds=settings.get('min_time_control_seconds', 0),
+            require_normal_termination=settings.get('require_normal_termination', False))
         print(json.dumps({'human_prepared': manifest['preparation']}, indent=2), flush=True)
-    if not (output / 'teacher').exists():
-        relabel_dataset(output / 'human', output / 'teacher', executable,
-            nodes=settings['teacher_nodes'], multipv=settings['teacher_multipv'],
-            temperature=settings['teacher_temperature'], threads=args.threads)
-    print(f'Data ready: {output.resolve()}', flush=True)
+    relabel_dataset(output / 'human', output / 'teacher', executable,
+        nodes=settings['teacher_nodes'], multipv=settings['teacher_multipv'],
+        temperature=settings['teacher_temperature'], threads=args.threads)
+    identity = verify_prepared_data(output, config)
+    print(json.dumps({'data_ready': str(output.resolve()), **identity}), flush=True)
 
 
 def gate_summary(result, report_path, *, minimum_score, cached=False):
@@ -416,7 +548,11 @@ class ChampionGate:
                 report = evaluate_candidate(candidate, incumbent, tactics=self.tactics,
                     **{key: self.config['gate'][key] for key in
                        ('openings', 'pairs', 'simulations', 'max_plies', 'minimum_score')},
-                    alpha=self.budget['candidate_alpha'], stop=self.stop)
+                    alpha=self.budget['candidate_alpha'], stop=self.stop,
+                    progress_path=Path(str(report_path) + '.progress') / ('opponent-' + sha256(Path(opponent) / 'weights.pt')[:16]),
+                    progress_identity={'candidate': identity['artifacts'][current],
+                                       'opponent': identity['artifacts'][opponent],
+                                       'sources': identity['sources']})
                 reports.append({'opponent': opponent, **report})
                 del incumbent
                 if not report['passed']:
@@ -443,15 +579,12 @@ def pipeline(args, config, model_config):
     device = torch.device(args.device)
     validate_cuda_runtime(device)
     if args.init_artifact:
-        initial = Path(args.init_artifact).resolve()
-        accepted = False
-        for parent in initial.parents:
-            pointer = parent / 'accepted.json'
-            if pointer.exists() and str(initial) in json.loads(pointer.read_text()).get('history', []):
-                accepted = True
-                break
-        if not accepted:
-            raise ValueError('--init-artifact must appear in a previous run\'s accepted.json history; rejected candidates cannot bypass the game gate')
+        args.init_artifact = str(verify_accepted_artifact(args.init_artifact, expected_config=model_config))
+    if hasattr(args, 'job_spec') and args.job_spec:
+        verify_snapshot(ROOT)
+    # Data selection and teacher budgets are contracts, not path-name hints.
+    if not (getattr(args, '_verified_data', None)):
+        verify_prepared_data(args.data_dir, config)
     torch.manual_seed(config['seed'])
     random.seed(config['seed'])
     if device.type == 'cuda':
@@ -460,6 +593,7 @@ def pipeline(args, config, model_config):
     root, data = Path(args.run_dir), Path(args.data_dir)
     root.mkdir(parents=True, exist_ok=True)
     request = {'config': config, 'model_config': asdict(model_config),
+        'training_sources': training_sources(ROOT),
         'human_manifest_sha256': sha256(data / 'human/manifest.json'),
         'teacher_manifest_sha256': sha256(data / 'teacher/manifest.json'),
         'tactics_sha256': sha256(rooted(config['tactics'])),
@@ -550,7 +684,10 @@ def pipeline(args, config, model_config):
                 records, report = selfplay_records(champion,
                     **{key: config['selfplay'][key] for key in ('games', 'simulations', 'max_plies')},
                     seed=config['seed'] + number, excluded=excluded,
-                    initial_fen=config['selfplay'].get('initial_fen', chess.STARTING_FEN), stop=stop)
+                    initial_fen=config['selfplay'].get('initial_fen', chess.STARTING_FEN), stop=stop,
+                    progress_path=root / (name + '.progress'),
+                    progress_identity={'weights_sha256': sha256(Path(accepted) / 'weights.pt'),
+                                       'sources': training_sources(ROOT)})
                 del champion
                 if not records:
                     raise ValueError('self-play produced no completed games; no fabricated draw targets were written')
@@ -586,6 +723,7 @@ def main():
     parser.add_argument('--config', default=str(ROOT / 'configs/train/inezita.json'))
     parser.add_argument('--data-dir', default=str(ROOT / 'data/processed/inezita'))
     parser.add_argument('--run-dir', default=str(ROOT / 'results/training/inezita'))
+    parser.add_argument('--job-spec', type=Path, help='frozen submission specification; validates job inputs')
     parser.add_argument('--archive')
     parser.add_argument('--stockfish', default=os.environ.get('INEZ_STOCKFISH', 'stockfish'))
     parser.add_argument('--threads', type=int, default=int(os.environ.get('SLURM_CPUS_PER_TASK', '8')))
@@ -599,6 +737,23 @@ def main():
         print(json.dumps(run_status(args.run_dir), indent=2), flush=True)
         return
     config, model_config = read_config(args.config)
+    if args.job_spec:
+        spec = verify_job_spec(args.job_spec, source_root=ROOT, runtime=True, resume_mode=args.resume_mode)
+        if Path(args.config).resolve() != Path(spec['config']).resolve():
+            raise ValueError('configuration differs from the frozen job')
+        if args.command in ('train', 'prepare') and Path(args.data_dir).resolve() != Path(spec['data_dir']).resolve():
+            raise ValueError('data directory differs from the frozen job')
+        if args.command == 'train':
+            expected_initial = spec['initial_artifact']
+            actual_initial = str(Path(args.init_artifact).resolve()) if args.init_artifact else None
+            if (Path(args.run_dir).resolve() != Path(spec['run_dir']).resolve()
+                    or actual_initial != expected_initial):
+                raise ValueError('run directory or initialization differs from the frozen job')
+        if args.command != 'prepare':
+            actual_data = verify_prepared_data(spec['data_dir'], config)
+            if spec['data_identity'] is not None and actual_data != spec['data_identity']:
+                raise ValueError('prepared dataset changed since submission')
+            args._verified_data = actual_data
     torch.set_num_threads(args.threads)
     if args.command == 'prepare':
         with exclusive_run(args.data_dir, '.prepare.lock'):
@@ -608,10 +763,26 @@ def main():
             pipeline(args, config, model_config)
     else:
         runtime = validate_cuda_runtime(args.device)
-        with torch.device('meta'):
-            model = ChessTransformer(model_config)
+        if torch.device(args.device).type == 'cuda':
+            from inez.trainer import supervised_loss
+            model = ChessTransformer(model_config).to(args.device)
+            features = torch.zeros((1, 64, 119), device=args.device)
+            mask = torch.ones((1, 4288), device=args.device, dtype=torch.bool)
+            policy = torch.zeros((1, 4288), device=args.device)
+            policy[0, 0] = 1
+            wdl = torch.tensor([[0.0, 1.0, 0.0]], device=args.device)
+            loss, _, _ = supervised_loss(model, (features, mask, policy, wdl))
+            loss.backward()
+            if not torch.isfinite(loss) or any(p.grad is not None and not bool(torch.isfinite(p.grad).all()) for p in model.parameters()):
+                raise ValueError('model forward/backward preflight produced nonfinite values')
+            torch.cuda.synchronize()
+            runtime['model_forward_backward'] = 'passed'
+        else:
+            with torch.device('meta'):
+                model = ChessTransformer(model_config)
         print(json.dumps({'parameters': sum(p.numel() for p in model.parameters()),
                           'device': args.device, 'torch': str(torch.__version__), 'runtime': runtime}))
+
 
 
 if __name__ == '__main__':

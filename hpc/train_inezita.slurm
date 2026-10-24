@@ -9,7 +9,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --constraint=a100_40gb
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=64G
+#SBATCH --mem=96G
 #SBATCH --time=08:00:00
 #SBATCH --signal=B:USR1@120
 
@@ -17,6 +17,7 @@ set -Eeuo pipefail
 trap 'rc=$?; echo "Training job failed at line ${LINENO}; exit=${rc}" >&2' ERR
 ROOT_DIR="${INEZ_ROOT:-${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}}"
 cd "${ROOT_DIR}"
+: "${INEZ_JOB_SPEC:?Submit through bash hpc/submit_inezita.sh continue, scratch, or resume}"
 OUT_DIR="${RUN_DIR:-${ROOT_DIR}/results/training/inezita}"
 mkdir -p "${OUT_DIR}"
 # A named pipe keeps this shell as the Slurm signal recipient and works on
@@ -64,12 +65,12 @@ export MKL_NUM_THREADS="${OMP_NUM_THREADS}"
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 CONFIG="${TRAIN_CONFIG:-configs/train/inezita.json}"
-"${PY}" -u tools/train_inezita.py preflight --config "${CONFIG}" --device cuda
+"${PY}" -u tools/train_inezita.py preflight --config "${CONFIG}" --device cuda --job-spec "${INEZ_JOB_SPEC}"
 if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 fi
 
-ARGS=(train --config "${CONFIG}" --data-dir "${DATA_DIR:-data/processed/inezita}"
+ARGS=(train --job-spec "${INEZ_JOB_SPEC}" --config "${CONFIG}" --data-dir "${DATA_DIR:-data/processed/inezita}"
       --run-dir "${OUT_DIR}" --device cuda --threads "${OMP_NUM_THREADS}"
       --resume-mode "${RESUME_MODE:-exact}")
 echo "Checkpoint resume mode: ${RESUME_MODE:-exact}"

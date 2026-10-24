@@ -9,43 +9,54 @@ Promotion requires game results and tactical regression checks.
 ## Inezita 0.1.3 continuation
 
 Use [the 0.1.3 development and submission guide](inezita-0.1.3.md) for the new
-full-corpus replay, EMA validation and paired promotion protocol. It includes
-conservative continuation and expanded-data configurations targeting progress
-toward the 2200 reference. Old accepted artifacts and results remain intact.
+full-corpus replay, EMA validation, curated 2400+ data filters, and paired
+promotion protocol. It includes conservative continuation and expanded-data
+configurations targeting progress toward the 2200–2400 reference range. Old
+accepted artifacts and results remain intact.
 
 ## Submit
 
-Use Python 3.12 or newer with `training/requirements.txt` installed. On Rivanna:
+Use Python 3.12 or newer with `training/requirements.txt` installed. On Rivanna,
+use the frozen submission entry point (`bash hpc/submit_inezita.sh`, backed by
+`tools/submit_training.py`) with an explicit mode (`continue`, `scratch`, or
+`resume`):
 
 ```sh
-bash hpc/submit_inezita.sh
+export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
+export TRAIN_CONFIG=configs/train/inezita-0.1.3-expanded.json
+export DATA_DIR="$PWD/data/processed/inezita-0.1.3-expanded"
+export RUN_DIR="$PWD/results/training/inezita-0.1.3-expanded"
+bash hpc/submit_inezita.sh continue --prepare
 ```
 
-The submitter schedules CPU preparation (`hpc/prepare_inezita.slurm`) and a
-dependent single-GPU training job (`hpc/train_inezita.slurm`) under
+The submitter snapshots all training sources and configurations under
+`RUN_DIR/source/`, writes a pinned `RUN_DIR/job.json`, and schedules CPU
+preparation (`hpc/prepare_inezita.slurm`, when `--prepare` is passed) followed
+by a dependent single-GPU training job (`hpc/train_inezita.slurm`) under
 `nssac_students`. Set `INEZ_ACCOUNT` to override the account. Training requests
-one GPU, 16 CPU cores, 64 GiB host memory and eight hours. CUDA is required;
-there is no automatic CPU fallback. After preparation, a particular available
-GPU can be requested with a site-supported `--gres` override when submitting
-`hpc/train_inezita.slurm` directly.
+one A100 40GB GPU, 16 CPU cores, 96 GiB host memory and eight hours. CUDA is
+required; there is no automatic CPU fallback.
 
 Preparation reads the September, October, and November 2025 Lichess Elite
-archives, imports 20,000 completed 2300+ standard games (sampling up to 16
-positions plus 2 off-policy tactical blunder/recapture counterfactual pairs per
-training game from ply 0), and merges all 5,607 unique positions from the
-3,871-line Modern Chess Openings corpus (`data/openings/mco_openings.tsv`,
-covering ECO Volumes A–E) into the training split. Validation and evaluation
-splits remain strictly disjoint and post-opening so common opening positions are
-never excluded from training or self-play. If Stockfish is unavailable, it
-caches the official 17.1 release for Linux x86-64 or Apple Silicon. Set
-`INEZ_STOCKFISH=/absolute/path/to/stockfish` to use an existing engine;
-`INEZ_STOCKFISH_MODULE` can load a site module first. If an Ubuntu release
-binary cannot run against the cluster's older libc, the preparer rebuilds the
-bundled release source using `make` and the loaded GCC. The Makefile downloads
-the release's NNUE files when needed. Offline clusters need the archives and
-engine copied into place beforehand. Downloads stay in ignored `data/raw/`.
-Observed SHA256 hashes are recorded; the Elite publisher provides no archive
-checksum here.
+archives. The default and expanded 0.1.3 configurations
+(`configs/train/inezita.json` and `configs/train/inezita-0.1.3-expanded.json`)
+import 100,000 completed 2400+ standard games with `Normal` termination and
+`base_seconds + 40 * increment_seconds >= 260` (excluding zero-increment blitz
+and time forfeits, while sampling up to 16 positions plus 2 off-policy tactical
+blunder/recapture counterfactual pairs per training game from ply 0), and merge
+all 5,607 unique positions from the 3,871-line Modern Chess Openings corpus
+(`data/openings/mco_openings.tsv`, covering ECO Volumes A–E) into the training
+split. Validation and evaluation splits remain strictly disjoint and
+post-opening so common opening positions are never excluded from training or
+self-play. If Stockfish is unavailable, it caches the official 17.1 release for
+Linux x86-64 or Apple Silicon. Set `INEZ_STOCKFISH=/absolute/path/to/stockfish`
+to use an existing engine; `INEZ_STOCKFISH_MODULE` can load a site module first.
+If an Ubuntu release binary cannot run against the cluster's older libc, the
+preparer rebuilds the bundled release source using `make` and the loaded GCC.
+The Makefile downloads the release's NNUE files when needed. Offline clusters
+need the archives and engine copied into place beforehand. Downloads stay in
+ignored `data/raw/`. Observed SHA256 hashes are recorded; the Elite publisher
+provides no archive checksum here.
 
 Sources: [Lichess Elite](https://database.nikonoel.fr/), underlying
 [Lichess standard games and CC0 terms](https://database.lichess.org/#standard_games),
@@ -54,10 +65,10 @@ Sources: [Lichess Elite](https://database.nikonoel.fr/), underlying
 
 Overrides exported before submission:
 
-- `TRAIN_CONFIG`: default `configs/train/inezita.json`.
-- `DATA_DIR`: default `data/processed/inezita`.
-- `RUN_DIR`: default `results/training/inezita`.
-- `INIT_ARTIFACT`: accepted Inezita artifact to improve; skips human initialization.
+- `TRAIN_CONFIG`: default `configs/train/inezita-0.1.3.json` (`continue`) or `configs/train/inezita.json` (`scratch`).
+- `DATA_DIR`: default `data/processed/inezita` (`continue`) or `data/processed/inezita-0.1.3-expanded` (`scratch`).
+- `RUN_DIR`: default `results/training/inezita-0.1.3` (`continue`) or `results/training/inezita-0.1.3-scratch` (`scratch`).
+- `INIT_ARTIFACT`: accepted Inezita artifact to improve; required for `continue` and forbidden for `scratch`.
 - `RESUME_MODE`: `exact` (default) or `portable` to continue across GPU/PyTorch changes.
 
 Use a fresh data/run directory when changing the experiment. Inezita
@@ -71,27 +82,28 @@ weights have different tensor shapes and cannot initialize her.
    side-to-move game-result WDL, for 20,000 AdamW steps (batch size 128) at
    learning rate 3e-4.
 2. **Stockfish correction:** replace human targets, including bad moves and
-   off-policy blunder counterfactuals, with fresh analysis across a parallel
-   worker pool of independent single-threaded Stockfish 17.1 instances with
-   transposition caching. Defaults: 10,000 nodes, MultiPV 4, native
-   `UCI_ShowWDL`. Policy is a softmax over each line's centipawn-tiebroken
-   `(win-loss)/temperature`, with temperature 0.15 (blended with MCO book
-   priors on `mco-*` opening records). Value is the best line's full WDL.
-   Defaults: 30,000 steps (batch size 128) at learning rate 1e-4. Engine
-   version, binary checksum, analysis budget and target transformation are
-   recorded.
+   off-policy blunder counterfactuals, with fresh analysis (`label_contract: 2`,
+   issuing a fresh `ucinewgame` token per position) across a parallel worker
+   pool of independent single-threaded Stockfish 17.1 instances with
+   move-stack-aware transposition caching. Defaults: 50,000 nodes (10,000 on
+   the legacy continuation corpus), MultiPV 4, native `UCI_ShowWDL`. Policy is
+   a softmax over each line's centipawn-tiebroken `(win-loss)/temperature`,
+   with temperature 0.15 (blended with MCO book priors on `mco-*` opening
+   records). Value is the best line's full WDL. Engine version, binary
+   checksum, analysis budget and target transformation are recorded.
 3. **Self-play:** the accepted model plays complete games with neural PUCT
    equipped with the MCO opening book, exact Static Exchange Evaluation (SEE)
    piece-safety priors, and bare-king endgame conversion shaping. Policy
    targets are normalized root visits; WDL comes from actual outcomes (filtering
-   out any botched decisive-material draw). The original scratch configuration now uses two rounds of 32 games,
-   128 simulations per move, and 1,000 training steps per round at learning rate
-   1.5e-5 with 80% teacher replay. The 0.1.3 continuation settings are listed above. Human imitation labels are never reintroduced. Root Dirichlet noise and early-game move sampling add
-   exploration. Subsequent runs with `INIT_ARTIFACT` skip human initialization.
-   Each new self-play round initializes optimization from the accepted model
-   recorded in that round's frozen source metadata. A rejected tail checkpoint
-   from teacher training or a previous round cannot initialize a new round.
-   An interrupted round continues from its own optimizer checkpoint.
+   out any botched decisive-material draw). Self-play minibatches draw 80%
+   teacher replay from the complete verified teacher training pool. Human
+   imitation labels are never reintroduced. Root Dirichlet noise and early-game
+   move sampling add exploration. Subsequent runs with `INIT_ARTIFACT` skip
+   human initialization. Each new self-play round initializes optimization from
+   the accepted model recorded in that round's frozen source metadata. A
+   rejected tail checkpoint from teacher training or a previous round cannot
+   initialize a new round. An interrupted round continues from its own
+   optimizer checkpoint.
 
 Games are split 80/10/10 by trajectory. Duplicate trajectories stay together.
 Positions overlapping held-out tactical boards or another split are removed
@@ -142,7 +154,7 @@ Inspect an existing run on a login node without allocating a GPU:
 
 ```sh
 "${INEZ_PYTHON:-$HOME/.conda/envs/inez/bin/python}" tools/train_inezita.py status \
-    --run-dir results/training/inezita
+    --run-dir results/training/inezita-0.1.3
 ```
 
 This reads saved reports, including reports from older runs, and leaves run
@@ -162,15 +174,17 @@ stage peak LR. Portable model artifacts contain EMA weights for stages with
 separate policy/value metrics; optimizer checkpoints retain raw training weights.
 
 The job forwards Slurm's 120-second warning and termination signals to the
-trainer. It checkpoints after an optimizer step and exits 75. Gates and
-self-play generation may be recomputed after interruption; a partial evaluation
-cannot promote a model. Completed self-play experiences are frozen with hashes
-so resumed optimization consumes the same examples.
+trainer. It checkpoints after an optimizer step and exits 75. Both self-play
+and promotion gates commit atomic per-game chunks so resumed jobs continue from
+the last completed game boundary; a partial evaluation cannot promote a model.
+Completed self-play experiences are frozen with hashes so resumed optimization
+consumes the same examples.
 
-Resume with the same environment, configuration, data and persistent `RUN_DIR`:
+Resume an interrupted 0.1.3 run using its frozen `RUN_DIR/job.json` specification:
 
 ```sh
-sbatch hpc/train_inezita.slurm
+export RUN_DIR="$PWD/results/training/inezita-0.1.3"
+bash hpc/submit_inezita.sh resume
 ```
 
 Configuration or data changes require a fresh directory. Exact resume requires
@@ -181,7 +195,9 @@ requeue or schedule indefinite training.
 If Slurm allocates a different GPU model, continue the **same run** explicitly:
 
 ```sh
-RESUME_MODE=portable sbatch --export=ALL hpc/train_inezita.slurm
+export RUN_DIR="$PWD/results/training/inezita-0.1.3"
+export RESUME_MODE=portable
+bash hpc/submit_inezita.sh resume
 ```
 
 Portable resume preserves the saved model, AdamW state, completed step, sampler
@@ -204,26 +220,19 @@ teacher correction and new self-play, with no human imitation phase.
 Initialization is restricted to artifacts listed in an earlier run's accepted
 history; a rejected candidate cannot bypass promotion by starting a new run.
 
-For a continuation after an initial run, `configs/train/inezita-continue.json`
-reuses the prepared data and keeps the same gate. It runs 15,000 teacher steps at
-3e-5, then two rounds of 3,000 self-play steps at a separate 1e-5 learning rate,
-with 75% teacher replay and evaluation every 3,000 steps.
-
-For a run whose accepted model is `teacher/candidate-0020000`:
+For a bounded continuation after the 0.1.2 run (`teacher/candidate-0020000`),
+`configs/train/inezita-0.1.3.json` reuses the prepared data (`DATA_DIR="$PWD/data/processed/inezita"`)
+and runs 4,000 teacher steps at 1e-5, followed by four rounds of 128 self-play
+games (256 simulations/move) and 500 self-play steps per round at 5e-6 with 80%
+full-corpus teacher replay:
 
 ```sh
 export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
-export RUN_DIR="$PWD/results/training/inezita-continue"
-export TRAIN_CONFIG=configs/train/inezita-continue.json
-export RESUME_MODE=portable
-sbatch --export=ALL hpc/train_inezita.slurm
+export TRAIN_CONFIG=configs/train/inezita-0.1.3.json
+export DATA_DIR="$PWD/data/processed/inezita"
+export RUN_DIR="$PWD/results/training/inezita-0.1.3"
+bash hpc/submit_inezita.sh continue
 ```
-
-Use the original data directory (`DATA_DIR`, if overridden) and retain the same
-environment variables when resubmitting this continuation. Existing pilot
-results remain valid; the corrected initialization takes effect for new rounds.
-Legacy partial self-play checkpoints require their original code revision; the
-new full-corpus mixture intentionally has a different resume signature.
 
 Logs: `inezita_prepare_<job>.out/.err`, `inezita_train_<job>.out/.err`, and
 `RUN_DIR/run.log`. Inspect `validation-*`, `gate-*`, `accepted.json`, and the

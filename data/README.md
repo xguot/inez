@@ -37,14 +37,15 @@ compressed data with `zstd -dc` or a streaming Zstandard reader.
 ## Preparation before training
 
 `tools/train_inezita.py prepare` imports Elite PGNs into version-1 records and
-generates separate Stockfish labels. `tools/dataset.py` validates and splits
-existing records. Import retains game history, rejects invalid/unfinished games,
-records selection/label provenance, and excludes tactical and cross-split board
-overlap. See [staged training](../docs/training.md) for the November 2025 Elite
-pilot, teacher supervision, self-play, checkpoint gates and resumption.
+generates separate Stockfish labels (`label_contract: 2`). `tools/dataset.py`
+validates and splits existing records. Import retains game history, rejects
+invalid/unfinished games, enforces configured rating (`min_rating`), time-control
+(`min_time_control_seconds`), and normal-termination (`require_normal_termination`)
+filters, records selection/label provenance, and excludes tactical and cross-split
+board overlap. See [staged training](../docs/training.md) and the
+[0.1.3 guide](../docs/inezita-0.1.3.md) for the Sept–Nov 2025 Elite curation,
+teacher supervision, self-play, checkpoint gates and resumption.
 
 Split by whole game, remove duplicate samples, and audit overlapping positions
 before training. Keep source URLs, licenses, input checksums, preparation
-settings, and split checksums in a reproducible manifest. Select a larger
-curated corpus with suitable player strength and time controls for the first
-serious training comparison.
+settings, and split checksums in a reproducible manifest.

@@ -122,6 +122,14 @@ if(BUILD_TESTING)
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/trainer_replay_tests.py")
     add_test(NAME promotion
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/promotion_tests.py")
-    set_tests_properties(model training neural-uci neural-diagnostics benchmark-integrity trainer-replay promotion PROPERTIES TIMEOUT 180)
+    add_test(NAME preparation
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/preparation_tests.py")
+    add_test(NAME experiment
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/experiment_tests.py")
+    add_test(NAME curriculum-progress
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/progress_tests.py")
+    add_test(NAME training-job
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/job_tests.py")
+    set_tests_properties(model training neural-uci neural-diagnostics benchmark-integrity trainer-replay promotion preparation experiment curriculum-progress training-job PROPERTIES TIMEOUT 180)
   endif()
 endif()

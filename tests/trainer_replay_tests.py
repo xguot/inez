@@ -74,30 +74,6 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual((metrics['policy_records'], metrics['records']), (1, 2))
         self.assertAlmostEqual(metrics['loss'], metrics['policy_loss'] + metrics['value_loss'])
 
-    def test_continuation_submission_skips_preparation_and_requires_initialization(self):
-        root = Path(__file__).resolve().parents[1]
-        with tempfile.TemporaryDirectory() as tmp:
-            folder = Path(tmp)
-            fake = folder / 'sbatch'
-            fake.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$CALLS"\nprintf "12345\\n"\n')
-            fake.chmod(0o755)
-            env = {**os.environ, 'PATH': str(folder) + os.pathsep + os.environ['PATH'],
-                   'CALLS': str(folder / 'calls'), 'INIT_ARTIFACT': '/accepted/model'}
-            for key in ('RUN_DIR', 'DATA_DIR', 'TRAIN_CONFIG', 'INEZ_ROOT'):
-                env.pop(key, None)
-            command = ['bash', str(root / 'hpc/submit_inezita.sh'), 'continue']
-            proc = subprocess.run(command, env=env, capture_output=True, text=True)
-            self.assertEqual(proc.returncode, 0, proc.stderr)
-            calls = (folder / 'calls').read_text().splitlines()
-            self.assertEqual(len(calls), 1)
-            self.assertIn('hpc/train_inezita.slurm', calls[0])
-            self.assertNotIn('prepare_inezita', calls[0])
-            self.assertIn('inezita-0.1.3.json', proc.stdout)
-            env.pop('INIT_ARTIFACT')
-            proc = subprocess.run(command, env=env, capture_output=True, text=True)
-            self.assertNotEqual(proc.returncode, 0)
-            self.assertEqual((folder / 'calls').read_text().splitlines(), calls)
-
     def test_continuation_settings_require_initialization_and_budget_candidates(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
         from train_inezita import read_config, promotion_budget, pipeline

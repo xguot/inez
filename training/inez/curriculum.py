@@ -25,7 +25,7 @@ from .encoding import wdl_from_result
 from .openings import _is_train_bucket, default_opening_book, opening_records
 from .puct import PIECE_VALUES, NeuralEvaluator, _loss_on_square, _max_hanging_loss, choose_move, search
 from .records import (assign_splits, audit_splits, game_fingerprint, load_records,
-                      validate_record, write_dataset)
+                      validate_record, write_dataset, read_json)
 
 
 def sha256(path):
@@ -217,21 +217,42 @@ def _blunder_counterfactuals(initial, moves, source, seed, rng, excluded, max_br
     return generated
 
 
+def _estimated_game_seconds(header):
+    """Estimate initial + 40-move increment time budget in seconds from a PGN TimeControl header."""
+    if not isinstance(header, str):
+        return 0
+    parts = header.strip().split('+')
+    if len(parts) != 2:
+        return 0
+    try:
+        base, increment = int(parts[0]), int(parts[1])
+    except ValueError:
+        return 0
+    if base < 0 or increment < 0:
+        return 0
+    return base + 40 * increment
+
+
 def import_games(path, output, *, uri, license_name, tactics, max_games=1000,
                  samples_per_game=16, min_ply=8, min_rating=2300, seed=20261019,
-                 openings_path=None, blunder_samples_per_game=0):
+                 openings_path=None, blunder_samples_per_game=0,
+                 min_time_control_seconds=0, require_normal_termination=False):
     """Import a bounded corpus; remove held-out tactical boards and split overlap."""
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():
         raise FileExistsError(output)
-    if max_games < 1 or samples_per_game < 1 or min_ply < 0 or blunder_samples_per_game < 0:
+    if (max_games < 1 or samples_per_game < 1 or min_ply < 0 or blunder_samples_per_game < 0
+            or type(min_time_control_seconds) is not int or min_time_control_seconds < 0
+            or not isinstance(require_normal_termination, bool)):
         raise ValueError('invalid importer bounds')
     paths = [Path(p) for p in path] if isinstance(path, (list, tuple)) else [Path(path)]
     uris = list(uri) if isinstance(uri, (list, tuple)) else [uri] * len(paths)
     if not paths or len(paths) != len(uris):
         raise ValueError('archive paths and URIs must be nonempty and aligned')
 
+    if openings_path is not None and not Path(openings_path).is_file():
+        raise ValueError('configured preparation openings file does not exist')
     excluded = {position_key(chess.Board(item['fen'])) for item in read_tactics(tactics)}
     mco_records, mco_sources, mco_keys = [], {}, set()
     if openings_path is not None and Path(openings_path).is_file():
@@ -273,9 +294,13 @@ def import_games(path, output, *, uri, license_name, tactics, max_games=1000,
             try:
                 ratings = [int(game.headers.get(key, '0')) for key in ('WhiteElo', 'BlackElo')]
                 initial = game.board()
+                termination = game.headers.get('Termination', 'Normal')
                 if (game.errors or initial.chess960 or not initial.is_valid()
                         or game.headers.get('Variant', 'Standard') != 'Standard'
-                        or min(ratings) < min_rating):
+                        or min(ratings) < min_rating
+                        or (require_normal_termination and termination != 'Normal')
+                        or (min_time_control_seconds > 0
+                            and _estimated_game_seconds(game.headers.get('TimeControl', '')) < min_time_control_seconds)):
                     raise ValueError('filtered game')
                 result = game.headers.get('Result')
                 if result not in ('1-0', '0-1', '1/2-1/2'):
@@ -366,13 +391,17 @@ def import_games(path, output, *, uri, license_name, tactics, max_games=1000,
     with tempfile.TemporaryDirectory(dir=output.parent) as temporary:
         raw = Path(temporary) / 'records.jsonl'
         raw.write_text(''.join(json.dumps(r) + '\n' for r in records))
-        manifest = write_dataset([raw], output, sources, seed=str(seed), require_disjoint=True)
-    manifest['preparation'] = {**stats, 'min_rating': min_rating, 'min_ply': min_ply,
-                               'samples_per_game': samples_per_game, 'max_games': max_games,
-                               'blunder_samples_per_game': blunder_samples_per_game,
-                               'openings_sha256': sha256(openings_path) if openings_path and Path(openings_path).is_file() else None,
-                               'tactics_sha256': sha256(tactics), 'labels': 'human_moves_and_game_result'}
-    atomic_json(output / 'manifest.json', manifest)
+        staging = Path(temporary) / 'human'
+        manifest = write_dataset([raw], staging, sources, seed=str(seed), require_disjoint=True)
+        manifest['preparation'] = {**stats, 'min_rating': min_rating, 'min_ply': min_ply,
+                                   'samples_per_game': samples_per_game, 'max_games': max_games,
+                                   'blunder_samples_per_game': blunder_samples_per_game,
+                                   'min_time_control_seconds': min_time_control_seconds,
+                                   'require_normal_termination': require_normal_termination,
+                                   'openings_sha256': sha256(openings_path) if openings_path and Path(openings_path).is_file() else None,
+                                   'tactics_sha256': sha256(tactics), 'labels': 'human_moves_and_game_result'}
+        atomic_json(staging / 'manifest.json', manifest)
+        os.rename(staging, output)
     return manifest
 
 
@@ -390,7 +419,9 @@ def stockfish_labels(record, engine, *, nodes=10000, multipv=4, temperature=0.15
     if outcome is not None:
         raise ValueError('teacher corpus must contain nonterminal positions')
     requested_multipv = max(multipv, 8) if any(m.promotion for m in board.legal_moves) else multipv
-    infos = engine.analyse(board, chess.engine.Limit(nodes=nodes),
+    # A fresh game token sends ucinewgame before every independent label,
+    # clearing Stockfish's search history/hash across workers and restarts.
+    infos = engine.analyse(board, chess.engine.Limit(nodes=nodes), game=object(),
                            multipv=min(requested_multipv, board.legal_moves.count()))
     if not isinstance(infos, list):
         infos = [infos]
@@ -428,14 +459,92 @@ def stockfish_labels(record, engine, *, nodes=10000, multipv=4, temperature=0.15
     return labeled
 
 
+def verify_dataset(directory, *, full=False):
+    """Check a completed dataset using bounded memory before reuse or relabeling."""
+    directory = Path(directory)
+    manifest_path = directory / 'manifest.json'
+    if not manifest_path.is_file():
+        raise ValueError(f'incomplete dataset: missing {manifest_path}')
+    manifest = read_json(manifest_path.read_text())
+    if (not isinstance(manifest, dict)
+            or any(manifest.get(key) != 1 for key in ('manifest_version', 'record_version', 'encoding_version'))
+            or not isinstance(manifest.get('splits'), dict)):
+        raise ValueError(f'unsupported dataset manifest: {manifest_path}')
+    for split in ('train', 'validation', 'evaluation'):
+        expected = manifest.get('splits', {}).get(split, {})
+        count = expected.get('records') if isinstance(expected, dict) else None
+        if type(count) is not int or count < 1:
+            raise ValueError(f'dataset requires a nonempty {split} split: {directory}')
+        path = directory / (split + '.jsonl')
+        if not path.is_file() or sha256(path) != expected.get('sha256'):
+            raise ValueError(f'dataset checksum mismatch: {path}')
+        actual = 0
+        with path.open() as stream:
+            for number, line in enumerate(stream, 1):
+                if line.strip():
+                    if full:
+                        try:
+                            validate_record(read_json(line))
+                        except (ValueError, TypeError, OverflowError) as error:
+                            raise ValueError(f'{path}:{number}: {error}') from error
+                    actual += 1
+        if actual != count:
+            raise ValueError(f'dataset manifest record count mismatch: {path}')
+    return manifest
+
+
+def _write_records_atomic(path, records):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(prefix='.' + path.name, dir=path.parent)
+    try:
+        with os.fdopen(descriptor, 'w') as stream:
+            for record in records:
+                stream.write(json.dumps(record, sort_keys=True, allow_nan=False) + '\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+
+
+def _teacher_cache_key(record, board):
+    # Stockfish receives the move stack: fifty-move and repetition states must
+    # not share labels merely because piece placement and castling rights match.
+    return (board.root().fen(en_passant='fen'),
+            tuple(move.uci() for move in board.move_stack),
+            tuple(sorted(record['policy'].items())) if str(record.get('source_id', '')).startswith('mco-') else None)
+
+
 def relabel_dataset(source, output, stockfish, *, nodes=10000, multipv=4, temperature=0.15, threads=8):
+    """Relabel fixed chunks durably; interruption retains verified completed work."""
     source, output = Path(source), Path(output)
     if output.exists():
         raise FileExistsError(output)
-    source_manifest = json.loads((source / 'manifest.json').read_text())
+    if (type(nodes) is not int or nodes < 1 or type(multipv) is not int or multipv < 1
+            or type(threads) is not int or threads < 1
+            or not math.isfinite(temperature) or temperature <= 0):
+        raise ValueError('invalid teacher settings')
+    source_manifest = verify_dataset(source)
     output.parent.mkdir(parents=True, exist_ok=True)
-    num_workers = max(1, min(int(threads), 16))
+    num_workers = min(threads, 16)
     hash_per_worker = max(32, 512 // num_workers)
+    chunk_size = 32
+    work = output.with_name(output.name + '.work')
+    work.mkdir(exist_ok=True)
+    request = {'format': 'inez-teacher-chunks-v1', 'label_contract': 2,
+               'analysis_game': 'fresh-per-position',
+               'label_sources': {name: sha256(Path(__file__).parent / name) for name in
+                   ('curriculum.py', 'records.py', 'encoding.py', 'openings.py')},
+               'source_manifest_sha256': sha256(source / 'manifest.json'),
+               'source_splits': source_manifest['splits'], 'binary_sha256': sha256(stockfish),
+               'nodes': nodes, 'multipv': multipv, 'temperature': temperature,
+               'chunk_size': chunk_size, 'threads': threads, 'hash_per_worker': hash_per_worker}
+    request_path = work / 'request.json'
+    if request_path.exists() and read_json(request_path.read_text()) != request:
+        raise ValueError('teacher preparation request changed; choose a new data directory')
+    atomic_json(request_path, request)
     with ExitStack() as stack:
         engine_queue = queue.Queue()
         engine_name = None
@@ -449,64 +558,99 @@ def relabel_dataset(source, output, stockfish, *, nodes=10000, multipv=4, temper
             engine_queue.put(eng)
         analysis_cache = {}
         cache_lock = threading.Lock()
+
+        def process_chunk(item):
+            split, index, records = item
+            destination = work / split / (f'{index:07d}.jsonl')
+            marker_path = destination.with_suffix('.complete.json')
+            if destination.is_file() and marker_path.is_file():
+                try:
+                    marker = read_json(marker_path.read_text())
+                    if (isinstance(marker, dict) and marker.get('records') == len(records)
+                            and marker.get('sha256') == sha256(destination)):
+                        return destination, len(records), True
+                except (ValueError, OSError):
+                    pass  # Uncommitted or damaged work is recomputed, never published.
+            worker_engine = engine_queue.get()
+            try:
+                labeled_records = []
+                for record in records:
+                    board = validate_record(record)
+                    cache_key = _teacher_cache_key(record, board)
+                    with cache_lock:
+                        cached = analysis_cache.get(cache_key)
+                    if cached is not None:
+                        labeled = copy.deepcopy(record)
+                        labeled.update(copy.deepcopy(cached))
+                        validate_record(labeled)
+                    else:
+                        labeled = stockfish_labels(record, worker_engine, nodes=nodes,
+                                                  multipv=multipv, temperature=temperature)
+                        snapshot = {key: labeled[key] for key in ('policy', 'wdl', 'label_kind', 'teacher')}
+                        with cache_lock:
+                            if len(analysis_cache) < 65536:
+                                analysis_cache[cache_key] = snapshot
+                    labeled_records.append(labeled)
+                _write_records_atomic(destination, labeled_records)
+                atomic_json(marker_path, {'records': len(records), 'sha256': sha256(destination)})
+                return destination, len(records), False
+            finally:
+                engine_queue.put(worker_engine)
+
         with tempfile.TemporaryDirectory(dir=output.parent) as temporary:
             staging = Path(temporary) / 'teacher'
             staging.mkdir()
             manifest = copy.deepcopy(source_manifest)
-            for split in ('train', 'validation', 'evaluation'):
-                records = load_records([source / (split + '.jsonl')])
-                destination = staging / (split + '.jsonl')
-                chunk_size = max(1, min(32, (len(records) + num_workers - 1) // num_workers))
-                chunks = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
-
-                def process_batch(chunk):
-                    worker_engine = engine_queue.get()
-                    try:
-                        out = []
-                        for rec in chunk:
-                            board = validate_record(rec)
-                            cache_key = (position_key(board), str(rec.get('source_id', '')).startswith('mco-'))
-                            with cache_lock:
-                                cached = analysis_cache.get(cache_key)
-                            if cached is not None:
-                                labeled = copy.deepcopy(rec)
-                                labeled.update(cached)
-                                validate_record(labeled)
-                                out.append(labeled)
-                            else:
-                                labeled = stockfish_labels(
-                                    rec, worker_engine, nodes=nodes, multipv=multipv, temperature=temperature
-                                )
-                                snapshot = {
-                                    'policy': labeled['policy'],
-                                    'wdl': labeled['wdl'],
-                                    'label_kind': labeled['label_kind'],
-                                    'teacher': labeled['teacher'],
-                                }
-                                with cache_lock:
-                                    if len(analysis_cache) < 200000:
-                                        analysis_cache[cache_key] = snapshot
-                                out.append(labeled)
-                        return out
-                    finally:
-                        engine_queue.put(worker_engine)
-
-                completed = 0
-                with destination.open('w') as stream, ThreadPoolExecutor(max_workers=num_workers) as pool:
-                    for labeled_chunk in pool.map(process_batch, chunks):
-                        for labeled in labeled_chunk:
-                            stream.write(json.dumps(labeled) + '\n')
-                            completed += 1
-                            if completed % 200 == 0 or completed == len(records):
-                                print(f'Stockfish {split}: {completed}/{len(records)}', flush=True)
-                manifest['splits'][split] = {'records': len(records), 'sha256': sha256(destination)}
-            manifest['teacher'] = {'name': engine_name, 'binary_sha256': sha256(stockfish),
+            with ThreadPoolExecutor(max_workers=num_workers) as pool:
+                for split in ('train', 'validation', 'evaluation'):
+                    destination = staging / (split + '.jsonl')
+                    completed, reused = 0, 0
+                    index, records, pending = 0, [], []
+                    with (source / (split + '.jsonl')).open() as source_stream, destination.open('wb') as target:
+                        def finish_window():
+                            nonlocal completed, reused
+                            for chunk_path, count, cached in pool.map(process_chunk, pending):
+                                with chunk_path.open('rb') as chunk_stream:
+                                    for block in iter(lambda: chunk_stream.read(1024 * 1024), b''):
+                                        target.write(block)
+                                completed += count
+                                reused += count if cached else 0
+                            print(f'Stockfish {split}: {completed}/{source_manifest["splits"][split]["records"]}'
+                                  f' ({reused} reused)', flush=True)
+                            pending.clear()
+                        for line in source_stream:
+                            if not line.strip():
+                                continue
+                            records.append(read_json(line))
+                            if len(records) == chunk_size:
+                                pending.append((split, index, records))
+                                index, records = index + 1, []
+                            if len(pending) >= num_workers:
+                                finish_window()
+                        if records:
+                            pending.append((split, index, records))
+                        if pending:
+                            finish_window()
+                        target.flush()
+                        os.fsync(target.fileno())
+                    if completed != source_manifest['splits'][split]['records']:
+                        raise ValueError('teacher source count changed during preparation')
+                    manifest['splits'][split] = {'records': completed, 'sha256': sha256(destination)}
+            if sha256(source / 'manifest.json') != request['source_manifest_sha256']:
+                raise ValueError('teacher source manifest changed during preparation')
+            verify_dataset(source)
+            if sha256(stockfish) != request['binary_sha256']:
+                raise ValueError('teacher binary changed during preparation')
+            manifest['teacher'] = {'name': engine_name, 'binary_sha256': request['binary_sha256'],
                 'nodes': nodes, 'multipv': multipv, 'temperature': temperature, 'threads': threads,
                 'hash_mb': hash_per_worker * num_workers, 'uci_show_wdl': True,
                 'policy_target': 'softmax((win-loss)/temperature) over MultiPV first moves',
                 'value_target': 'native UCI WDL of best returned line',
-                'human_manifest_sha256': sha256(source / 'manifest.json')}
+                'human_manifest_sha256': sha256(source / 'manifest.json'),
+                'label_contract': 2, 'analysis_game': request['analysis_game'],
+                'resume_format': request['format']}
             atomic_json(staging / 'manifest.json', manifest)
+            verify_dataset(staging)
             os.rename(staging, output)
     return manifest
 
@@ -519,16 +663,80 @@ def _soft_wdl_from_scalar(value: float) -> tuple[float, float, float]:
 
 
 def selfplay_records(model, *, games, simulations, max_plies, seed, excluded,
-                     initial_fen=chess.STARTING_FEN, stop=None):
-    evaluator = NeuralEvaluator(model)
-    rng = random.Random(seed)
+                     initial_fen=chess.STARTING_FEN, stop=None,
+                     progress_path=None, progress_identity=None):
+    from .progress import GameProgress, content_digest, restore_random_state
+
+    if any(isinstance(value, bool) or not isinstance(value, int) or value < 1
+           for value in (games, simulations, max_plies)):
+        raise ValueError('self-play game, simulation and ply limits must be positive integers')
+    progress = GameProgress(progress_path, {
+        'kind': 'selfplay-v1', 'identity': progress_identity, 'games': games,
+        'simulations': simulations, 'max_plies': max_plies, 'seed': seed,
+        'initial_fen': initial_fen, 'excluded_sha256': content_digest(sorted(excluded))})
+    if len(progress.chunks) > games:
+        raise ValueError('too many saved self-play games')
+
+    def discarded(board):
+        outcome = board.outcome(claim_draw=False)
+        if outcome is None:
+            return True
+        if outcome.winner is not None:
+            return False
+        material = [sum(len(board.pieces(pt, color)) * value
+                        for pt, value in PIECE_VALUES.items() if pt != chess.KING)
+                    for color in (chess.WHITE, chess.BLACK)]
+        return abs(material[0] - material[1]) >= 5.0
+
     records, unfinished = [], 0
-    for game_index in range(games):
+    rng = random.Random(seed)
+    for saved in progress.chunks:
+        if (not isinstance(saved, dict)
+                or set(saved) != {'moves', 'result', 'discarded', 'records', 'rng_state'}
+                or not isinstance(saved['moves'], list) or len(saved['moves']) > max_plies
+                or not isinstance(saved['records'], list) or not isinstance(saved['discarded'], bool)):
+            raise ValueError('invalid saved self-play game')
+        board, target_plies = chess.Board(initial_fen), []
+        try:
+            for ply, move in enumerate(saved['moves']):
+                if board.outcome(claim_draw=False) is not None:
+                    raise ValueError('saved game continues after its outcome')
+                if position_key(board) not in excluded:
+                    target_plies.append(ply)
+                board.push_uci(move)
+        except (TypeError, ValueError) as error:
+            raise ValueError('invalid saved self-play moves') from error
+        outcome = board.outcome(claim_draw=False)
+        if (saved['result'] != (outcome.result() if outcome else '*')
+                or saved['discarded'] != discarded(board)
+                or (outcome is None and len(saved['moves']) != max_plies)):
+            raise ValueError('saved self-play outcome is inconsistent')
+        identity = hashlib.sha256(' '.join(saved['moves']).encode()).hexdigest()
+        if saved['discarded']:
+            if saved['records']:
+                raise ValueError('discarded self-play game contains training records')
+            unfinished += 1
+        else:
+            for record in saved['records']:
+                validate_record(record)
+                if (record['moves'] != saved['moves'] or record['result'] != saved['result']
+                        or record['game_id'] != identity or record['label_kind'] != 'search'
+                        or record['initial_fen'] != chess.Board(initial_fen).fen(en_passant='fen')):
+                    raise ValueError('saved self-play records disagree with their game')
+            if [record['ply'] for record in saved['records']] != target_plies:
+                raise ValueError('saved self-play targets are missing or reordered')
+            records.extend(saved['records'])
+        restore_random_state(rng, saved['rng_state'])
+
+    evaluator = NeuralEvaluator(model)
+    for game_index in range(len(progress.chunks), games):
+        if stop is not None and stop.requested:
+            raise InterruptedError('self-play generation stopped; completed games are saved')
         board = chess.Board(initial_fen)
         targets, moves = [], []
         while board.outcome(claim_draw=False) is None and len(moves) < max_plies:
             if stop is not None and stop.requested:
-                raise InterruptedError('self-play generation stopped; resume from the saved curriculum')
+                raise InterruptedError('self-play generation stopped; completed games are saved')
             infos = []
             visits = search(board, evaluator, simulations, noise=True, rng=rng, on_update=infos.append)
             if position_key(board) not in excluded:
@@ -541,32 +749,32 @@ def selfplay_records(model, *, games, simulations, max_plies, seed, excluded,
             board.push_uci(move)
             moves.append(move)
         outcome = board.outcome(claim_draw=False)
-        if outcome is None:
-            unfinished += 1
-            continue  # A move cap is not evidence that a position is drawn.
-        if outcome.winner is None:
-            white_mat = sum(len(board.pieces(pt, chess.WHITE)) * val for pt, val in PIECE_VALUES.items() if pt != chess.KING)
-            black_mat = sum(len(board.pieces(pt, chess.BLACK)) * val for pt, val in PIECE_VALUES.items() if pt != chess.KING)
-            if abs(white_mat - black_mat) >= 5.0:
-                unfinished += 1
-                continue  # Never label a botched winning material endgame as a draw target.
-        identity = hashlib.sha256(' '.join(moves).encode()).hexdigest()
-        total_plies = len(moves)
-        for ply, policy, root_val in targets:
-            record = make_record(chess.Board(initial_fen), moves, ply, outcome.result(), 'inez-selfplay',
-                                 identity, policy, kind='search',
-                                 teacher={'name': 'Inez PUCT', 'version': 'v1', 'limits': {'nodes': simulations}})
-            remaining = total_plies - 1 - ply
-            if remaining > 0 and root_val is not None and math.isfinite(root_val):
-                gamma = 0.998 ** remaining
-                disc_wdl = [gamma * w + (1.0 - gamma) / 3.0 for w in record['wdl']]
-                search_wdl = _soft_wdl_from_scalar(root_val)
-                blended = [0.50 * d + 0.50 * s for d, s in zip(disc_wdl, search_wdl)]
-                norm = sum(blended)
-                record['wdl'] = [b / norm for b in blended]
-            validate_record(record)
-            records.append(record)
-        print(f'Self-play game {game_index + 1}/{games}: {outcome.result()}, {len(moves)} plies', flush=True)
+        game_records = []
+        is_discarded = discarded(board)
+        if is_discarded:
+            unfinished += 1  # A move cap or botched material win is not a draw target.
+        else:
+            identity = hashlib.sha256(' '.join(moves).encode()).hexdigest()
+            total_plies = len(moves)
+            for ply, policy, root_val in targets:
+                record = make_record(chess.Board(initial_fen), moves, ply, outcome.result(), 'inez-selfplay',
+                                     identity, policy, kind='search',
+                                     teacher={'name': 'Inez PUCT', 'version': 'v1', 'limits': {'nodes': simulations}})
+                remaining = total_plies - 1 - ply
+                if remaining > 0 and root_val is not None and math.isfinite(root_val):
+                    gamma = 0.998 ** remaining
+                    disc_wdl = [gamma * w + (1.0 - gamma) / 3.0 for w in record['wdl']]
+                    search_wdl = _soft_wdl_from_scalar(root_val)
+                    blended = [0.50 * d + 0.50 * s for d, s in zip(disc_wdl, search_wdl)]
+                    norm = sum(blended)
+                    record['wdl'] = [b / norm for b in blended]
+                validate_record(record)
+                game_records.append(record)
+        result = outcome.result() if outcome else '*'
+        progress.append({'moves': moves, 'result': result, 'discarded': is_discarded,
+                         'records': game_records, 'rng_state': rng.getstate()})
+        records.extend(game_records)
+        print(f'Self-play game {game_index + 1}/{games}: {result}, {len(moves)} plies', flush=True)
     return records, {'requested_games': games, 'unfinished_games_discarded': unfinished,
                      'completed_games': games - unfinished, 'records': len(records)}
 
@@ -731,7 +939,10 @@ def promotion_decision(points, games, candidate_tactics, previous_tactics, *,
 
 
 def evaluate_candidate(candidate, incumbent, *, tactics, openings, pairs, simulations,
-                       max_plies, minimum_score=0.55, alpha=0.05, stop=None):
+                       max_plies, minimum_score=0.55, alpha=0.05, stop=None,
+                       progress_path=None, progress_identity=None):
+    from .progress import GameProgress
+
     if (any(isinstance(value, bool) or not isinstance(value, int) or value < 1
             for value in (pairs, simulations, max_plies)) or not openings
             or pairs > len(openings)):
@@ -748,32 +959,73 @@ def evaluate_candidate(candidate, incumbent, *, tactics, openings, pairs, simula
             raise ValueError('gate requires distinct nonterminal opening positions')
         positions.add(key)
         selected.append((tuple(opening), key))
-    # Validate statistical options before spending time generating games.
     _validate_pair_settings(alpha, pairs)
     _validate_minimum_score(minimum_score)
-    candidate_eval, incumbent_eval = NeuralEvaluator(candidate), NeuralEvaluator(incumbent)
+    progress = GameProgress(progress_path, {
+        'kind': 'promotion-v1', 'identity': progress_identity, 'tactics': tactics,
+        'openings': openings, 'pairs': pairs, 'simulations': simulations,
+        'max_plies': max_plies, 'minimum_score': minimum_score, 'alpha': alpha})
+    if len(progress.chunks) > pairs * 2:
+        raise ValueError('too many saved promotion games')
     games, points = [], 0.0
-    for pair, (opening, opening_position) in enumerate(selected):
-        for candidate_white in (True, False):
-            board = chess.Board()
-            for move in opening:
+    for index, game in enumerate(progress.chunks):
+        opening, opening_position = selected[index // 2]
+        candidate_white = index % 2 == 0
+        if (not isinstance(game, dict) or set(game) != {'pair', 'candidate_white',
+                'opening_position', 'opening', 'result', 'candidate_score', 'moves'}
+                or game['pair'] != index // 2 or game['candidate_white'] is not candidate_white
+                or game['opening_position'] != opening_position or game['opening'] != list(opening)
+                or not isinstance(game['moves'], list)
+                or game['moves'][:len(opening)] != list(opening)
+                or not len(opening) <= len(game['moves']) <= len(opening) + max_plies):
+            raise ValueError('invalid saved promotion game metadata')
+        board = chess.Board()
+        try:
+            for move in game['moves']:
+                if board.outcome(claim_draw=False) is not None:
+                    raise ValueError('saved game continues after its outcome')
                 board.push_uci(move)
-            plies = 0
-            while board.outcome(claim_draw=False) is None and plies < max_plies:
-                if stop is not None and stop.requested:
-                    raise InterruptedError('candidate gate stopped; training checkpoint is saved')
-                evaluate = candidate_eval if board.turn == candidate_white else incumbent_eval
-                board.push_uci(choose_move(search(board, evaluate, simulations)))
-                plies += 1
-            outcome = board.outcome(claim_draw=False)
-            # Move caps are unfinished games, never fabricated draws.
-            score = None if outcome is None else (0.5 if outcome.winner is None else float(outcome.winner == candidate_white))
-            games.append({'pair': pair, 'candidate_white': candidate_white,
-                          'opening_position': opening_position, 'opening': list(opening),
-                          'result': outcome.result() if outcome else '*', 'candidate_score': score,
-                          'moves': [move.uci() for move in board.move_stack]})
-            if score is not None:
-                points += score
+        except (TypeError, ValueError) as error:
+            raise ValueError('invalid saved promotion moves') from error
+        outcome = board.outcome(claim_draw=False)
+        score = None if outcome is None else (0.5 if outcome.winner is None else float(outcome.winner == candidate_white))
+        if (game['result'] != (outcome.result() if outcome else '*')
+                or isinstance(game['candidate_score'], bool) or game['candidate_score'] != score
+                or (outcome is None and len(game['moves']) != len(opening) + max_plies)):
+            raise ValueError('saved promotion outcome is inconsistent')
+        games.append(game)
+        if score is not None:
+            points += score
+    candidate_eval, incumbent_eval = NeuralEvaluator(candidate), NeuralEvaluator(incumbent)
+    for index in range(len(games), pairs * 2):
+        if stop is not None and stop.requested:
+            raise InterruptedError('candidate gate stopped; completed games are saved')
+        pair, candidate_white = index // 2, index % 2 == 0
+        opening, opening_position = selected[pair]
+        board = chess.Board()
+        for move in opening:
+            board.push_uci(move)
+        plies = 0
+        while board.outcome(claim_draw=False) is None and plies < max_plies:
+            if stop is not None and stop.requested:
+                raise InterruptedError('candidate gate stopped; completed games are saved')
+            evaluate = candidate_eval if board.turn == candidate_white else incumbent_eval
+            board.push_uci(choose_move(search(board, evaluate, simulations)))
+            plies += 1
+        outcome = board.outcome(claim_draw=False)
+        # Move caps are unfinished games, never fabricated draws.
+        score = None if outcome is None else (0.5 if outcome.winner is None else float(outcome.winner == candidate_white))
+        game = {'pair': pair, 'candidate_white': candidate_white,
+                'opening_position': opening_position, 'opening': list(opening),
+                'result': outcome.result() if outcome else '*', 'candidate_score': score,
+                'moves': [move.uci() for move in board.move_stack]}
+        progress.append(game)
+        games.append(game)
+        if score is not None:
+            points += score
+        print(f'Promotion game {index + 1}/{pairs * 2}: {game["result"]}, {plies} plies', flush=True)
+    if stop is not None and stop.requested:
+        raise InterruptedError('candidate gate stopped; completed games are saved')
     finished = sum(game['candidate_score'] is not None for game in games)
     candidate_tactics = tactical_report(candidate, tactics, simulations)
     incumbent_tactics = tactical_report(incumbent, tactics, simulations)
