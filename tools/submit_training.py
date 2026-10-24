@@ -27,8 +27,28 @@ def absolute(value):
     return (path if path.is_absolute() else ROOT / path).resolve()
 
 
+DEFAULT_TIME_LIMITS = {'prepare': '24:00:00', 'train': '36:00:00'}
+
+
+def time_limits(environment, saved=None):
+    """Validate allocation ceilings; these are not predictions of job duration."""
+    limits = dict(DEFAULT_TIME_LIMITS if saved is None else saved)
+    for kind, key in (('prepare', 'PREP_TIME_LIMIT'), ('train', 'TRAIN_TIME_LIMIT')):
+        value = environment.get(key, limits[kind])
+        match = re.fullmatch(r'(?:(\d+)-)?(\d+):([0-5]\d):([0-5]\d)', value)
+        if match is None:
+            raise ValueError(f'{key} must use HH:MM:SS or D-HH:MM:SS')
+        days, hours, minutes, seconds = match.groups()
+        if (days is not None and int(hours) > 23) or not (
+                int(days or 0) * 86400 + int(hours) * 3600 + int(minutes) * 60 + int(seconds)):
+            raise ValueError(f'{key} must be a positive, finite allocation time limit')
+        limits[kind] = value
+    return limits
+
+
 def new_job(mode='scratch', *, prepare=False, dry_run=False, environment=None):
     env = dict(os.environ if environment is None else environment)
+    limits = time_limits(env)
     config_path = absolute(env.get('TRAIN_CONFIG') or 'configs/train/inezita.json')
     config, model_config = read_config(config_path)
     artifact = env.get('INIT_ARTIFACT')
@@ -56,7 +76,8 @@ def new_job(mode='scratch', *, prepare=False, dry_run=False, environment=None):
         data_identity = verify_prepared_data(data, config)
     plan = {'mode': mode, 'config': str(config_path), 'data_dir': str(data),
             'run_dir': str(run), 'initial_artifact': str(initial) if initial else None,
-            'prepare_data': prepare, 'data_identity': data_identity}
+            'prepare_data': prepare, 'data_identity': data_identity, 'time_limits': limits,
+            'time_note': 'Maximum allocation times, not runtime estimates. Training is released when preparation succeeds; it does not wait for the preparation limit.'}
     if dry_run:
         return plan
     run.mkdir(parents=True, exist_ok=True)
@@ -140,6 +161,7 @@ def _dispatch(path, *, environment=None, prepare=None):
         env['INIT_ARTIFACT'] = spec['initial_artifact']
     else:
         env.pop('INIT_ARTIFACT', None)
+    limits = time_limits(env, spec.get('time_limits'))
     if env.get('RESUME_MODE', 'exact') not in ('exact', 'portable'):
         raise ValueError('RESUME_MODE must be exact or portable')
     names = {kind: 'inezita_' + kind + '_' + spec['run_id'] for kind in ('prepare', 'train')}
@@ -149,13 +171,14 @@ def _dispatch(path, *, environment=None, prepare=None):
         raise ValueError('this run already has a queued/running job; wait for it to finish before resuming')
     account = env.get('INEZ_ACCOUNT', 'nssac_students')
     event = {'submitted_utc': datetime.now(timezone.utc).isoformat(),
-             'prepare_job': None, 'train_job': None, 'status': 'submitting'}
+             'prepare_job': None, 'train_job': None, 'status': 'submitting',
+             'time_limits': limits}
     log_dir = Path(spec['run_dir']) / 'slurm'
     log_dir.mkdir(exist_ok=True)
     def submit(script, *extra):
         kind = 'prepare' if script.startswith('prepare') else 'train'
         command = ['sbatch', '--parsable', '--export=ALL', '--chdir=' + str(source),
-                   '--account=' + account, '--job-name=' + names[kind],
+                   '--account=' + account, '--job-name=' + names[kind], '--time=' + limits[kind],
                    '--output=' + str(log_dir / (kind + '-%j.out')),
                    '--error=' + str(log_dir / (kind + '-%j.err')),
                    *extra, str(source / 'hpc' / script)]
@@ -182,7 +205,8 @@ def _dispatch(path, *, environment=None, prepare=None):
         raise
     finally:
         atomic_json(history, events)
-    return {**spec, 'submission': event}
+    return {**spec, 'time_limits': limits, 'submission': event,
+            'time_note': 'Allocation limits are maximum runtimes, not completion estimates. Preparation releases its dependent training job immediately on success.'}
 
 
 def main(argv=None):

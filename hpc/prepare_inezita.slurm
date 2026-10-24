@@ -9,6 +9,7 @@
 #SBATCH --cpus-per-task=48
 #SBATCH --mem=96G
 #SBATCH --time=24:00:00
+# Maximum allocation time, not required runtime; override through PREP_TIME_LIMIT.
 
 set -Eeuo pipefail
 trap 'rc=$?; echo "Preparation failed at line ${LINENO}; exit=${rc}" >&2' ERR

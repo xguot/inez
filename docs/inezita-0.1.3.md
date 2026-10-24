@@ -63,6 +63,35 @@ The dispatcher creates the snapshot before queuing jobs. Existing frozen runs
 continue using their saved code; use a fresh `RUN_DIR` to adopt these fixes if a
 previous `job.json` was already created with an older implementation.
 
+## Time limits and queue states
+
+The preparation `24:00:00` and GPU training `36:00:00` settings are maximum
+allocation runtimes, not durations the jobs must consume or reliable estimates.
+Preparation exits as soon as it finishes. `afterok` then makes the GPU job
+eligible immediately; GPU scheduling can still add queue time. `PD (Resources)`
+means waiting for hardware, while `PD (Dependency)` means waiting for successful
+preparation. Neither state is active training time. Pressing Ctrl-C on `squeue`
+does not cancel the queued jobs.
+
+Total turnaround is queue time plus actual preparation, optimization, self-play
+and promotion matches. This larger scratch experiment has no measured end-to-end
+runtime yet and can require multiple allocations. Shorter limits may help the
+scheduler fit a job but can also interrupt it; choose them from observed progress.
+Completed teacher chunks, games and optimizer checkpoints survive supported
+resumes. A failed/timed-out preparation does not release its GPU dependency.
+
+The submitter now accepts validated overrides and records the effective ceilings:
+
+```sh
+PREP_TIME_LIMIT=08:00:00 TRAIN_TIME_LIMIT=24:00:00 bash hpc/submit_inezita.sh
+```
+
+Those values illustrate the syntax, not a promise the run fits them. New
+submissions inherit the saved ceilings unless explicitly overridden on resume.
+Changes to code or these environment variables do not alter already queued jobs.
+The default ceilings remain 24 hours and 36 hours. `--dry-run` displays the limits
+without submitting work.
+
 ## Dataset & Curriculum (`configs/train/inezita.json`)
 
 1. **Pure Classical OTB + Superhuman Engine Corpus (`50,000` games, `>= 20 min` per side)**:

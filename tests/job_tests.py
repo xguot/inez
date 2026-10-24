@@ -257,6 +257,38 @@ class JobTests(unittest.TestCase):
             self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
 
 
+    def test_time_limits_are_explicit_ceiling_overrides_on_submissions_and_resume(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env, _, _ = self.fixture(Path(tmp))
+            env.update(DATA_DIR=str(Path(tmp)/'fresh-data'),
+                       PREP_TIME_LIMIT='08:00:00', TRAIN_TIME_LIMIT='1-00:00:00')
+            calls,run=self.scheduler()
+            with patch.object(jobs.subprocess, 'run', side_effect=run):
+                spec=jobs.new_job('continue',prepare=True,environment=env)
+            submitted=[command for command,_ in calls if command[0]=='sbatch']
+            self.assertIn('--time=08:00:00',submitted[0])
+            self.assertIn('--time=1-00:00:00',submitted[1])
+            self.assertEqual(spec['submission']['time_limits'],
+                             {'prepare':'08:00:00','train':'1-00:00:00'})
+            calls.clear()
+            with patch.object(jobs.subprocess, 'run', side_effect=run):
+                resumed=jobs.dispatch(Path(env['RUN_DIR'])/'job.json',
+                    environment={'TRAIN_TIME_LIMIT':'12:00:00'})
+            self.assertEqual(resumed['time_limits'],{'prepare':'08:00:00','train':'12:00:00'})
+            self.assertIn('--time=12:00:00',[cmd for cmd,_ in calls if cmd[0]=='sbatch'][-1])
+
+    def test_invalid_time_limits_fail_before_creating_or_submitting_a_run(self):
+        for value in ('0:00:00','unlimited','1:99:00','-1:00:00','1-24:00:00','4h'):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as tmp:
+                env,_,_=self.fixture(Path(tmp))
+                env['PREP_TIME_LIMIT']=value
+                with patch.object(jobs.subprocess, 'run') as submit:
+                    with self.assertRaises(ValueError):
+                        jobs.new_job('continue',environment=env)
+                submit.assert_not_called()
+                self.assertFalse(Path(env['RUN_DIR']).exists())
+
+
 
 if __name__=='__main__':
     unittest.main()

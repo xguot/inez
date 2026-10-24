@@ -11,6 +11,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=96G
 #SBATCH --time=36:00:00
+# Maximum allocation time, not required runtime; override through TRAIN_TIME_LIMIT.
 #SBATCH --signal=B:USR1@120
 
 set -Eeuo pipefail
