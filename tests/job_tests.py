@@ -174,6 +174,30 @@ class JobTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'RUN_DIR already exists'):
                 jobs.new_job('continue',environment=env)
 
+    def test_auto_mode_submits_full_scratch_pipeline_and_resumes_existing_job(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env, _, _ = self.fixture(Path(tmp))
+            scratch_cfg = json.loads((ROOT / 'configs/train/inezita.json').read_text())
+            scratch_cfg['model_config'] = json.loads(Path(env['TRAIN_CONFIG']).read_text())['model_config']
+            scratch_path = Path(tmp) / 'scratch.json'
+            atomic_json(scratch_path, scratch_cfg)
+            env['TRAIN_CONFIG'] = str(scratch_path)
+            # Even if an incomplete RUN_DIR and stale INIT_ARTIFACT exist, auto mode cleans up and launches scratch+prepare.
+            Path(env['RUN_DIR']).mkdir(parents=True)
+            calls, run = self.scheduler()
+            with patch.dict(os.environ, env, clear=False), patch.object(jobs.subprocess, 'run', side_effect=run):
+                self.assertEqual(jobs.main([]), 0)
+                spec = verify_job_spec(Path(env['RUN_DIR']) / 'job.json')
+                self.assertEqual(spec['mode'], 'scratch')
+                self.assertTrue(spec['prepare_data'])
+                self.assertIsNone(spec['initial_artifact'])
+            # Re-running with no arguments automatically resumes the existing job.json.
+            calls.clear()
+            with patch.dict(os.environ, env, clear=False), patch.object(jobs.subprocess, 'run', side_effect=run):
+                self.assertEqual(jobs.main([]), 0)
+            submitted = [command for command, _ in calls if command[0] == 'sbatch']
+            self.assertEqual(len(submitted), 2)
+
 
 if __name__=='__main__':
     unittest.main()

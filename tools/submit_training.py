@@ -9,6 +9,7 @@ import os
 import platform
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -27,7 +28,7 @@ def absolute(value):
     return (path if path.is_absolute() else ROOT / path).resolve()
 
 
-def new_job(mode, *, prepare=False, dry_run=False, environment=None):
+def new_job(mode='scratch', *, prepare=False, dry_run=False, environment=None):
     env = dict(os.environ if environment is None else environment)
     config_path = absolute(env.get('TRAIN_CONFIG') or
         ('configs/train/inezita-0.1.3.json' if mode == 'continue' else 'configs/train/inezita.json'))
@@ -40,11 +41,14 @@ def new_job(mode, *, prepare=False, dry_run=False, environment=None):
     if mode == 'scratch' and config.get('requires_init_artifact'):
         raise ValueError('this config requires continuation; use configs/train/inezita.json for scratch training')
     initial = verify_accepted_artifact(absolute(artifact), expected_config=model_config) if artifact else None
-    run = absolute(env.get('RUN_DIR') or
-        ('results/training/inezita-0.1.3' if mode == 'continue' else 'results/training/inezita-0.1.3-scratch'))
+    run = absolute(env.get('RUN_DIR') or 'results/training/inezita-0.1.3')
     data = absolute(env.get('DATA_DIR') or 'data/processed/inezita-0.1.3')
     if run.exists():
-        raise ValueError(f'RUN_DIR already exists: {run}; use resume for its frozen experiment or choose a fresh directory')
+        # Clean up an empty or incomplete run directory that never wrote job.json
+        if not (run / 'job.json').exists() and not (run / 'request.json').exists():
+            shutil.rmtree(run)
+        else:
+            raise ValueError(f'RUN_DIR already exists: {run}; use resume for its frozen experiment or choose a fresh directory')
     if run == data or run.is_relative_to(data) or data.is_relative_to(run):
         raise ValueError('data and run directories must be separate')
     if prepare:
@@ -159,23 +163,33 @@ def _dispatch(path, *, environment=None, prepare=None):
     return {**spec, 'submission': event}
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=('continue', 'scratch', 'resume'))
+    parser.add_argument('mode', nargs='?', default='auto', choices=('auto', 'continue', 'scratch', 'resume'))
     parser.add_argument('--prepare', action='store_true', help='prepare/verify data in a CPU job before training')
     parser.add_argument('--dry-run', action='store_true', help='validate inputs and print the plan without creating a run or submitting jobs')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
-        if args.mode == 'resume':
-            if not os.environ.get('RUN_DIR'):
-                raise ValueError('resume requires RUN_DIR pointing to a frozen experiment')
-            path = absolute(os.environ['RUN_DIR']) / 'job.json'
+        mode = args.mode
+        prepare = args.prepare
+        env = dict(os.environ)
+        if mode == 'auto':
+            run_dir = absolute(env.get('RUN_DIR') or 'results/training/inezita-0.1.3')
+            if (run_dir / 'job.json').is_file():
+                mode = 'resume'
+            else:
+                mode = 'scratch'
+                prepare = True
+                env.pop('INIT_ARTIFACT', None)
+        if mode == 'resume':
+            run_dir = absolute(env.get('RUN_DIR') or 'results/training/inezita-0.1.3')
+            path = run_dir / 'job.json'
             if args.dry_run:
                 result = verify_job_spec(path)
             else:
-                result = dispatch(path, prepare=True if args.prepare else None)
+                result = dispatch(path, environment=env, prepare=True if prepare else None)
         else:
-            result = new_job(args.mode, prepare=args.prepare, dry_run=args.dry_run)
+            result = new_job(mode, prepare=prepare, dry_run=args.dry_run, environment=env)
         print(json.dumps(result, indent=2), flush=True)
         return 0
     except (OSError, ValueError, subprocess.CalledProcessError) as error:

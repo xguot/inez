@@ -1,9 +1,11 @@
 # Inezita 0.1.3 development
 
-The objective is to improve the existing 29.2M model toward the Stockfish 2200–2400
-reference range under frozen practical time/hardware conditions. This is a development
-target. No newly trained 0.1.3 model or 2200+ result is claimed by this code change.
-The [measured 0.1.2 baseline](evaluation/inezita-0.1.2/README.md) is preserved.
+The objective is to train the 29.2M model from scratch on our cleanest curated
+corpus and 50,000-node Stockfish 17.1 teacher toward the Stockfish 2200–2400
+reference range under frozen practical time/hardware conditions. This is a
+development target. No newly trained 0.1.3 model or 2200+ result is claimed by
+this code change. The [measured 0.1.2 baseline](evaluation/inezita-0.1.2/README.md)
+is preserved.
 
 ## Training and data changes
 
@@ -25,21 +27,22 @@ validation sample. `validation_limit: null` requests the complete split. These
 measure agreement with teacher distributions; actual outcome calibration still
 needs independent game results. The evaluation split is never used for updates.
 
-The 0.1.3 training recipe (`configs/train/inezita-0.1.3.json`) retains the
-29.2M model architecture (`configs/models/inezita.json`) and upgrades both game
-curation and Stockfish teacher depth:
+The 0.1.3 full-curriculum recipe (`configs/train/inezita.json`) trains the
+29.2M model architecture (`configs/models/inezita.json`) end-to-end from scratch
+so no 0.1.2 biases or weak-teacher artifacts carry over:
 
-| Setting | 0.1.2 baseline | 0.1.3 (`configs/train/inezita-0.1.3.json`) |
+| Setting | 0.1.2 baseline | 0.1.3 (`configs/train/inezita.json`) |
 | --- | ---: | ---: |
 | Imported games | 20,000 | 100,000 |
 | Minimum player rating (`min_rating`) | 2300 | 2400 |
 | Minimum time control (`base + 40 * inc`) | Any (`0s`) | `>= 260s` (`180+2`, `300+0`, `600+0`, etc.) |
 | Termination filter | Any completed result | `Normal` only (excludes time forfeits) |
+| Human initialization steps / peak LR | 20,000 / 3e-4 | 20,000 / 3e-4 (every 5,000 steps) |
 | Teacher Stockfish 17.1 budget | 10,000 nodes | 50,000 nodes (`label_contract: 2`, fresh `ucinewgame` per position) |
-| Teacher steps / peak LR | 30,000 / 1e-4 | 12,000 / 2e-5 (every 2,000 steps) |
+| Teacher steps / peak LR | 30,000 / 1e-4 | 30,000 / 1e-4 (every 5,000 steps) |
 | Self-play rounds / games per round | 2 / 32 | 4 / 256 |
 | Simulations per self-play move | 128 | 256 |
-| Self-play steps / peak LR | 4,000 / 1.5e-5 | 1,000 / 5e-6 |
+| Self-play steps / peak LR | 4,000 / 1.5e-5 | 1,000 / 1.5e-5 |
 | Teacher replay fraction | 75% (round-subset) | 80% (full verified teacher pool) |
 
 ## Promotion
@@ -55,54 +58,40 @@ Both self-play generation and promotion gates commit atomic per-game progress
 (`training/inez/progress.py`), so a Slurm time limit or signal resumes at the
 last completed game boundary without losing finished games.
 
-The run predeclares ten candidate tests (six teacher checkpoints and four
-self-play rounds). A 0.05 run-wide alpha budget is divided across these
-checkpoints (Bonferroni: 0.005 per candidate). A candidate must pass every
-required opponent, so no separate opponent multiplicity factor is used.
-Inconclusive results retain the incumbent. Repeating unchanged candidates in new
-runs is not additional independent evidence. Cached reports must match the
-artifact, parent history, openings, tactics, source/model hashes and
-significance budget before recovering a promotion. Old reports remain readable
-but cannot authorize new acceptance.
+A 0.05 run-wide alpha budget is divided across the predeclared candidate
+checkpoints. A candidate must pass every required opponent, so no separate
+opponent multiplicity factor is used. Inconclusive results retain the incumbent.
+Repeating unchanged candidates in new runs is not additional independent
+evidence. Cached reports must match the artifact, parent history, openings,
+tactics, source/model hashes and significance budget before recovering a
+promotion. Old reports remain readable but cannot authorize new acceptance.
 
-## Submit on Rivanna
+## Submit on Rivanna (One Command)
 
-`bash hpc/submit_inezita.sh` (backed by `tools/submit_training.py`) creates an
-immutable source and configuration snapshot under `RUN_DIR/source/` and pins
-`RUN_DIR/job.json` before submitting Slurm jobs.
-
-Submit the single 0.1.3 track (100,000 `Normal`-termination 2400+ games with
-`base + 40 * inc >= 260s` and 50,000-node Stockfish labels, followed by GPU
-continuation from the accepted 0.1.2 model):
+Both launching the new 0.1.3 run and resuming it after a Slurm time limit use a
+**single command** with no required environment variables:
 
 ```sh
-export INIT_ARTIFACT="$PWD/results/training/inezita/teacher/candidate-0020000"
-export TRAIN_CONFIG=configs/train/inezita-0.1.3.json
-export DATA_DIR="$PWD/data/processed/inezita-0.1.3"
-export RUN_DIR="$PWD/results/training/inezita-0.1.3"
-bash hpc/submit_inezita.sh continue --prepare
+bash hpc/submit_inezita.sh
 ```
 
-Passing `--prepare` schedules `hpc/prepare_inezita.slurm` first and chains
-`hpc/train_inezita.slurm` automatically via `--dependency=afterok`.
+What this single command does automatically:
+- **First run** (when `results/training/inezita-0.1.3/job.json` does not exist):
+  snapshots the repository into `results/training/inezita-0.1.3/source/`, writes
+  `results/training/inezita-0.1.3/job.json`, submits `hpc/prepare_inezita.slurm`
+  to curate 100,000 `Normal`-termination 2400+ games (`>= 260s` time control)
+  into `data/processed/inezita-0.1.3` with 50,000-node Stockfish labels, and
+  automatically chains `hpc/train_inezita.slurm` (`--dependency=afterok`) on an
+  A100 40GB GPU for the full human $\rightarrow$ teacher $\rightarrow$ 4-round
+  self-play curriculum.
+- **Subsequent runs** (when `results/training/inezita-0.1.3/job.json` already
+  exists): automatically detects the frozen experiment and resumes preparation or
+  training from the exact committed chunk, step, or game boundary.
 
-To resume an interrupted 0.1.3 run from its frozen `job.json` snapshot:
-
-```sh
-export RUN_DIR="$PWD/results/training/inezita-0.1.3"
-bash hpc/submit_inezita.sh resume
-```
-
-Use `RESUME_MODE=portable` only when changing numerical hardware/library
-environments. The preflight requires a real compatible CUDA kernel probe; the
-existing job requests an A100 40GB. Checkpointing on a Slurm warning preserves
-progress. The full-corpus sampler has a different checkpoint signature from
-0.1.2 self-play; use a fresh run directory rather than resuming legacy 0.1.2
-optimizer checkpoints.
-
-`configs/train/inezita-0.1.3.json` requires an explicitly accepted initialization
-artifact and skips human imitation. Preserve the frozen 0.1.2 artifact; select a
-trained model explicitly with `ModelPath`/`BENCH_MODEL` until release acceptance.
+Use `RESUME_MODE=portable bash hpc/submit_inezita.sh` only when migrating across
+different GPU architectures or PyTorch versions. Preserve the frozen 0.1.2
+artifact; select a trained model explicitly with `ModelPath`/`BENCH_MODEL` until
+release acceptance.
 
 ## Release evidence
 
