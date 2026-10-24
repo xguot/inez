@@ -27,6 +27,15 @@ PIECE_VALUES = {
     chess.KING: 20.0,
 }
 
+_PIECE_VALUE_ORDER = (
+    (chess.PAWN, 1.0),
+    (chess.KNIGHT, 3.0),
+    (chess.BISHOP, 3.25),
+    (chess.ROOK, 5.0),
+    (chess.QUEEN, 9.0),
+    (chess.KING, 20.0),
+)
+
 
 @dataclass
 class Edge:
@@ -67,22 +76,22 @@ def search_info(root, nodes, depth):
     return SearchInfo(nodes, depth, tuple(pv), value)
 
 
-def _least_valuable_attacker(board: chess.Board, square: int, color: bool) -> tuple[ int | None, float ]:
+def _least_valuable_attacker(board: chess.Board, square: int, color: bool,
+                             *, check_pins: bool = True) -> tuple[int | None, float]:
     """Return (attacker_square, piece_value) for the cheapest legal-ray attacker of square."""
+    attackers = board.attackers_mask(color, square)
+    if not attackers:
+        return None, math.inf
     target_bb = chess.BB_SQUARES[square]
-    best_sq = None
-    best_val = math.inf
-    for sq in board.attackers(color, square):
-        if not (board.pin_mask(color, sq) & target_bb):
+    type_masks = (board.pawns, board.knights, board.bishops, board.rooks, board.queens, board.kings)
+    for (_, val), pt_mask in zip(_PIECE_VALUE_ORDER, type_masks):
+        candidates = attackers & pt_mask
+        if not candidates:
             continue
-        piece = board.piece_at(sq)
-        if piece is None:
-            continue
-        val = PIECE_VALUES[piece.piece_type]
-        if val < best_val:
-            best_val = val
-            best_sq = sq
-    return best_sq, best_val
+        for sq in chess.scan_forward(candidates):
+            if not check_pins or (board.pin_mask(color, sq) & target_bb):
+                return sq, val
+    return None, math.inf
 
 
 def _loss_on_square(board: chess.Board, square: int, defender_color: bool) -> float:
@@ -91,18 +100,26 @@ def _loss_on_square(board: chess.Board, square: int, defender_color: bool) -> fl
     if target is None or target.color != defender_color or target.piece_type == chess.KING:
         return 0.0
     attacker_color = not defender_color
-    first_sq, first_val = _least_valuable_attacker(board, square, attacker_color)
+    first_sq, first_val = _least_valuable_attacker(board, square, attacker_color, check_pins=True)
     if first_sq is None:
         return 0.0
+    occupant_val = PIECE_VALUES[target.piece_type]
+    defenders_mask = board.attackers_mask(defender_color, square)
+    # Fast path: undefended square and no x-ray sliders that could unpin/defend after capture.
+    if not defenders_mask and not (board.bishops | board.rooks | board.queens):
+        promo_gain = (PIECE_VALUES[chess.QUEEN] - PIECE_VALUES[chess.PAWN]
+                      if first_val == PIECE_VALUES[chess.PAWN] and chess.square_rank(square) in (0, 7)
+                      else 0.0)
+        return occupant_val + promo_gain
+
     sim = board.copy(stack=False)
     gains: list[float] = []
     side = attacker_color
-    occupant_val = PIECE_VALUES[target.piece_type]
     next_sq, next_val = first_sq, first_val
 
     while next_sq is not None:
         if next_val == PIECE_VALUES[chess.KING]:
-            opp_sq, _ = _least_valuable_attacker(sim, square, not side)
+            opp_sq, _ = _least_valuable_attacker(sim, square, not side, check_pins=False)
             if opp_sq is not None:
                 break
         promo_gain = 0.0
@@ -117,7 +134,7 @@ def _loss_on_square(board: chess.Board, square: int, defender_color: bool) -> fl
                 moving_piece = chess.Piece(chess.QUEEN, side)
             sim.set_piece_at(square, moving_piece)
         side = not side
-        next_sq, next_val = _least_valuable_attacker(sim, square, side)
+        next_sq, next_val = _least_valuable_attacker(sim, square, side, check_pins=False)
 
     value = 0.0
     for gain in reversed(gains):
@@ -128,8 +145,12 @@ def _loss_on_square(board: chess.Board, square: int, defender_color: bool) -> fl
 def _max_hanging_loss(board: chess.Board, color: bool, *, exclude_square: int | None = None) -> float:
     """Return the largest SEE loss among color's minor/major pieces on board."""
     worst = 0.0
-    for pt in (chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN):
-        for sq in board.pieces(pt, color):
+    us_occ = board.occupied_co[color]
+    for pt in (chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT):
+        if PIECE_VALUES[pt] <= worst:
+            break
+        mask = board.pieces_mask(pt, color) & us_occ
+        for sq in chess.scan_forward(mask):
             if sq == exclude_square:
                 continue
             loss = _loss_on_square(board, sq, color)
@@ -138,85 +159,107 @@ def _max_hanging_loss(board: chess.Board, color: bool, *, exclude_square: int | 
     return worst
 
 
+def _material_total(board: chess.Board, color: bool) -> float:
+    us = board.occupied_co[color]
+    return (
+        (board.pawns & us).bit_count() * 1.0
+        + (board.knights & us).bit_count() * 3.0
+        + (board.bishops & us).bit_count() * 3.25
+        + (board.rooks & us).bit_count() * 5.0
+        + (board.queens & us).bit_count() * 9.0
+    )
+
+
 def _tactical_priors(board: chess.Board, priors: dict[str, float]) -> dict[str, float]:
     """Adjust priors for 1-ply mates, stalemates, exact SEE, hanging pieces, and endgame conversion."""
     turn = board.turn
-    our_mat = sum(len(board.pieces(pt, turn)) * val for pt, val in PIECE_VALUES.items() if pt != chess.KING)
-    opp_mat = sum(len(board.pieces(pt, not turn)) * val for pt, val in PIECE_VALUES.items() if pt != chess.KING)
+    our_mat = _material_total(board, turn)
+    opp_mat = _material_total(board, not turn)
     mat_diff = our_mat - opp_mat
     winning_material = mat_diff >= 1.0
     hanging_before = _max_hanging_loss(board, turn)
+    bare_king_endgame = opp_mat == 0.0 and our_mat >= 4.0
+    our_king_before = board.king(turn) if bare_king_endgame else None
 
+    work = board.copy(stack=8)
     adjusted = {}
     for uci, prior in priors.items():
         move = chess.Move.from_uci(uci)
-        mover = board.piece_at(move.from_square)
-        if board.is_en_passant(move):
+        mover = work.piece_at(move.from_square)
+        if work.is_en_passant(move):
             captured_val = 1.0
         else:
-            captured = board.piece_at(move.to_square)
+            captured = work.piece_at(move.to_square)
             captured_val = PIECE_VALUES[captured.piece_type] if captured else 0.0
         promo_gain = (PIECE_VALUES[move.promotion] - 1.0) if move.promotion else 0.0
 
-        child = board.copy(stack=8)
-        child.push(move)
+        work.push(move)
+        try:
+            if work.is_checkmate():
+                adjusted[uci] = max(prior, 0.05) * 200.0
+                continue
+            if winning_material and (work.is_stalemate() or work.is_insufficient_material()):
+                adjusted[uci] = prior * 0.002
+                continue
+            if mat_diff >= 2.0 and (work.is_repetition(2) or work.halfmove_clock >= 100):
+                adjusted[uci] = prior * 0.015
+                continue
 
-        if child.is_checkmate():
-            adjusted[uci] = max(prior, 0.05) * 200.0
-            continue
-        if winning_material and (child.is_stalemate() or child.is_insufficient_material()):
-            adjusted[uci] = prior * 0.002
-            continue
-        if mat_diff >= 2.0 and (child.is_repetition(2) or child.halfmove_clock >= 100):
-            adjusted[uci] = prior * 0.015
-            continue
+            gives_check = work.is_check()
+            mult = 1.0
+            loss_at_dest = _loss_on_square(work, move.to_square, turn)
+            move_see = captured_val + promo_gain - loss_at_dest
 
-        mult = 1.0
-        loss_at_dest = _loss_on_square(child, move.to_square, turn)
-        move_see = captured_val + promo_gain - loss_at_dest
+            # Other friendly pieces left hanging after this move (if not giving check).
+            other_hanging = 0.0 if gives_check else _max_hanging_loss(
+                work, turn, exclude_square=move.to_square
+            )
 
-        # Other friendly pieces left hanging after this move (if not giving check).
-        other_hanging = 0.0 if child.is_check() else _max_hanging_loss(
-            child, turn, exclude_square=move.to_square
-        )
+            if move_see <= -1.5:
+                if gives_check:
+                    # Do not blind MCTS to forcing checking sacrifices (e.g. Bxa2+, Nxc2+).
+                    mult *= 0.20 if move_see <= -2.5 else 0.35
+                else:
+                    mult *= 0.015 if move_see <= -2.5 else 0.03
+            elif move_see >= 1.5 and (move_see - other_hanging) >= 1.0:
+                # Winning capture or promotion that remains profitable even after opponent's best reply.
+                net_gain = move_see - other_hanging
+                mult *= 5.0 * (1.0 + net_gain / 3.0)
 
-        if move_see <= -1.5:
-            # Move itself loses material on destination square (bad capture or stepping en prise).
-            mult *= 0.015 if move_see <= -2.5 else 0.03
-        elif move_see >= 1.5 and (move_see - other_hanging) >= 1.0:
-            # Winning capture or promotion that remains profitable even after opponent's best reply.
-            net_gain = move_see - other_hanging
-            mult *= 5.0 * (1.0 + net_gain / 3.0)
+            if hanging_before >= 2.0:
+                # A minor/major piece was en prise before the move.
+                worst_after = max(max(0.0, -move_see), max(0.0, other_hanging - max(0.0, move_see)))
+                if worst_after <= 1.0 or (worst_after < hanging_before - 1.0 and other_hanging <= 1.5):
+                    # Genuinely saved the hanging piece or traded out cleanly.
+                    mult *= 5.5
+                elif worst_after < hanging_before - 1.0:
+                    # Desperado capture while leaving a major piece hanging still loses material.
+                    mult *= 0.35
+                else:
+                    mult *= 0.12
+            elif other_hanging >= 2.0 and (other_hanging - max(0.0, move_see)) >= 2.0:
+                # Move abandoned defense of a friendly piece or walked into a discovered attack.
+                mult *= 0.04
 
-        if hanging_before >= 2.0:
-            # A minor/major piece was en prise before the move.
-            worst_after = max(max(0.0, -move_see), max(0.0, other_hanging - max(0.0, move_see)))
-            if worst_after < hanging_before - 1.0:
-                mult *= 5.5
-            else:
-                mult *= 0.12
-        elif other_hanging >= 2.0 and (other_hanging - max(0.0, move_see)) >= 2.0:
-            # Move abandoned defense of a friendly piece or walked into a discovered attack.
-            mult *= 0.04
+            if bare_king_endgame:
+                opp_moves = work.legal_moves.count()
+                our_king_after = work.king(turn)
+                opp_king = work.king(not turn)
+                if our_king_before is not None and our_king_after is not None and opp_king is not None:
+                    dist_before = chess.square_distance(our_king_before, opp_king)
+                    dist_after = chess.square_distance(our_king_after, opp_king)
+                    prior = 0.5 * prior + 0.5 / max(1, len(priors))
+                    mult *= (1.0 + 0.45 * (8 - min(8, opp_moves))) * (1.0 + 0.30 * (7 - dist_after))
+                    if dist_after < dist_before:
+                        mult *= 1.8
+                    elif dist_after > dist_before:
+                        mult *= 0.25
+                if mover is not None and mover.piece_type == chess.PAWN:
+                    mult *= 1.6
 
-        if opp_mat == 0.0 and our_mat >= 4.0:
-            opp_moves = child.legal_moves.count()
-            our_king_before = board.king(turn)
-            our_king_after = child.king(turn)
-            opp_king = child.king(not turn)
-            if our_king_before is not None and our_king_after is not None and opp_king is not None:
-                dist_before = chess.square_distance(our_king_before, opp_king)
-                dist_after = chess.square_distance(our_king_after, opp_king)
-                prior = 0.5 * prior + 0.5 / max(1, len(priors))
-                mult *= (1.0 + 0.45 * (8 - min(8, opp_moves))) * (1.0 + 0.30 * (7 - dist_after))
-                if dist_after < dist_before:
-                    mult *= 1.8
-                elif dist_after > dist_before:
-                    mult *= 0.25
-            if mover is not None and mover.piece_type == chess.PAWN:
-                mult *= 1.6
-
-        adjusted[uci] = prior * mult
+            adjusted[uci] = prior * mult
+        finally:
+            work.pop()
 
     total = sum(adjusted.values())
     return {uci: val / total for uci, val in adjusted.items()} if total > 0 else priors
@@ -225,8 +268,8 @@ def _tactical_priors(board: chess.Board, priors: dict[str, float]) -> dict[str, 
 def _leaf_value_adjustment(board: chess.Board, neural_value: float) -> float:
     """Anchor leaf value with 1-ply SEE material reality and bare-king mating progress."""
     turn = board.turn
-    our_mat = sum(len(board.pieces(pt, turn)) * val for pt, val in PIECE_VALUES.items() if pt != chess.KING)
-    opp_mat = sum(len(board.pieces(pt, not turn)) * val for pt, val in PIECE_VALUES.items() if pt != chess.KING)
+    our_mat = _material_total(board, turn)
+    opp_mat = _material_total(board, not turn)
     if (opp_mat == 0.0 and our_mat >= 4.0) or (our_mat == 0.0 and opp_mat >= 4.0):
         winner_turn = our_mat > opp_mat
         bare_king = board.king(not turn if winner_turn else turn)
@@ -243,41 +286,62 @@ def _leaf_value_adjustment(board: chess.Board, neural_value: float) -> float:
                 progress = 0.50 * edge_progress + 0.50 * king_closeness
             target = (0.70 + 0.29 * progress) if winner_turn else -(0.70 + 0.29 * progress)
             return max(-1.0, min(1.0, 0.1 * neural_value + 0.9 * target))
-    immediate_gain = _max_hanging_loss(board, not turn)
-    effective_diff = (our_mat - opp_mat) + 0.85 * immediate_gain
+    immediate_gain = 0.0 if board.is_check() else _max_hanging_loss(board, not turn)
+    effective_diff = (our_mat - opp_mat) + 0.75 * immediate_gain
     material_value = math.tanh(effective_diff / 6.0)
-    return max(-1.0, min(1.0, 0.75 * neural_value + 0.25 * material_value))
+    return max(-1.0, min(1.0, 0.88 * neural_value + 0.12 * material_value))
 
 
 class NeuralEvaluator:
-    def __init__(self, model, *, use_book=True, book_path=DEFAULT_OPENINGS_PATH, tactical_guard=True):
+    def __init__(self, model, *, use_book=True, book_path=DEFAULT_OPENINGS_PATH,
+                 tactical_guard=True, batch_size=8):
         self.model = model
         self.device = next(model.parameters()).device
         self.use_book = use_book and Path(book_path).is_file()
         self.book_path = str(book_path)
         self.tactical_guard = tactical_guard
+        self.batch_size = max(1, int(batch_size))
 
-    @torch.no_grad()
-    def __call__(self, board):
-        self.model.eval()
-        x = torch.tensor(encode_position(board), dtype=torch.float32,
-                         device=self.device).reshape(1, 64, 119)
-        policy, wdl = self.model(x)
-        moves = list(board.legal_moves)
-        mask = torch.zeros_like(policy, dtype=torch.bool)
-        indices = [move_to_policy_index(board, move) for move in moves]
-        mask[0, indices] = True
-        probabilities = legal_masked_policy(policy, mask)[0]
-        _, value = wdl_probabilities_and_value(wdl)
-        priors = {move.uci(): float(probabilities[index].item())
-                  for move, index in zip(moves, indices)}
-        leaf_value = float(value.item())
+    def _postprocess(self, board, moves, indices, prob_row, leaf_value):
+        priors = {move.uci(): float(prob_row[index]) for move, index in zip(moves, indices)}
         if self.use_book and len(board.move_stack) <= 24:
             priors = default_opening_book(self.book_path).blend_priors(board, priors, weight=0.65)
         if self.tactical_guard and priors:
             priors = _tactical_priors(board, priors)
             leaf_value = _leaf_value_adjustment(board, leaf_value)
         return priors, leaf_value
+
+    @torch.no_grad()
+    def evaluate_batch(self, boards):
+        if not boards:
+            return []
+        self.model.eval()
+        batch_len = len(boards)
+        encoded = [encode_position(b) for b in boards]
+        x = torch.tensor(encoded, dtype=torch.float32, device=self.device).reshape(batch_len, 64, 119)
+        policy, wdl = self.model(x)
+        mask = torch.zeros_like(policy, dtype=torch.bool)
+        moves_list = []
+        indices_list = []
+        for row, b in enumerate(boards):
+            moves = list(b.legal_moves)
+            indices = [move_to_policy_index(b, move) for move in moves]
+            mask[row, indices] = True
+            moves_list.append(moves)
+            indices_list.append(indices)
+        probabilities = legal_masked_policy(policy, mask).cpu().tolist()
+        _, values = wdl_probabilities_and_value(wdl)
+        values_list = values.cpu().tolist()
+        return [
+            self._postprocess(b, moves, indices, prob_row, float(val))
+            for b, moves, indices, prob_row, val in zip(
+                boards, moves_list, indices_list, probabilities, values_list
+            )
+        ]
+
+    @torch.no_grad()
+    def __call__(self, board):
+        return self.evaluate_batch([board])[0]
 
 
 def terminal_value(board, *, claim_draw=False):
@@ -357,50 +421,17 @@ def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None,
             q = fpu_value if visits > 0 else node_value
         if edge.visits >= 2:
             sigma = math.sqrt(max(0.0, edge.var))
-            explore = (cpuct * (0.65 + 0.70 * sigma) * math.sqrt(visits + 1)
-                       + 0.35 * math.log(visits + 2.0)) * edge.prior / (1 + edge.visits)
+            explore = cpuct * (0.50 + 0.50 * sigma) * edge.prior * math.sqrt(visits + 1) / (1 + edge.visits)
         else:
-            explore = cpuct * edge.prior * math.sqrt(visits + 1) / (1 + edge.visits)
+            explore = cpuct * 0.75 * edge.prior * math.sqrt(visits + 1) / (1 + edge.visits)
         return q + explore
 
-    iterations = range(simulations) if simulations is not None else itertools.count()
-    for _ in iterations:
-        if stop is not None and stop():
-            break
-        cursor = board.copy(stack=True)
-        children = root
-        path = []
-        while True:
-            if stop is not None and stop():
-                return finish()
-            visits = sum(edge.visits for edge in children.values())
-            first_edge = next(iter(children.values()))
-            if visits > 0:
-                total_value = sum(edge.value_sum for edge in children.values())
-                visited_prior = sum(edge.prior for edge in children.values() if edge.visits > 0)
-                node_value = (first_edge.parent_value + total_value) / (1 + visits)
-                fpu_value = max(-1.0, node_value - 0.22 * math.sqrt(min(1.0, visited_prior)))
-            else:
-                node_value = first_edge.parent_value
-                fpu_value = node_value
-            move, edge = max(children.items(),
-                             key=lambda item: puct_score(item, visits, node_value, fpu_value))
-            cursor.push_uci(move)
-            path.append(edge)
-            value = terminal_value(cursor, claim_draw=True)
-            if value is not None:
-                edge.terminal = value
-                break
-            if not edge.children:
-                priors, value = evaluate(cursor)
-                if not math.isfinite(value) or not -1 <= value <= 1:
-                    raise ValueError("invalid leaf value")
-                edge.children = {move: Edge(p, parent_value=value)
-                                 for move, p in _normalize_priors(priors).items()}
-                break
-            children = edge.children
+    def backup_path(path, leaf_val):
+        nonlocal completed, deepest, reported
+        value = leaf_val
         for depth_from_leaf, edge in enumerate(reversed(path)):
-            value = -value * (0.99 if depth_from_leaf > 0 else 1.0)
+            discount = (0.995 if abs(value) > 0.90 else 0.9995) if depth_from_leaf > 0 else 1.0
+            value = -value * discount
             old_mean = edge.value_sum / edge.visits if edge.visits else 0.0
             edge.visits += 1
             edge.value_sum += value
@@ -411,8 +442,129 @@ def search(board, evaluate, simulations=64, cpuct=2.5, *, noise=False, rng=None,
         if on_update and completed % update_interval == 0:
             on_update(search_info(root, completed, deepest))
             reported = completed
-        if depth_limit is not None and deepest >= depth_limit:
+
+    batch_fn = getattr(evaluate, 'evaluate_batch', None)
+    max_batch = getattr(evaluate, 'batch_size', 1) if callable(batch_fn) and depth_limit is None else 1
+
+    while simulations is None or completed < simulations:
+        if stop is not None and stop():
             break
+        remaining = (simulations - completed) if simulations is not None else max_batch
+        target_batch = min(max_batch, remaining, update_interval - (completed % update_interval))
+        if target_batch <= 1:
+            cursor = board.copy(stack=True)
+            children = root
+            path = []
+            while True:
+                if stop is not None and stop():
+                    return finish()
+                visits = sum(edge.visits for edge in children.values())
+                first_edge = next(iter(children.values()))
+                if visits > 0:
+                    total_value = sum(edge.value_sum for edge in children.values())
+                    visited_prior = sum(edge.prior for edge in children.values() if edge.visits > 0)
+                    node_value = (first_edge.parent_value + total_value) / (1 + visits)
+                    fpu_value = max(-1.0, node_value - 0.22 * math.sqrt(min(1.0, visited_prior)))
+                else:
+                    node_value = first_edge.parent_value
+                    fpu_value = node_value
+                move, edge = max(children.items(),
+                                 key=lambda item: puct_score(item, visits, node_value, fpu_value))
+                cursor.push_uci(move)
+                path.append(edge)
+                value = terminal_value(cursor, claim_draw=True)
+                if value is not None:
+                    edge.terminal = value
+                    break
+                if not edge.children:
+                    priors, value = evaluate(cursor)
+                    if not math.isfinite(value) or not -1 <= value <= 1:
+                        raise ValueError("invalid leaf value")
+                    edge.children = {move: Edge(p, parent_value=value)
+                                     for move, p in _normalize_priors(priors).items()}
+                    break
+                children = edge.children
+            backup_path(path, value)
+            if depth_limit is not None and deepest >= depth_limit:
+                break
+            continue
+
+        # Batched virtual-loss leaf gathering for neural evaluation.
+        trajectories = []
+        pending_eval = []
+        seen_leaves = set()
+        aborted = False
+        for _ in range(target_batch):
+            if stop is not None and stop():
+                aborted = True
+                break
+            cursor = board.copy(stack=True)
+            children = root
+            path = []
+            collision = False
+            while True:
+                if stop is not None and stop():
+                    aborted = True
+                    break
+                visits = sum(edge.visits for edge in children.values())
+                first_edge = next(iter(children.values()))
+                if visits > 0:
+                    total_value = sum(edge.value_sum for edge in children.values())
+                    visited_prior = sum(edge.prior for edge in children.values() if edge.visits > 0)
+                    node_value = (first_edge.parent_value + total_value) / (1 + visits)
+                    fpu_value = max(-1.0, node_value - 0.22 * math.sqrt(min(1.0, visited_prior)))
+                else:
+                    node_value = first_edge.parent_value
+                    fpu_value = node_value
+                move, edge = max(children.items(),
+                                 key=lambda item: puct_score(item, visits, node_value, fpu_value))
+                cursor.push_uci(move)
+                path.append(edge)
+                value = terminal_value(cursor, claim_draw=True)
+                if value is not None:
+                    edge.terminal = value
+                    for e in path:
+                        e.visits += 1
+                        e.value_sum -= 1.0
+                    trajectories.append((path, edge, value, None))
+                    break
+                if not edge.children:
+                    if id(edge) in seen_leaves:
+                        collision = True
+                        break
+                    seen_leaves.add(id(edge))
+                    for e in path:
+                        e.visits += 1
+                        e.value_sum -= 1.0
+                    eval_idx = len(pending_eval)
+                    pending_eval.append(cursor)
+                    trajectories.append((path, edge, None, eval_idx))
+                    break
+                children = edge.children
+            if aborted or collision:
+                break
+
+        # Always remove virtual losses before checking stop or backing up.
+        for path, _, _, _ in trajectories:
+            for e in path:
+                e.visits -= 1
+                e.value_sum += 1.0
+        if aborted and not trajectories:
+            return finish()
+
+        eval_results = batch_fn(pending_eval) if pending_eval else []
+        for path, edge, term_val, eval_idx in trajectories:
+            if eval_idx is not None:
+                priors, value = eval_results[eval_idx]
+                if not math.isfinite(value) or not -1 <= value <= 1:
+                    raise ValueError("invalid leaf value")
+                edge.children = {move: Edge(p, parent_value=value)
+                                 for move, p in _normalize_priors(priors).items()}
+            else:
+                value = term_val
+            backup_path(path, value)
+        if aborted:
+            return finish()
     return finish()
 
 

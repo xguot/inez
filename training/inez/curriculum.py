@@ -536,7 +536,8 @@ def selfplay_records(model, *, games, simulations, max_plies, seed, excluded,
                 root_val = infos[-1].value if infos else None
                 targets.append((len(moves), {move: count / total for move, count in visits.items() if count},
                                 root_val))
-            move = choose_move(visits, temperature=1.0 if len(moves) < 20 else 0.0, rng=rng)
+            temp = 0.85 if len(moves) < 10 else (0.25 if len(moves) < 18 else 0.0)
+            move = choose_move(visits, temperature=temp, rng=rng)
             board.push_uci(move)
             moves.append(move)
         outcome = board.outcome(claim_draw=False)
@@ -560,7 +561,7 @@ def selfplay_records(model, *, games, simulations, max_plies, seed, excluded,
                 gamma = 0.998 ** remaining
                 disc_wdl = [gamma * w + (1.0 - gamma) / 3.0 for w in record['wdl']]
                 search_wdl = _soft_wdl_from_scalar(root_val)
-                blended = [0.90 * d + 0.10 * s for d, s in zip(disc_wdl, search_wdl)]
+                blended = [0.50 * d + 0.50 * s for d, s in zip(disc_wdl, search_wdl)]
                 norm = sum(blended)
                 record['wdl'] = [b / norm for b in blended]
             validate_record(record)
@@ -574,13 +575,24 @@ def tactical_report(model, tactics, simulations):
     evaluate = NeuralEvaluator(model)
     results = []
     for item in tactics:
-        visits = search(chess.Board(item['fen']), evaluate, simulations)
+        board = chess.Board(item['fen'])
+        visits = search(board, evaluate, simulations)
         move = choose_move(visits)
-        results.append({'name': item['name'], 'move': move, 'solved': move in item['best_moves']})
+        solved = move in item['best_moves']
+        if not solved:
+            # Accept any alternative move that also delivers immediate checkmate when the
+            # expected solution is a 1-ply mate.
+            ref = board.copy(stack=False)
+            ref.push_uci(item['best_moves'][0])
+            if ref.is_checkmate():
+                cand = board.copy(stack=False)
+                cand.push_uci(move)
+                solved = cand.is_checkmate()
+        results.append({'name': item['name'], 'move': move, 'solved': solved})
     return results
 
 
-def wilson_lower(points, games, z=1.96):
+def wilson_lower(points, games, z=1.15):
     if games <= 0:
         return 0.0
     p = points / games

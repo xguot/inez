@@ -424,6 +424,13 @@ def pipeline(args, config, model_config):
         # Warm-starting a later run explicitly skips human imitation forever.
         if not args.init_artifact:
             stage('human', 'human', human_train, human_validation, settings['human_steps'])
+        if 'teacher' not in state['completed'] and not (root / 'teacher' / 'last.pt').exists():
+            accepted_state = json.loads((root / 'accepted.json').read_text())
+            if len(accepted_state.get('history', [])) > 1:
+                champion_path = Path(accepted_state['artifact'])
+                model = load_checkpoint(champion_path, device=device, expected_config=model_config)
+                print(json.dumps({'teacher_initialization': 'teacher',
+                                  'artifact': str(champion_path)}), flush=True)
         stage('teacher', 'teacher', teacher_train, teacher_validation, settings['teacher_steps'])
         for number in range(config['selfplay']['rounds']):
             if stop.requested:

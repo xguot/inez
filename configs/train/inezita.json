@@ -29,11 +29,11 @@
   "training": {
     "human_steps": 20000,
     "teacher_steps": 30000,
-    "selfplay_steps": 4000,
+    "selfplay_steps": 1000,
     "batch_size": 128,
     "lr": 0.0003,
     "teacher_lr": 0.0001,
-    "selfplay_lr": 3e-05,
+    "selfplay_lr": 1.5e-05,
     "weight_decay": 0.0001,
     "clip_grad": 1.0,
     "checkpoint_every": 5000,
@@ -41,13 +41,13 @@
   },
   "selfplay": {
     "rounds": 2,
-    "games": 16,
-    "simulations": 64,
+    "games": 32,
+    "simulations": 128,
     "max_plies": 512,
-    "teacher_replay_fraction": 0.75
+    "teacher_replay_fraction": 0.8
   },
   "gate": {
-    "pairs": 12,
+    "pairs": 16,
     "simulations": 64,
     "max_plies": 512,
     "minimum_score": 0.55,
@@ -64,7 +64,11 @@
       ["b1c3", "d7d5", "g1f3", "d5d4"],
       ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4"],
       ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6"],
-      ["d2d4", "d7d5", "c2c4", "c7c6", "g1f3", "g8f6"]
+      ["d2d4", "d7d5", "c2c4", "c7c6", "g1f3", "g8f6"],
+      ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"],
+      ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "e7e6"],
+      ["e2e4", "c7c5", "b1c3", "b8c6", "g1f3", "d7d6"],
+      ["g1f3", "d7d5", "g2g3", "g8f6", "f1g2", "c7c6"]
     ]
   }
 }

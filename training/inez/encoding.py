@@ -71,49 +71,63 @@ def encode_position(board: chess.Board) -> list[float]:
     faithfully. Neither the board nor its move stack is modified.
     """
     _require_standard_board(board)
+    perspective = board.turn
+    not_perspective = not perspective
     cursor = board.copy(stack=True)
     keys = []
     frames = []
     while True:
         keys.append(_repetition_identity(cursor))
         if len(frames) < HISTORY_FRAMES:
-            frames.append(cursor.copy(stack=False))
-        if not cursor.move_stack:
+            frames.append((
+                cursor.pawns,
+                cursor.knights,
+                cursor.bishops,
+                cursor.rooks,
+                cursor.queens,
+                cursor.kings,
+                cursor.occupied_co[perspective],
+                cursor.occupied_co[not_perspective],
+            ))
+        if not cursor.move_stack or (len(frames) == HISTORY_FRAMES and cursor.halfmove_clock == 0):
             break
         cursor.pop()
     counts = Counter(keys)
     features = [0.0] * (SQUARE_COUNT * FEATURE_COUNT)
-    perspective = board.turn
+    flip = 0 if perspective == chess.WHITE else 56
     for frame_index, frame in enumerate(frames):
         base = frame_index * FRAME_FEATURES
         repeated = float(counts[keys[frame_index]] >= 2)
-        for square in chess.SQUARES:
-            output_square = oriented_square(square, perspective)
-            offset = output_square * FEATURE_COUNT + base
-            piece = frame.piece_at(square)
-            if piece is not None:
-                channel = piece.piece_type - 1 + (0 if piece.color == perspective else 6)
-                features[offset + channel] = 1.0
+        for sq in range(SQUARE_COUNT):
+            offset = sq * FEATURE_COUNT + base
             features[offset + 12] = repeated
             features[offset + 13] = 1.0
+        us_occ = frame[6]
+        them_occ = frame[7]
+        for ch in range(6):
+            bb = frame[ch]
+            for sq in chess.scan_forward(bb & us_occ):
+                features[(sq ^ flip) * FEATURE_COUNT + base + ch] = 1.0
+            for sq in chess.scan_forward(bb & them_occ):
+                features[(sq ^ flip) * FEATURE_COUNT + base + ch + 6] = 1.0
         # The next older frame must not see occurrences from its future.
         counts[keys[frame_index]] -= 1
 
     extras = (
         float(board.has_kingside_castling_rights(perspective)),
         float(board.has_queenside_castling_rights(perspective)),
-        float(board.has_kingside_castling_rights(not perspective)),
-        float(board.has_queenside_castling_rights(not perspective)),
+        float(board.has_kingside_castling_rights(not_perspective)),
+        float(board.has_queenside_castling_rights(not_perspective)),
     )
     halfmove = struct.unpack("f", struct.pack("f", min(board.halfmove_clock, 150) / 150.0))[0]
     absolute_black = float(perspective == chess.BLACK)
-    for square in chess.SQUARES:
+    for square in range(SQUARE_COUNT):
         offset = square * FEATURE_COUNT
         features[offset + 112:offset + 116] = extras
         features[offset + 117] = halfmove
         features[offset + 118] = absolute_black
     if board.has_legal_en_passant():
-        ep = oriented_square(board.ep_square, perspective)
+        ep = board.ep_square ^ flip
         features[ep * FEATURE_COUNT + 116] = 1.0
     return features
 

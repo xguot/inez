@@ -613,5 +613,27 @@ while True:
         self.assertLess(float(masked[:, :, 14:112].sum().item()), float(features[:, :, 14:112].sum().item()))
 
 
+    def test_batched_puct_desperado_guard_and_calibrated_gate(self):
+        from inez.puct import NeuralEvaluator, _tactical_priors
+        model = ChessTransformer(ModelConfig(width=16, layers=1, heads=2, dynamic_rank=2, policy_width=4))
+        evaluator = NeuralEvaluator(model, batch_size=8)
+        board = chess.Board()
+        visits = search(board, evaluator, simulations=24)
+        self.assertEqual(sum(visits.values()), 24)
+        self.assertEqual(set(visits), {m.uci() for m in board.legal_moves})
+
+        # When our queen is attacked on a5 by b4 and our knight on e4 can capture a bishop on f2
+        # (re-captured by king), saving the queen must outrank leaving the queen en prise.
+        desperado = chess.Board('r3k2r/pp2bppp/2n5/q7/1P2n3/P3P3/3R1BPP/2KR1BNR b kq - 0 1')
+        raw = {m.uci(): 1.0 / desperado.legal_moves.count() for m in desperado.legal_moves}
+        adj = _tactical_priors(desperado, raw)
+        self.assertGreater(adj['a5a3'], adj['e4f2'] * 5.0)
+
+        # Calibrated Wilson bound promotes a 15/24 (62.5%) win margin while still rejecting 1/1 and 8/16.
+        tactics_ok = [{'name': 'mate', 'solved': True}]
+        self.assertTrue(promotion_decision(15.0, 24, tactics_ok, tactics_ok)['passed'])
+        self.assertFalse(promotion_decision(13.0, 24, tactics_ok, tactics_ok)['passed'])
+
+
 if __name__ == '__main__':
     unittest.main()

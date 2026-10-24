@@ -194,7 +194,7 @@ def _priority_sampling_table(records):
         policy = record.get('policy')
         moves = record.get('moves', ())
         ply = record.get('ply', 0)
-        if policy and ply < len(moves) and record.get('label_kind') in ('teacher_wdl', 'search'):
+        if policy and ply < len(moves) and record.get('label_kind') == 'teacher_wdl':
             p_played = float(policy.get(moves[ply], 0.0))
             surprise = min(2.0, -math.log(max(p_played, 0.05)))
         if ply >= 56 or str(record.get('source_id', '')).startswith('mco-'):
